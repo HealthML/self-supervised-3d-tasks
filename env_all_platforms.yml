@@ -1,0 +1,16 @@
+name: conda-env
+dependencies:
+  - absl-py
+  - h5py
+  - hdf5
+  - pandas
+  - python=3.6.6
+  - scikit-image
+  - scikit-learn
+  - scipy
+  - tensorboard
+  - tensorflow
+  - tensorflow-base
+  - pip
+  - pip:
+    - tensorflow_hub
