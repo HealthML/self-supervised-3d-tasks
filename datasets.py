@@ -143,6 +143,75 @@ def generate_sharded_filenames(filename):
     count = int(count)
     return ['{}-{:05d}-of-{:05d}'.format(base, i, count) for i in range(count)]
 
+
+class DatasetCpcMnist(AbstractDataset):
+    """CPC Test data, MNIST"""
+
+    COUNTS = {'train': 1024*10,
+              'val': 1024*2,
+              'trainval': 1024*12,
+              'test': 1024*2}
+
+    E_PRED_KEY = 'image/encoded_pred'
+    E_KEY = 'image/encoded'
+    P_TERMS_KEY = 'image/pred_terms'
+    TERMS_KEY = 'image/terms'
+    HEIGHT_KEY = 'image/height'
+    WIDTH_KEY = 'image/width'
+    CHANNELS_KEY = 'image/channels'
+    LABELS_KEY = 'image/labels'
+
+    # TODO: have variable terms & sizes here
+    FEATURE_MAP = {
+        E_PRED_KEY: tf.FixedLenFeature(shape=[4, 64, 64, 3], dtype=tf.float32),
+        E_KEY: tf.FixedLenFeature(shape=[4, 64, 64, 3], dtype=tf.float32),
+        P_TERMS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
+        TERMS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
+        HEIGHT_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
+        WIDTH_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
+        CHANNELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
+        LABELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64)
+    }
+
+    def __init__(self,
+                 split_name,
+                 preprocess_fn,
+                 num_epochs,
+                 shuffle,
+                 random_seed=None,
+                 drop_remainder=True):
+        files = os.path.join(os.path.expanduser(FLAGS.dataset_dir), '%s@%i')
+
+        filenames = {
+            'train': generate_sharded_filenames(files % ('train.tfrecord', 12))[:-2],
+            'val': generate_sharded_filenames(files % ('train.tfrecord', 12))[-2:],
+            'trainval': generate_sharded_filenames(files % ('train.tfrecord', 22)),
+            'test': generate_sharded_filenames(files % ('valid.tfrecord', 2))
+        }
+
+        tf.logging.info(filenames[split_name])
+
+        super(DatasetCpcMnist, self).__init__(
+            filenames=filenames[split_name],
+            reader=tf.data.TFRecordDataset,
+            num_epochs=num_epochs,
+            shuffle=shuffle,
+            random_seed=random_seed,
+            drop_remainder=drop_remainder)
+
+        self.split_name = split_name
+        self.preprocess_fn = preprocess_fn
+
+    def _parse_fn(self, value):
+        example = tf.parse_single_example(value, self.FEATURE_MAP)
+        pred = example[self.E_PRED_KEY]
+        encoded = example[self.E_KEY]
+        labels = example[self.LABELS_KEY]
+
+        # self.preprocess_fn({'image': image})
+        # we skip the preprocessing for this
+        return {'example': example, 'pred': pred, 'encoded': encoded, "labels": labels}
+
 class DatasetBratsUnsupervised(AbstractDataset):
     """Provides train/val/trainval/test splits for Brats data.
     -> trainval split represents official Brats train split.
@@ -596,7 +665,8 @@ DATASET_MAP = {
     'brats_supervised': DatasetBratsSupervised,
     'brats_supervised_3d': DatasetBratsSupervised3D,
     'ukb': DatasetUKB,
-    'ukb3d': DatasetUKB3D
+    'ukb3d': DatasetUKB3D,
+    'cpc_test': DatasetCpcMnist
 }
 
 
