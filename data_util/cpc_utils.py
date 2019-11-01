@@ -10,7 +10,6 @@ import tensorflow as tf
 
 
 class MnistHandler(object):
-
     ''' Provides a convenient interface to manipulate MNIST data '''
 
     def __init__(self):
@@ -163,7 +162,6 @@ class MnistHandler(object):
         # Find samples matching labels
         idxs = []
         for i, label in enumerate(labels):
-
             idx = np.where(y == label)[0]
             idx_sel = np.random.choice(idx, 1)[0]
             idxs.append(idx_sel)
@@ -189,11 +187,9 @@ class MnistHandler(object):
 
 
 class MnistGenerator(object):
-
     ''' Data generator providing MNIST data '''
 
     def __init__(self, batch_size, subset, image_size=28, color=False, rescale=True):
-
         # Set params
         self.batch_size = batch_size
         self.subset = subset
@@ -216,7 +212,6 @@ class MnistGenerator(object):
         return self.n_batches
 
     def next(self):
-
         # Get data
         x, y = self.mnist_handler.get_batch(self.subset, self.batch_size, self.image_size, self.color, self.rescale)
 
@@ -227,10 +222,10 @@ class MnistGenerator(object):
 
 
 class SortedNumberGenerator(object):
-
     ''' Data generator providing lists of sorted numbers '''
 
-    def __init__(self, batch_size, subset, terms, positive_samples=1, predict_terms=1, image_size=28, color=False, rescale=True):
+    def __init__(self, batch_size, subset, terms, positive_samples=1, predict_terms=1, image_size=28, color=False,
+                 rescale=True):
 
         # Set params
         self.positive_samples = positive_samples
@@ -286,10 +281,12 @@ class SortedNumberGenerator(object):
             positive_samples_n -= 1
 
         # Retrieve actual images
-        images, _ = self.mnist_handler.get_batch_by_labels(self.subset, image_labels.flatten(), self.image_size, self.color, self.rescale)
+        images, _ = self.mnist_handler.get_batch_by_labels(self.subset, image_labels.flatten(), self.image_size,
+                                                           self.color, self.rescale)
 
         # Assemble batch
-        images = images.reshape((self.batch_size, self.terms + self.predict_terms, images.shape[1], images.shape[2], images.shape[3]))
+        images = images.reshape(
+            (self.batch_size, self.terms + self.predict_terms, images.shape[1], images.shape[2], images.shape[3]))
         x_images = images[:, :-self.predict_terms, ...]
         y_images = images[:, -self.predict_terms:, ...]
 
@@ -300,10 +297,10 @@ class SortedNumberGenerator(object):
 
 
 class SameNumberGenerator(object):
-
     ''' Data generator providing lists of similar numbers '''
 
-    def __init__(self, batch_size, subset, terms, positive_samples=1, predict_terms=1, image_size=28, color=False, rescale=True):
+    def __init__(self, batch_size, subset, terms, positive_samples=1, predict_terms=1, image_size=28, color=False,
+                 rescale=True):
 
         # Set params
         self.positive_samples = positive_samples
@@ -342,9 +339,9 @@ class SameNumberGenerator(object):
             sentence = seed * np.ones(self.terms + self.predict_terms)
 
             if positive_samples_n <= 0:
-
                 # Set random predictions for negative samples
-                sentence[-self.predict_terms:] = np.mod(sentence[-self.predict_terms:] + np.random.randint(1, 10, self.predict_terms), 10)
+                sentence[-self.predict_terms:] = np.mod(
+                    sentence[-self.predict_terms:] + np.random.randint(1, 10, self.predict_terms), 10)
                 sentence_labels[b, :] = 0
 
             # Save sentence
@@ -353,10 +350,12 @@ class SameNumberGenerator(object):
             positive_samples_n -= 1
 
         # Retrieve actual images
-        images, _ = self.mnist_handler.get_batch_by_labels(self.subset, image_labels.flatten(), self.image_size, self.color, self.rescale)
+        images, _ = self.mnist_handler.get_batch_by_labels(self.subset, image_labels.flatten(), self.image_size,
+                                                           self.color, self.rescale)
 
         # Assemble batch
-        images = images.reshape((self.batch_size, self.terms + self.predict_terms, images.shape[1], images.shape[2], images.shape[3]))
+        images = images.reshape(
+            (self.batch_size, self.terms + self.predict_terms, images.shape[1], images.shape[2], images.shape[3]))
         x_images = images[:, :-self.predict_terms, ...]
         y_images = images[:, -self.predict_terms:, ...]
 
@@ -365,7 +364,9 @@ class SameNumberGenerator(object):
 
         return [x_images[idxs, ...], y_images[idxs, ...]], sentence_labels[idxs, ...]
 
+
 SHARD_SIZE = 1024
+
 
 def _int64_feature(value):
     """Wrapper for inserting int64 features into Example proto."""
@@ -386,14 +387,14 @@ def _float_feature(value):
 
 def _convert_to_example(image_buffer, image_buffer_predictions, labels, terms, predict_terms, channels, height, width):
     example = tf.train.Example(features=tf.train.Features(feature={
-            'image/height': _int64_feature(height),
-            'image/width': _int64_feature(width),
-            'image/channels': _int64_feature(channels),
-            'image/terms': _int64_feature(terms),
-            'image/pred_terms': _int64_feature(predict_terms),
-            'image/encoded': _float_feature(image_buffer),
-            'image/encoded_pred': _float_feature(image_buffer_predictions),
-            'image/labels': _int64_feature(labels)}))
+        'image/height': _int64_feature(height),
+        'image/width': _int64_feature(width),
+        'image/channels': _int64_feature(channels),
+        'image/terms': _int64_feature(terms),
+        'image/pred_terms': _int64_feature(predict_terms),
+        'image/encoded': _float_feature(image_buffer),
+        'image/encoded_pred': _float_feature(image_buffer_predictions),
+        'image/labels': _int64_feature(labels)}))
     return example
 
 
@@ -406,7 +407,8 @@ if __name__ == "__main__":
 
     for file_path_prefix in ["train", "valid", "test"]:
         print(file_path_prefix)
-        ag = SortedNumberGenerator(batch_size=SHARD_SIZE, subset=file_path_prefix, terms=terms, positive_samples=SHARD_SIZE // 2,
+        ag = SortedNumberGenerator(batch_size=SHARD_SIZE, subset=file_path_prefix, terms=terms,
+                                   positive_samples=SHARD_SIZE // 2,
                                    predict_terms=predict_terms,
                                    image_size=image_size, color=True, rescale=True)
 
@@ -417,6 +419,7 @@ if __name__ == "__main__":
         num_shards = len(ag)
 
         print("Serializing {:d} shards into {}".format(num_shards, result_tf_file))
+
 
         def process_one_shard(idx, img_all, label_all):
             print("processing shard number %d *****" % idx)
@@ -429,7 +432,8 @@ if __name__ == "__main__":
                 label = int(label_all[i])
 
                 # image_buffer, labels, terms, predict_terms, channels, height, width, depth
-                example = _convert_to_example(X.flatten(), Y.flatten(), label, terms, predict_terms, 3, image_size, image_size)
+                example = _convert_to_example(X.flatten(), Y.flatten(), label, terms, predict_terms, 3, image_size,
+                                              image_size)
 
                 serialized = example.SerializeToString()
                 writer.write(serialized)
@@ -440,7 +444,7 @@ if __name__ == "__main__":
 
         i = 0
         for shard in ag:
-            i+=1
+            i += 1
 
             process_one_shard(i, shard[0], shard[1])
 

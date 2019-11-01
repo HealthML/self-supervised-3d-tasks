@@ -209,7 +209,7 @@ class DatasetCpcMnist(AbstractDataset):
         labels = example[self.LABELS_KEY]
 
         # self.preprocess_fn({'image': image})
-        # we skip the preprocessing for this
+        # we skip the preprocessing for this test
         return {'example': example, 'pred': pred, 'encoded': encoded, "labels": labels}
 
 class DatasetBratsUnsupervised(AbstractDataset):

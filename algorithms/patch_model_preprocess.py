@@ -59,8 +59,10 @@ def image_to_patches(image, is_training, split_per_side, patch_jitter=0):
     """
     h, w, _ = image.get_shape().as_list()
 
-    h_grid = h // split_per_side
-    w_grid = w // split_per_side
+    patch_overlap = -patch_jitter if patch_jitter < 0 else 0
+
+    h_grid = (h - patch_overlap) // split_per_side
+    w_grid = (w - patch_overlap) // split_per_side
     h_patch = h_grid - patch_jitter
     w_patch = w_grid - patch_jitter
 
@@ -73,8 +75,8 @@ def image_to_patches(image, is_training, split_per_side, patch_jitter=0):
     for i in range(split_per_side):
         for j in range(split_per_side):
 
-            p = tf.image.crop_to_bounding_box(image, i * h_grid, j * w_grid, h_grid,
-                                              w_grid)
+            p = tf.image.crop_to_bounding_box(image, i * h_grid, j * w_grid, h_grid + patch_overlap,
+                                              w_grid + patch_overlap)
             # Trick: crop a small tile from pixel cell, to avoid edge continuity.
             if h_patch < h_grid or w_patch < w_grid:
                 p = crop(p, is_training, [h_patch, w_patch])
@@ -83,6 +85,43 @@ def image_to_patches(image, is_training, split_per_side, patch_jitter=0):
 
     return tf.stack(patches)
 
+def image_to_patches_overlap(image, is_training, split_per_side, patch_overlap=0):
+    """Crops split_per_side x split_per_side patches from input image with overlap.
+
+    Args:
+      image: input image tensor with shape [h, w, c].
+      is_training: is training flag.
+      split_per_side: split of patches per image side.
+      patch_jitter: jitter of each patch from each grid.
+
+    Returns:
+      Patches tensor with shape [patch_count, hc, wc, c].
+    """
+    h, w, _ = image.get_shape().as_list()
+
+    # size WITHOUT overlap
+    h_grid = (h - patch_overlap) // split_per_side
+    w_grid = (w - patch_overlap) // split_per_side
+
+    h_patch = h_grid + patch_overlap
+    w_patch = w_grid + patch_overlap
+
+
+    tf.logging.info(
+        "Crop patches - image size: (%d, %d), split_per_side: %d, "
+        "grid_size: (%d, %d), patch_size: (%d, %d), split_overlap: %d",
+        h, w, split_per_side, h_grid, w_grid, h_patch, w_patch, patch_overlap)
+
+    patches = []
+    for i in range(split_per_side):
+        for j in range(split_per_side):
+
+            p = tf.image.crop_to_bounding_box(image, i * h_grid, j * w_grid, h_grid,
+                                              w_grid)
+
+            patches.append(p)
+
+    return tf.stack(patches)
 
 def scan_to_patches(scan, is_training, split_per_side, patch_jitter=0):
     """Crops split_per_side x split_per_side x split_per_side patches from input scan (3d image).
