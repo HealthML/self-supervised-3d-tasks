@@ -9,10 +9,8 @@ import functools
 import tensorflow as tf
 import tensorflow_hub as hub
 
-import datasets
+from self_supervised_3d_tasks import datasets, trainer, utils
 from models.utils import get_net
-import trainer
-import utils
 
 FLAGS = tf.flags.FLAGS
 

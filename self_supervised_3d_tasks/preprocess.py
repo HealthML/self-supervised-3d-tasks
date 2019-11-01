@@ -9,12 +9,10 @@ from __future__ import print_function
 import functools
 import random
 
-import numpy as np
 import tensorflow as tf
 
-import inception_preprocessing
-import utils
-from algorithms import patch_model_preprocess as pp_lib
+from self_supervised_3d_tasks import inception_preprocessing, utils
+from self_supervised_3d_tasks.algorithms import patch_model_preprocess as pp_lib
 
 FLAGS = tf.flags.FLAGS
 

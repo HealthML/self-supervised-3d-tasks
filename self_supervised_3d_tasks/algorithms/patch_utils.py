@@ -10,21 +10,19 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_hub as hub
 
-import preprocess
-import utils
+from self_supervised_3d_tasks import preprocess, utils
 from models.utils import get_net
-from trainer import make_estimator
+from self_supervised_3d_tasks.trainer import make_estimator
 
 FLAGS = tf.flags.FLAGS
 
 PATCH_H_COUNT = 3
 PATCH_W_COUNT = 3
-PATCH_D_COUNT = 3
-PATCH_COUNT = PATCH_H_COUNT * PATCH_W_COUNT * PATCH_D_COUNT
+PATCH_COUNT = PATCH_H_COUNT * PATCH_W_COUNT
 
 # It's supposed to be in the root folder, which is also pwd when running, if the
 # instructions in the README are followed. Hence not a flag.
-PERMUTATION_PATH = 'permutations3d_100_max.bin'
+PERMUTATION_PATH = 'permutations_100_max.bin'
 
 
 def apply_model(image_fn,
@@ -39,13 +37,13 @@ def apply_model(image_fn,
       is_training: is training flag used for batch norm and drop out.
       num_outputs: number of output classes.
       perms: numpy array with shape [m, k], element range [0, PATCH_COUNT). k
-        stands for the patch numbers used in a permutation. m stands for the number
+        stands for the patch numbers used in a permutation. m stands forthe number
         of permutations. Each permutation is used to concat the patch inputs
-        [n*PATCH_COUNT, h, w, d, c] into tensor with shape [n*m, h, w, d, c*k].
+        [n*PATCH_COUNT, h, w, c] into tensor with shape [n*m, h, w, c*k].
       make_signature: whether to create signature for hub module.
 
     Returns:
-      out: output tensor with shape [n*m, 1, 1, 1, num_outputs].
+      out: output tensor with shape [n*m, 1, 1, num_outputs].
 
     Raises:
       ValueError: An error occurred when the architecture is unknown.
@@ -59,7 +57,8 @@ def apply_model(image_fn,
     if not make_signature:
         out = permutate_and_concat_batch_patches(out, perms, is_training)
         out = fully_connected(out, num_outputs, is_training=is_training)
-        out = tf.squeeze(out, [1, 2, 3])
+
+        out = tf.squeeze(out, [1, 2])
 
     if make_signature:
         hub.add_signature(inputs={'image': images}, outputs=out)
@@ -108,7 +107,7 @@ def create_estimator_model(images, labels, perms, num_classes, mode):
     """
     print('   +++ Mode: %s, images: %s, labels: %s' % (mode, images, labels))
 
-    images = tf.reshape(images, shape=[-1] + images.get_shape().as_list()[-4:])
+    images = tf.reshape(images, shape=[-1] + images.get_shape().as_list()[-3:])
     if mode in [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL]:
         with tf.variable_scope('module'):
             image_fn = lambda: images
@@ -165,11 +164,11 @@ def fully_connected(inputs,
                     is_training=True):
     """Two layers fully connected network copied from Alexnet fc7-fc8."""
     net = inputs
-    _, _, w, _, _ = net.get_shape().as_list()
+    _, _, w, _ = net.get_shape().as_list()
     kernel_regularizer = tf.contrib.layers.l2_regularizer(scale=weight_decay)
-    net = tf.layers.conv3d(
+    net = tf.layers.conv2d(
         net,
-        filters=1024,
+        filters=4096,
         kernel_size=w,
         padding='same',
         kernel_initializer=tf.truncated_normal_initializer(0.0, 0.005),
@@ -177,10 +176,10 @@ def fully_connected(inputs,
         kernel_regularizer=kernel_regularizer)
     net = tf.layers.batch_normalization(
         net, momentum=0.997, epsilon=1e-5, fused=None, training=is_training)
-    net = tf.nn.leaky_relu(net)
+    net = tf.nn.relu(net)
     if is_training:
         net = tf.nn.dropout(net, keep_prob=keep_prob)
-    net = tf.layers.conv3d(
+    net = tf.layers.conv2d(
         net,
         filters=num_classes,
         kernel_size=1,
@@ -194,7 +193,7 @@ def fully_connected(inputs,
 
 def generate_patch_locations():
     """Generates relative patch locations."""
-    perms = np.array([(i, 13) for i in range(PATCH_COUNT) if i != 13])
+    perms = np.array([(i, 4) for i in range(9) if i != 4])
     return perms, len(perms)
 
 
@@ -211,33 +210,36 @@ def load_permutations():
             perms.append(x[0])
         perms = np.reshape(perms, [num_perms, c])
 
+    # The bin file used index [1,9] for permutation, updated to [0, 8] for index.
+    perms = perms - 1
     assert np.min(perms) == 0 and np.max(perms) == PATCH_COUNT - 1
     return perms, num_perms
 
 
-def permutate_and_concat_image_patches(scan_patches, perms):
+def permutate_and_concat_image_patches(patch_embeddings, perms):
     """Permutates patches from an image according to permutations.
 
     Args:
-      scan_patches: input tensor with shape [PATCH_COUNT, h, w, d, c], where
+      patch_embeddings: input tensor with shape [PATCH_COUNT, h, w, c], where
         PATCH_COUNT is the patch number per image.
       perms: numpy array with shape [m, k], with element in range
         [0, PATCH_COUNT). Permutation is used to concat the patches.
 
     Returns:
-      out: output tensor with shape [m, h, w, d, c*k].
+      out: output tensor with shape [m, h, w, c*k].
     """
 
-    _, h, w, d, c = scan_patches.get_shape().as_list()
+    _, h, w, c = patch_embeddings.get_shape().as_list()
     if isinstance(perms, np.ndarray):
         num_perms, perm_len = perms.shape
     else:
         num_perms, perm_len = perms.get_shape().as_list()
 
     def permutate_patch(perm):
-        permed = tf.gather(scan_patches, perm, axis=0)
-        concat_tensor = tf.transpose(permed, perm=[1, 2, 3, 4, 0])
-        concat_tensor = tf.reshape(concat_tensor, shape=[-1, h, w, d, perm_len * c])
+        permed = tf.gather(patch_embeddings, perm, axis=0)
+        concat_tensor = tf.transpose(permed, perm=[1, 2, 3, 0])
+        concat_tensor = tf.reshape(
+            concat_tensor, shape=[-1, h, w, perm_len * c])
         return concat_tensor
 
     permed_patches = tf.stack([
@@ -246,42 +248,42 @@ def permutate_and_concat_image_patches(scan_patches, perms):
     return permed_patches
 
 
-def permutate_and_concat_batch_patches(batch_patches, perms, is_training):
+def permutate_and_concat_batch_patches(batch_patch_embeddings, perms, is_training):
     """Permutates patches from a mini batch according to permutations.
 
     Args:
-      batch_patches: input tensor with shape [n*PATCH_COUNT, h, w, d, c] or
+      batch_patch_embeddings: input tensor with shape [n*PATCH_COUNT, h, w, c] or
         [n*PATCH_COUNT, c], where PATCH_COUNT is the patch number per image
         and n is the number of images in this mini batch.
       perms: numpy array with shape [m, k], with element in range
         [0, PATCH_COUNT). Permutation is used to concat the patches.
 
     Returns:
-      out: output tensor with shape [n*m, h, w, d, c*k].
+      out: output tensor with shape [n*m, h, w, c*k].
     """
 
-    print('   +++ permutate patches input: %s' % batch_patches)
-    if len(batch_patches.get_shape().as_list()) == 5:
-        _, h, w, d, c = batch_patches.get_shape().as_list()
-    elif len(batch_patches.get_shape().as_list()) == 2:
-        _, c = batch_patches.get_shape().as_list()
-        h, w, d = (1, 1, 1)
+    print('   +++ permutate patches input: %s' % batch_patch_embeddings)
+    if len(batch_patch_embeddings.get_shape().as_list()) == 4:
+        _, h, w, c = batch_patch_embeddings.get_shape().as_list()
+    elif len(batch_patch_embeddings.get_shape().as_list()) == 2:
+        _, c = batch_patch_embeddings.get_shape().as_list()
+        h, w = (1, 1)
     else:
-        raise ValueError('Unexpected batch_patch_embeddings shape: %s' % batch_patches.get_shape().as_list())
-
-    patches = tf.reshape(batch_patches, shape=[-1, PATCH_COUNT, h, w, d, c])
+        raise ValueError('Unexpected batch_patch_embeddings shape: %s' %
+                         batch_patch_embeddings.get_shape().as_list())
+    patches = tf.reshape(batch_patch_embeddings, shape=[-1, PATCH_COUNT, h, w, c])
 
     if is_training:
         batch = FLAGS.batch_size
     else:
         batch = FLAGS.get_flag_value('eval_batch_size', FLAGS.batch_size)
     patches = tf.stack([
-        permutate_and_concat_image_patches(patches[scan_idx], perms)
-        for scan_idx in range(batch)
+        permutate_and_concat_image_patches(patches[i], perms)
+        for i in range(batch)
     ])
 
-    patches = tf.reshape(patches, shape=[-1, h, w, d, perms.shape[1] * c])
-    print('   +++ permutate patches output: %s' % batch_patches)
+    patches = tf.reshape(patches, shape=[-1, h, w, perms.shape[1] * c])
+    print('   +++ permutate patches output: %s' % batch_patch_embeddings)
     return patches
 
 

@@ -8,9 +8,9 @@ import functools
 import tensorflow as tf
 import tensorflow_hub as hub
 
-import utils
+from self_supervised_3d_tasks import utils
 from models.utils import get_net
-from trainer import make_estimator
+from self_supervised_3d_tasks.trainer import make_estimator
 
 FLAGS = tf.flags.FLAGS
 

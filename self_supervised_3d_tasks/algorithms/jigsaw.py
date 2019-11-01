@@ -7,8 +7,8 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from algorithms import patch_utils
-from algorithms import patch3d_utils
+from self_supervised_3d_tasks.algorithms import patch_utils
+from self_supervised_3d_tasks.algorithms import patch3d_utils
 
 FLAGS = tf.flags.FLAGS
 

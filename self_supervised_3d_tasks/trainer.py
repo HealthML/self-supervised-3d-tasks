@@ -6,8 +6,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-import datasets
-import utils
+from self_supervised_3d_tasks import datasets, utils
 
 FLAGS = tf.flags.FLAGS
 
