@@ -7,8 +7,8 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from algorithms import relative_patch_location, exemplar, supervised_classification, jigsaw, rotation, \
-    supervised_segmentation
+from self_supervised_3d_tasks.algorithms import exemplar, supervised_classification, jigsaw, rotation
+from self_supervised_3d_tasks.algorithms import relative_patch_location, supervised_segmentation
 
 
 def get_self_supervision_model(self_supervision):

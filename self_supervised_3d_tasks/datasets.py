@@ -10,7 +10,7 @@ import os
 
 import tensorflow as tf
 
-from preprocess import get_preprocess_fn
+from self_supervised_3d_tasks.preprocess import get_preprocess_fn
 
 FLAGS = tf.flags.FLAGS
 

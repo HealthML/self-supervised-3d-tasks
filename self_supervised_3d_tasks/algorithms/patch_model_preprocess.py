@@ -10,7 +10,7 @@ import functools
 
 import tensorflow as tf
 
-import utils as utils
+from self_supervised_3d_tasks import utils as utils
 
 
 def crop(image, is_training, crop_size):
