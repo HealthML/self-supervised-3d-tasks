@@ -11,13 +11,15 @@ import math
 import os
 
 import argparse
+import logging
 from pathlib import Path
 import tensorflow as tf
 import tensorflow_hub as hub
 from tensorflow.contrib.cluster_resolver import TPUClusterResolver
 
-from self_supervised_3d_tasks import datasets, utils
-from self_supervised_3d_tasks.algorithms.self_supervision_lib import get_self_supervision_model
+import datasets
+import utils
+from algorithms.self_supervision_lib import get_self_supervision_model
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -28,11 +30,11 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 TPU_ITERATIONS_PER_LOOP = 500
 
 
-def train_and_eval():
+def train_and_eval(FLAGS):
     """Trains a network on (self_supervised) supervised data."""
-    model_dir = os.path.join(FLAGS.workdir)
+    model_dir = FLAGS["workdir"]
 
-    if FLAGS.use_tpu:
+    if FLAGS["use_tpu"]:
         master = TPUClusterResolver(tpu=[os.environ["TPU_NAME"]]).get_master()
     else:
         master = ""
@@ -44,50 +46,51 @@ def train_and_eval():
 
     config = tf.contrib.tpu.RunConfig(
         model_dir=model_dir,
-        tf_random_seed=FLAGS.get_flag_value("random_seed", None),
+        tf_random_seed=FLAGS.get("random_seed", None),
         master=master,
         evaluation_master=master,
         session_config=configp,
-        keep_checkpoint_every_n_hours=FLAGS.get_flag_value(
-            "keep_checkpoint_every_n_hours", 4
-        ),
-        save_checkpoints_secs=FLAGS.get_flag_value("save_checkpoints_secs", 600),
+        keep_checkpoint_every_n_hours=FLAGS.get("keep_checkpoint_every_n_hours", 4),
+        save_checkpoints_secs=FLAGS.get("save_checkpoints_secs", 600),
         tpu_config=tf.contrib.tpu.TPUConfig(
             iterations_per_loop=TPU_ITERATIONS_PER_LOOP,
-            tpu_job_name=FLAGS.tpu_worker_name,
+            tpu_job_name=FLAGS["tpu_worker_name"],
         ),
     )
 
     # The global batch-sizes are passed to the TPU estimator, and it will pass
     # along the local batch size in the model_fn's `params` argument dict.
     estimator = tf.contrib.tpu.TPUEstimator(
-        model_fn=get_self_supervision_model(FLAGS.task),
+        model_fn=get_self_supervision_model(FLAGS["task"]),
         model_dir=model_dir,
         config=config,
-        use_tpu=FLAGS.use_tpu,
-        train_batch_size=FLAGS.batch_size,
-        eval_batch_size=FLAGS.get_flag_value("eval_batch_size", FLAGS.batch_size),
+        use_tpu=FLAGS["use_tpu"],
+        train_batch_size=FLAGS["batch_size"],
+        eval_batch_size=FLAGS.get("eval_batch_size", FLAGS["batch_size"]),
     )
 
-    if FLAGS.run_eval:
+    if FLAGS["run_eval"]:
         tf.logging.info("entered run eval branch.")
         data_fn = functools.partial(
             datasets.get_data,
-            split_name=FLAGS.get_flag_value("val_split", "val"),
+            dataset=FLAGS["dataset"],
+            preprocessing=FLAGS["preprocessing"],
+            dataset_dir=FLAGS["dataset_dir"],
+            split_name=FLAGS.get("val_split", "val"),
             is_training=False,
             shuffle=False,
             num_epochs=1,
-            drop_remainder=FLAGS.use_tpu,
+            drop_remainder=FLAGS["use_tpu"],
         )
 
         # Contrary to what the documentation claims, the `train` and the
         # `evaluate` functions NEED to have `max_steps` and/or `steps` set and
         # cannot make use of the iterator's end-of-input exception, so we need
         # to do some math for that here.
-        num_samples = datasets.get_count(FLAGS.get_flag_value("val_split", "val"))
-        num_steps = num_samples // FLAGS.get_flag_value(
-            "eval_batch_size", FLAGS.batch_size
+        num_samples = datasets.get_count(
+            FLAGS["dataset"], FLAGS.get("val_split", "val")
         )
+        num_steps = num_samples // FLAGS.get("eval_batch_size", FLAGS["batch_size"])
         tf.logging.info("val_steps: %d", num_steps)
 
         for checkpoint in tf.contrib.training.checkpoints_iterator(
@@ -99,41 +102,45 @@ def train_and_eval():
             )
 
             hub_exporter = hub.LatestModuleExporter("hub", serving_input_fn)
-            hub_exporter.export(
-                estimator, os.path.join(model_dir, "export/hub"), checkpoint
-            )
+            hub_exporter.export(estimator, (model_dir / "export/hub"), checkpoint)
 
-            if tf.gfile.Exists(os.path.join(FLAGS.workdir, "TRAINING_IS_DONE")):
+            if tf.gfile.Exists(str(FLAGS["workdir"] / "TRAINING_IS_DONE")):
                 break
 
         # Evaluates the latest checkpoint on validation set.
         result = estimator.evaluate(input_fn=data_fn, steps=num_steps)
         return result
 
-    elif FLAGS.train_eval:
+    elif FLAGS["train_eval"]:
         tf.logging.info("entered training + continuous evaluation branch.")
         train_input_fn = functools.partial(
             datasets.get_data,
-            split_name=FLAGS.get_flag_value("train_split", "train"),
+            dataset=FLAGS["dataset"],
+            preprocessing=FLAGS["preprocessing"],
+            dataset_dir=FLAGS["dataset_dir"],
+            split_name=FLAGS.get("train_split", "train"),
             is_training=True,
-            num_epochs=int(math.ceil(FLAGS.epochs)),
+            num_epochs=int(math.ceil(FLAGS["epochs"])),
             drop_remainder=True,
         )
 
         eval_input_fn = functools.partial(
             datasets.get_data,
-            split_name=FLAGS.get_flag_value("val_split", "val"),
+            dataset=FLAGS["dataset"],
+            preprocessing=FLAGS["preprocessing"],
+            dataset_dir=FLAGS["dataset_dir"],
+            split_name=FLAGS.get("val_split", "val"),
             is_training=False,
             shuffle=False,
             num_epochs=1,
-            drop_remainder=FLAGS.use_tpu,
+            drop_remainder=FLAGS["use_tpu"],
         )
 
         num_train_samples = datasets.get_count(
-            FLAGS.get_flag_value("train_split", "train")
+            FLAGS["dataset"], FLAGS.get("train_split", "train")
         )
-        updates_per_epoch = num_train_samples // FLAGS.batch_size
-        num_train_steps = int(math.ceil(FLAGS.epochs * updates_per_epoch))
+        updates_per_epoch = num_train_samples // FLAGS["batch_size"]
+        num_train_steps = int(math.ceil(FLAGS["epochs"] * updates_per_epoch))
 
         estimator._export_to_tpu = False
         best_exporter = utils.BestCheckpointCopier(
@@ -145,7 +152,10 @@ def train_and_eval():
             sort_reverse=False,
         )
         final_exporter = tf.estimator.FinalExporter(
-            name="final_exporter", serving_input_receiver_fn=serving_input_fn()
+            name="final_exporter",
+            serving_input_receiver_fn=serving_input_fn(
+                FLAGS["serving_input_shape"], FLAGS["serving_input_key"]
+            ),
         )
         exporters = (best_exporter, final_exporter)
 
@@ -155,7 +165,7 @@ def train_and_eval():
         eval_spec = tf.estimator.EvalSpec(
             input_fn=eval_input_fn,
             exporters=exporters,
-            throttle_secs=FLAGS.get_flag_value("throttle_secs", 90),
+            throttle_secs=FLAGS.get("throttle_secs", 90),
         )
         tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
@@ -163,9 +173,12 @@ def train_and_eval():
         tf.logging.info("entered training branch.")
         train_data_fn = functools.partial(
             datasets.get_data,
-            split_name=FLAGS.get_flag_value("train_split", "train"),
+            dataset=FLAGS["dataset"],
+            preprocessing=FLAGS["preprocessing"],
+            dataset_dir=FLAGS["dataset_dir"],
+            split_name=FLAGS.get("train_split", "train"),
             is_training=True,
-            num_epochs=int(math.ceil(FLAGS.epochs)),
+            num_epochs=int(math.ceil(FLAGS["epochs"])),
             drop_remainder=True,
         )
 
@@ -173,27 +186,25 @@ def train_and_eval():
         # arguments instead of relying on the Dataset's iterator to run out after
         # a number of epochs so that we can use 'fractional' epochs, which are
         # used by regression tests. (And because TPUEstimator needs it anyways.)
-        num_samples = datasets.get_count(FLAGS.get_flag_value("train_split", "train"))
+        num_samples = datasets.get_count(
+            FLAGS["dataset"], FLAGS.get("train_split", "train")
+        )
 
         # Depending on whether we drop the last batch each epoch or only at the
         # ver end, this should be ordered differently for rounding.
-        updates_per_epoch = num_samples // FLAGS.batch_size
+        updates_per_epoch = num_samples // FLAGS["batch_size"]
 
-        num_steps = int(math.ceil(FLAGS.epochs * updates_per_epoch))
+        num_steps = int(math.ceil(FLAGS["epochs"] * updates_per_epoch))
         tf.logging.info("train_steps: %d", num_steps)
 
-        estimator.tr(description='Process some integers.'ain(train_data_fn, steps=num_steps)
+        estimator.train(train_data_fn, steps=num_steps)
 
 
-def serving_input_fn():
+def serving_input_fn(serving_input_shape, serving_input_key):
     """A serving input fn."""
-    input_shape = utils.str2intlist(
-        FLAGS.get_flag_value("serving_input_shape", "None,None,None,3")
-    )
+    input_shape = utils.str2intlist(serving_input_shape)
     image_features = {
-        FLAGS.get_flag_value("serving_input_key", "image"): tf.placeholder(
-            dtype=tf.float32, shape=input_shape
-        )
+        serving_input_key: tf.placeholder(dtype=tf.float32, shape=input_shape)
     }
     return tf.estimator.export.ServingInputReceiver(
         features=image_features, receiver_tensors=image_features
@@ -201,201 +212,231 @@ def serving_input_fn():
 
 
 if __name__ == "__main__":
+    logging.basicConfig(filename="train_and_eval.log", level=logging.INFO)
+    logging.info("Started the script.")
     parser = argparse.ArgumentParser(description="Train and Evaluation Pipeline")
 
     # General run setup flags.
-    parser.add_argument("--workdir", type=Path, help="Where to store files.", required=True)
-
-    parser.add_argument("--num_gpus", type=int,default=1, help="Number of GPUs to use.")
-    parser.add_argument("--use_tpu", type=bool, default=False, help="Whether running on TPU or not.")
-    parser.add_argument("--run_eval", type=bool, default=False, help="Run eval mode")
     parser.add_argument(
-        "--train_eval", type=bool, default=True, help="Run eval every once in a while during training mode"
+        "--workdir", type=Path, help="Where to store files.", required=True
     )
 
-    parser.add_argument("--tpu_worker_name", default="tpu_worker", help="Name of a TPU worker.")
+    parser.add_argument(
+        "--num_gpus", type=int, default=1, help="Number of GPUs to use."
+    )
+    parser.add_argument(
+        "--use_tpu", type=bool, default=False, help="Whether running on TPU or not."
+    )
+    parser.add_argument("--run_eval", type=bool, default=False, help="Run eval mode")
+    parser.add_argument(
+        "--train_eval",
+        type=bool,
+        default=True,
+        help="Run eval every once in a while during training mode",
+    )
+
+    parser.add_argument(
+        "--tpu_worker_name", default="tpu_worker", help="Name of a TPU worker."
+    )
 
     # More detailed experiment flags
-    parser.add_argument("--dataset", type=Path, help="Which dataset to use, typically " "`imagenet`.", required=True)
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        help="Which dataset to use, typically " "`imagenet`.",
+        required=True,
+    )
 
-    parser.add_argument("--dataset_dir", type=Path, help="Location of the dataset files.", required=True)
+    parser.add_argument(
+        "--dataset_dir", type=Path, help="Location of the dataset files.", required=True
+    )
 
     parser.add_argument(
         "--checkpoint_dir",
         type=Path,
-        default=None, #TODO: fill in what is used when *no* path is selected
+        default=None,  # TODO: fill in what is used when *no* path is selected
         help="Location of a pretrained checkpoint file to load weights from.",
     )
 
-    flags.DEFINE_integer(
-        "eval_batch_size",
-        None,
-        "Optional different batch-size"
+    parser.add_argument(
+        "--eval_batch_size",
+        type=int,
+        help="Optional different batch-size"
         " evaluation, defaults to the same as `batch_size`.",
     )
 
-    flags.DEFINE_integer(
-        "keep_checkpoint_every_n_hours",
-        None,
-        "Keep one "
+    parser.add_argument(
+        "--keep_checkpoint_every_n_hours",
+        type=int,
+        help="Keep one "
         "checkpoint every this many hours. Otherwise, only the "
         "last few ones are kept. Defaults to 4h.",
     )
 
-    flags.DEFINE_integer("random_seed", None, "Seed to use. None is random.")
+    parser.add_argument("--random_seed", type=int, help="Seed to use. None is random.")
 
-    flags.DEFINE_integer(
-        "save_checkpoints_secs",
-        None,
-        "Every how many seconds " "to save a checkpoint. Defaults to 600 ie every 10mins.",
+    parser.add_argument(
+        "--save_checkpoints_secs",
+        type=int,
+        help="Every how many seconds "
+        "to save a checkpoint. Defaults to 600 ie every 10mins.",
     )
 
-    flags.DEFINE_integer(
-        "throttle_secs",
-        None,
-        "Every how many seconds "
+    parser.add_argument(
+        "--throttle_secs",
+        type=int,
+        help="Every how many seconds "
         "to run evaluation on val dataset. Defaults to 90 ie every 10mins.",
     )
 
-    flags.DEFINE_string(
-        "serving_input_key",
-        None,
-        "The name of the input tensor "
+    parser.add_argument(
+        "--serving_input_key",
+        type=str,
+        default="image",
+        help="The name of the input tensor "
         "in the generated hub module. Just leave it at default.",
     )
 
-    flags.DEFINE_string(
-        "serving_input_shape",
-        None,
-        "The shape of the input tensor" " in the stored hub module. Can contain `None`.",
+    parser.add_argument(
+        "--serving_input_shape",
+        type=str,
+        default="None,None,None,3",
+        help="The shape of the input tensor"
+        " in the stored hub module. Can contain `None`.",
     )
 
-    flags.DEFINE_string(
-        "signature",
-        None,
-        "The name of the tensor to use as "
+    parser.add_argument(
+        "--signature",
+        type=str,
+        help="The name of the tensor to use as "
         "representation for evaluation. Just leave to default.",
     )
 
-    flags.DEFINE_string(
-        "task",
-        None,
-        "Which pretext-task to learn from. Can be "
+    parser.add_argument(
+        "--task",
+        type=str,
+        help="Which pretext-task to learn from. Can be "
         "one of `rotation`, `exemplar`, `jigsaw`, "
         "`relative_patch_location`, `linear_eval`, `supervised_classification`, "
         "`supervised_segmentation`.",
+        required=True,
     )
-    flags.mark_flag_as_required("task")
 
-    flags.DEFINE_string(
-        "train_split",
-        None,
-        "Which dataset split to train on. "
+    parser.add_argument(
+        "--train_split",
+        type=str,
+        help="Which dataset split to train on. "
         "Should only be `train` (default) or `trainval`.",
     )
-    flags.DEFINE_string(
-        "val_split",
-        None,
-        "Which dataset split to eval on. " "Should only be `val` (default) or `test`.",
+    parser.add_argument(
+        "--val_split",
+        type=str,
+        help="Which dataset split to eval on. "
+        "Should only be `val` (default) or `test`.",
     )
 
     # Flags about the pretext tasks
 
-    flags.DEFINE_integer(
-        "embed_dim",
-        None,
-        "For most pretext tasks, which "
+    parser.add_argument(
+        "--embed_dim",
+        type=int,
+        help="For most pretext tasks, which "
         "dimension the embedding/hidden vector should be. "
         "Defaults to 1000.",
     )
 
-    flags.DEFINE_float(
-        "margin",
-        None,
-        "For the `exemplar` pretext task, " "how large the triplet loss margin should be.",
+    parser.add_argument(
+        "--margin",
+        type=float,
+        help="For the `exemplar` pretext task, "
+        "how large the triplet loss margin should be.",
     )
 
-    flags.DEFINE_integer(
-        "num_of_inception_patches",
-        None,
-        "For the Exemplar " "pretext task, how many instances of an image to create.",
+    parser.add_argument(
+        "--num_of_inception_patches",
+        type=int,
+        help="For the Exemplar "
+        "pretext task, how many instances of an image to create.",
     )
 
-    flags.DEFINE_bool(
-        "fast_mode",
-        True,
-        "For the Exemplar " "pretext task, whether to distort color in fast mode or not.",
+    parser.add_argument(
+        "--fast_mode",
+        type=bool,
+        default=True,
+        help="For the Exemplar "
+        "pretext task, whether to distort color in fast mode or not.",
     )
 
-    flags.DEFINE_integer(
-        "patch_jitter",
-        None,
-        "For patch-based methods, by how "
+    parser.add_argument(
+        "--patch_jitter",
+        type=int,
+        help="For patch-based methods, by how "
         "many pixels to jitter the patches. Defaults to 0.",
     )
 
-    flags.DEFINE_integer(
-        "perm_subset_size",
-        None,
-        "Subset of permutations to "
+    parser.add_argument(
+        "--perm_subset_size",
+        type=int,
+        help="Subset of permutations to "
         "sample per example in the `jigsaw` pretext task. "
         "Defaults to 8.",
     )
 
-    flags.DEFINE_integer(
-        "splits_per_side",
-        None,
-        "For the `crop_patches` "
+    parser.add_argument(
+        "--splits_per_side",
+        type=int,
+        help="For the `crop_patches` "
         "preprocessor, how many times to split a side. "
         "For example, 3 will result in 3x3=9 patches.",
     )
 
     # Flags for evaluation.
-    flags.DEFINE_string(
-        "eval_model",
-        None,
-        "Whether to perform evaluation with a "
+    parser.add_argument(
+        "--eval_model",
+        type=str,
+        help="Whether to perform evaluation with a "
         "`linear` (default) model, or with an `mlp` model.",
     )
 
-    flags.DEFINE_string(
-        "hub_module",
-        None,
-        "Folder where the hub module that " "should be evaluated is stored.",
+    parser.add_argument(
+        "--hub_module",
+        type=str,
+        help="Folder where the hub module that " "should be evaluated is stored.",
     )
 
-    flags.DEFINE_string(
-        "pool_mode",
-        None,
-        "When running evaluation on "
+    parser.add_argument(
+        "--pool_mode",
+        type=str,
+        help="When running evaluation on "
         "intermediate layers (not logits) of the network, it is "
         "commonplace to pool the features down to 9000. This "
         "decides the pooling method to be used: `adaptive_max` "
         "(default), `adaptive_avg`, `max`, or `avg`.",
     )
 
-    flags.DEFINE_string(
-        "combine_patches",
-        None,
-        "When running evaluation on "
+    parser.add_argument(
+        "--combine_patches",
+        type=str,
+        help="When running evaluation on "
         "patch models, it is used to merge patch representations"
         "to the full image representation. The value should be set"
         "to `avg_pool`(default), or `concat`.",
     )
 
     # Flags about the model.
-    flags.DEFINE_string(
-        "architecture",
-        None,
+    parser.add_argument(
+        "--architecture",
+        type=str,
         help="Which basic network architecture to use. "
         "One of vgg19, resnet50, revnet50, unet_resnet50.",
     )
     # flags.mark_flag_as_required('architecture')  # Not required in eval mode.
 
-    flags.DEFINE_integer(
-        "filters_factor",
-        None,
-        "Widening factor for network " "filters. For ResNet, default = 4 = vanilla ResNet.",
+    parser.add_argument(
+        "--filters_factor",
+        type=int,
+        help="Widening factor for network "
+        "filters. For ResNet, default = 4 = vanilla ResNet.",
     )
 
     parser.add_argument(
@@ -408,7 +449,9 @@ if __name__ == "__main__":
     parser.add_argument("--mode", type=str, help="Which ResNet to use, `v1` or `v2`.")
 
     # Flags about the optimization process.
-    parser.add_argument("--batch_size", type=int, help="The global batch-size to use.", required=True)
+    parser.add_argument(
+        "--batch_size", type=int, help="The global batch-size to use.", required=True
+    )
 
     parser.add_argument(
         "--decay_epochs",
@@ -417,15 +460,23 @@ if __name__ == "__main__":
         "learning-rate decay should happen, such as `15,25`.",
     )
 
-    parser.add_argument("--epochs", type=int, help="Number of epochs to run training.", required=True)
+    parser.add_argument(
+        "--epochs", type=int, help="Number of epochs to run training.", required=True
+    )
 
     parser.add_argument(
         "--lr_decay_factor",
         type=float,
-        help="Factor by which to decay the " "learning-rate at each decay step. Default 0.1.",
+        help="Factor by which to decay the "
+        "learning-rate at each decay step. Default 0.1.",
     )
 
-    parser.add_argument("--lr", type=float, help="The base learning-rate to use for training.", required=True)
+    parser.add_argument(
+        "--lr",
+        type=float,
+        help="The base learning-rate to use for training.",
+        required=True,
+    )
 
     parser.add_argument(
         "--lr_scale_batch_size",
@@ -435,7 +486,7 @@ if __name__ == "__main__":
         "different from that, it is scaled linearly accordingly."
         "For example lr=0.1, batch_size=128, lr_scale_batch_size=32"
         ", then actual lr=0.025.",
-        required=True
+        required=True,
     )
 
     parser.add_argument(
@@ -476,11 +527,11 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--preprocessing",
-        type=str,
-        nargs="+",
-        "A comma-separated list of " "pre-processing steps to perform, see preprocess.py.",
+        type=lambda s: [item for item in s.split(",")],
+        help="A comma-separated list of "
+        "pre-processing steps to perform, see preprocess.py.",
     )
-    flags.mark_flag_as_required("preprocessing") #TODO: necessary?
+    # flags.mark_flag_as_required("preprocessing")  # TODO: necessary?
 
     parser.add_argument(
         "--randomize_resize_method",
@@ -508,8 +559,7 @@ if __name__ == "__main__":
         "after resizing the image (keeping aspect ratio).",
     )
 
-    logging.info("workdir: %s", FLAGS.workdir)
-
-    train_and_eval(parser.parse_args())
-
+    flags = parser.parse_args()
+    logging.info(flags)
+    train_and_eval(vars(flags))
     logging.info("I'm done with my work, ciao!")

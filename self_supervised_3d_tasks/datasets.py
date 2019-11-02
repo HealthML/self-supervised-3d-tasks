@@ -7,26 +7,27 @@ from __future__ import print_function
 
 import abc
 import os
+from pathlib import Path
 
 import tensorflow as tf
 
 from self_supervised_3d_tasks.preprocess import get_preprocess_fn
 
-FLAGS = tf.flags.FLAGS
-
 
 class AbstractDataset(object):
     """Base class for datasets using the simplied input pipeline."""
 
-    def __init__(self,
-                 filenames,
-                 reader,
-                 num_epochs,
-                 shuffle,
-                 shuffle_buffer_size=10000,
-                 random_seed=None,
-                 num_reader_threads=64,
-                 drop_remainder=True):
+    def __init__(
+        self,
+        filenames,
+        reader,
+        num_epochs,
+        shuffle,
+        shuffle_buffer_size=10000,
+        random_seed=None,
+        num_reader_threads=64,
+        drop_remainder=True,
+    ):
         """Creates a new dataset. Sub-classes have to implement _parse_fn().
 
         Args:
@@ -68,8 +69,9 @@ class AbstractDataset(object):
           self_supervised.shuffle is `True`. Files are always read in parallel and sloppy.
         """
         # Shuffle the filenames to ensure better randomization.
-        dataset = tf.data.Dataset.list_files(self.filenames, shuffle=self.shuffle,
-                                             seed=self.random_seed)
+        dataset = tf.data.Dataset.list_files(
+            self.filenames, shuffle=self.shuffle, seed=self.random_seed
+        )
 
         dataset = dataset.repeat(self.num_epochs)
 
@@ -84,7 +86,9 @@ class AbstractDataset(object):
             tf.data.experimental.parallel_interleave(
                 fetch_dataset,
                 cycle_length=self.num_reader_threads,
-                sloppy=self.shuffle and self.random_seed is None))
+                sloppy=self.shuffle and self.random_seed is None,
+            )
+        )
 
         if self.shuffle:
             dataset = dataset.shuffle(self.shuffle_buffer_size, seed=self.random_seed)
@@ -116,7 +120,7 @@ class AbstractDataset(object):
         # Retrieves the batch size for the current shard. The # of shards is
         # computed according to the input pipeline deployment. See
         # tf.contrib.tpu.RunConfig for details.
-        batch_size = params['batch_size']
+        batch_size = params["batch_size"]
 
         dataset = self._make_source_dataset()
 
@@ -130,8 +134,12 @@ class AbstractDataset(object):
         # the same image twice by dropping the final batch if it is less than a full
         # batch size. As long as this validation is done with consistent batch size,
         # exactly the same images will be used.
-        dataset = dataset.map(self._parse_fn, num_parallel_calls=tf.contrib.data.AUTOTUNE)
-        dataset = dataset.batch(batch_size=batch_size, drop_remainder=self.drop_remainder)
+        dataset = dataset.map(
+            self._parse_fn, num_parallel_calls=tf.contrib.data.AUTOTUNE
+        )
+        dataset = dataset.batch(
+            batch_size=batch_size, drop_remainder=self.drop_remainder
+        )
         # Prefetch overlaps in-feed with training
         dataset = dataset.prefetch(tf.contrib.data.AUTOTUNE)
         tf.logging.info(dataset)
@@ -139,27 +147,29 @@ class AbstractDataset(object):
 
 
 def generate_sharded_filenames(filename):
-    base, count = filename.split('@')
+    base, count = filename.split("@")
     count = int(count)
-    return ['{}-{:05d}-of-{:05d}'.format(base, i, count) for i in range(count)]
+    return ["{}-{:05d}-of-{:05d}".format(base, i, count) for i in range(count)]
 
 
 class DatasetCpcMnist(AbstractDataset):
     """CPC Test data, MNIST"""
 
-    COUNTS = {'train': 1024*10,
-              'val': 1024*2,
-              'trainval': 1024*12,
-              'test': 1024*2}
+    COUNTS = {
+        "train": 1024 * 10,
+        "val": 1024 * 2,
+        "trainval": 1024 * 12,
+        "test": 1024 * 2,
+    }
 
-    E_PRED_KEY = 'image/encoded_pred'
-    E_KEY = 'image/encoded'
-    P_TERMS_KEY = 'image/pred_terms'
-    TERMS_KEY = 'image/terms'
-    HEIGHT_KEY = 'image/height'
-    WIDTH_KEY = 'image/width'
-    CHANNELS_KEY = 'image/channels'
-    LABELS_KEY = 'image/labels'
+    E_PRED_KEY = "image/encoded_pred"
+    E_KEY = "image/encoded"
+    P_TERMS_KEY = "image/pred_terms"
+    TERMS_KEY = "image/terms"
+    HEIGHT_KEY = "image/height"
+    WIDTH_KEY = "image/width"
+    CHANNELS_KEY = "image/channels"
+    LABELS_KEY = "image/labels"
 
     # TODO: have variable terms & sizes here
     FEATURE_MAP = {
@@ -170,23 +180,25 @@ class DatasetCpcMnist(AbstractDataset):
         HEIGHT_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
         WIDTH_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
         CHANNELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
-        LABELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64)
+        LABELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
     }
 
-    def __init__(self,
-                 split_name,
-                 preprocess_fn,
-                 num_epochs,
-                 shuffle,
-                 random_seed=None,
-                 drop_remainder=True):
-        files = os.path.join(os.path.expanduser(FLAGS.dataset_dir), '%s@%i')
+    def __init__(
+        self,
+        split_name,
+        preprocess_fn,
+        num_epochs,
+        shuffle,
+        random_seed=None,
+        drop_remainder=True,
+    ):
+        files = os.path.join(os.path.expanduser(FLAGS.dataset_dir), "%s@%i")
 
         filenames = {
-            'train': generate_sharded_filenames(files % ('train.tfrecord', 12))[:-2],
-            'val': generate_sharded_filenames(files % ('train.tfrecord', 12))[-2:],
-            'trainval': generate_sharded_filenames(files % ('train.tfrecord', 22)),
-            'test': generate_sharded_filenames(files % ('valid.tfrecord', 2))
+            "train": generate_sharded_filenames(files % ("train.tfrecord", 12))[:-2],
+            "val": generate_sharded_filenames(files % ("train.tfrecord", 12))[-2:],
+            "trainval": generate_sharded_filenames(files % ("train.tfrecord", 22)),
+            "test": generate_sharded_filenames(files % ("valid.tfrecord", 2)),
         }
 
         tf.logging.info(filenames[split_name])
@@ -197,7 +209,8 @@ class DatasetCpcMnist(AbstractDataset):
             num_epochs=num_epochs,
             shuffle=shuffle,
             random_seed=random_seed,
-            drop_remainder=drop_remainder)
+            drop_remainder=drop_remainder,
+        )
 
         self.split_name = split_name
         self.preprocess_fn = preprocess_fn
@@ -210,7 +223,8 @@ class DatasetCpcMnist(AbstractDataset):
 
         # self.preprocess_fn({'image': image})
         # we skip the preprocessing for this test
-        return {'example': example, 'pred': pred, 'encoded': encoded, "labels": labels}
+        return {"example": example, "pred": pred, "encoded": encoded, "labels": labels}
+
 
 class DatasetBratsUnsupervised(AbstractDataset):
     """Provides train/val/trainval/test splits for Brats data.
@@ -219,35 +233,36 @@ class DatasetBratsUnsupervised(AbstractDataset):
     -> val split is derived by taking the last 2 shards of the official training data.
     -> test split represents official Brats test split.
     """
+
     # actual number of files (not necessarily a multitude of 1024)
     # FIXME change the following numbers to correct ones
-    COUNTS = {'train': 20480,
-              'val': 2320,
-              'trainval': 22800,
-              'test': 5280}
+    COUNTS = {"train": 20480, "val": 2320, "trainval": 22800, "test": 5280}
 
-    IMAGE_KEY = 'image/encoded'
-    HEIGHT_KEY = 'image/height'
-    WIDTH_KEY = 'image/width'
-    CHANNELS_KEY = 'image/channels'
+    IMAGE_KEY = "image/encoded"
+    HEIGHT_KEY = "image/height"
+    WIDTH_KEY = "image/width"
+    CHANNELS_KEY = "image/channels"
 
-    LABEL_KEY = 'image/class/label'  # TODO use this label when doing segmentation?
+    LABEL_KEY = "image/class/label"  # TODO use this label when doing segmentation?
     LABEL_OFFSET = 1
 
     FEATURE_MAP = {
         IMAGE_KEY: tf.FixedLenFeature(shape=[192, 192, 4], dtype=tf.float32),
         HEIGHT_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
         WIDTH_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
-        CHANNELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64)
+        CHANNELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
     }
 
-    def __init__(self,
-                 split_name,
-                 preprocess_fn,
-                 num_epochs,
-                 shuffle,
-                 random_seed=None,
-                 drop_remainder=True):
+    def __init__(
+        self,
+        split_name,
+        preprocess_fn,
+        num_epochs,
+        shuffle,
+        dataset_dir,
+        random_seed=None,
+        drop_remainder=True,
+    ):
         """Initialize the dataset object.
         Args:
           split_name: A string split name, to load from the dataset.
@@ -263,13 +278,13 @@ class DatasetBratsUnsupervised(AbstractDataset):
         """
         # This is an instance-variable instead of a class-variable because it
         # depends on FLAGS, which is not parsed yet at class-parse-time.
-        files = os.path.join(os.path.expanduser(FLAGS.dataset_dir), '%s@%i')
+        files = str(Path(dataset_dir).expanduser().resolve() / "%s@%i")
 
         filenames = {
-            'train': generate_sharded_filenames(files % ('train.tfrecord', 22))[:-2],
-            'val': generate_sharded_filenames(files % ('train.tfrecord', 22))[-2:],
-            'trainval': generate_sharded_filenames(files % ('train.tfrecord', 22)),
-            'test': generate_sharded_filenames(files % ('validation.tfrecord', 5))
+            "train": generate_sharded_filenames(files % ("train.tfrecord", 22))[:-2],
+            "val": generate_sharded_filenames(files % ("train.tfrecord", 22))[-2:],
+            "trainval": generate_sharded_filenames(files % ("train.tfrecord", 22)),
+            "test": generate_sharded_filenames(files % ("validation.tfrecord", 5)),
         }
 
         tf.logging.info(filenames[split_name])
@@ -280,7 +295,8 @@ class DatasetBratsUnsupervised(AbstractDataset):
             num_epochs=num_epochs,
             shuffle=shuffle,
             random_seed=random_seed,
-            drop_remainder=drop_remainder)
+            drop_remainder=drop_remainder,
+        )
         self.split_name = split_name
         self.preprocess_fn = preprocess_fn
 
@@ -296,7 +312,7 @@ class DatasetBratsUnsupervised(AbstractDataset):
         image = example[self.IMAGE_KEY]  # TODO read channels from example
         tf.logging.info(image)
 
-        return self.preprocess_fn({'image': image})
+        return self.preprocess_fn({"image": image})
 
 
 class DatasetBratsSupervised(AbstractDataset):
@@ -306,37 +322,42 @@ class DatasetBratsSupervised(AbstractDataset):
     -> val split is derived by taking the last 2 shards of the official training data.
     -> test split represents official Brats test split.
     """
+
     # actual number of files (not necessarily a multitude of 1024)
-    COUNTS = {'train': 30720,
-              'val': 5760,
-              'trainval': 36480,
-              'test': 8448}
+    COUNTS = {"train": 30720, "val": 5760, "trainval": 36480, "test": 8448}
 
     NUM_CLASSES = 4
 
-    IMAGE_KEY = 'image/encoded'
-    HEIGHT_KEY = 'image/height'
-    WIDTH_KEY = 'image/width'
-    CHANNELS_KEY = 'image/channels'
-    LABEL_KEY = 'image/mask'
+    IMAGE_KEY = "image/encoded"
+    HEIGHT_KEY = "image/height"
+    WIDTH_KEY = "image/width"
+    CHANNELS_KEY = "image/channels"
+    LABEL_KEY = "image/mask"
     NO_MODALITIES = 2  # can be 2 or 4
     NO_VAL_SHARDS = 5
 
     FEATURE_MAP = {
-        IMAGE_KEY: tf.FixedLenFeature(shape=[128, 128, NO_MODALITIES], dtype=tf.float32),  # input multimodal slice
-        LABEL_KEY: tf.FixedLenFeature(shape=[128, 128], dtype=tf.int64),  # segmentation mask
+        IMAGE_KEY: tf.FixedLenFeature(
+            shape=[128, 128, NO_MODALITIES], dtype=tf.float32
+        ),  # input multimodal slice
+        LABEL_KEY: tf.FixedLenFeature(
+            shape=[128, 128], dtype=tf.int64
+        ),  # segmentation mask
         HEIGHT_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
         WIDTH_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
-        CHANNELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64)
+        CHANNELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
     }
 
-    def __init__(self,
-                 split_name,
-                 preprocess_fn,
-                 num_epochs,
-                 shuffle,
-                 random_seed=None,
-                 drop_remainder=True):
+    def __init__(
+        self,
+        split_name,
+        preprocess_fn,
+        num_epochs,
+        shuffle,
+        dataset_dir,
+        random_seed=None,
+        drop_remainder=True,
+    ):
         """Initialize the dataset object.
         Args:
           split_name: A string split name, to load from the dataset.
@@ -352,13 +373,21 @@ class DatasetBratsSupervised(AbstractDataset):
         """
         # This is an instance-variable instead of a class-variable because it
         # depends on FLAGS, which is not parsed yet at class-parse-time.
-        files = os.path.join(os.path.expanduser(FLAGS.dataset_dir), '%s@%i')
+        files = str(Path(dataset_dir).expanduser().resolve() / "%s@%i")
 
         filenames = {
-            'train': generate_sharded_filenames(files % ('train_with_labels.tfrecord', 35))[:-self.NO_VAL_SHARDS],
-            'val': generate_sharded_filenames(files % ('train_with_labels.tfrecord', 35))[-self.NO_VAL_SHARDS:],
-            'trainval': generate_sharded_filenames(files % ('train_with_labels.tfrecord', 35)),
-            'test': generate_sharded_filenames(files % ('validation_two_modal.tfrecord', 8))
+            "train": generate_sharded_filenames(
+                files % ("train_with_labels.tfrecord", 35)
+            )[: -self.NO_VAL_SHARDS],
+            "val": generate_sharded_filenames(
+                files % ("train_with_labels.tfrecord", 35)
+            )[-self.NO_VAL_SHARDS :],
+            "trainval": generate_sharded_filenames(
+                files % ("train_with_labels.tfrecord", 35)
+            ),
+            "test": generate_sharded_filenames(
+                files % ("validation_two_modal.tfrecord", 8)
+            ),
         }
 
         tf.logging.info(filenames[split_name])
@@ -369,7 +398,8 @@ class DatasetBratsSupervised(AbstractDataset):
             num_epochs=num_epochs,
             shuffle=shuffle,
             random_seed=random_seed,
-            drop_remainder=drop_remainder)
+            drop_remainder=drop_remainder,
+        )
         self.split_name = split_name
         self.preprocess_fn = preprocess_fn
 
@@ -385,7 +415,7 @@ class DatasetBratsSupervised(AbstractDataset):
         mask = example[self.LABEL_KEY]
         tf.logging.info(image)
 
-        return self.preprocess_fn({'image': image, 'label': mask})
+        return self.preprocess_fn({"image": image, "label": mask})
 
 
 class DatasetBratsSupervised3D(AbstractDataset):
@@ -395,37 +425,42 @@ class DatasetBratsSupervised3D(AbstractDataset):
     -> val split is derived by taking the last 2 shards of the official training data.
     -> test split represents official Brats test split.
     """
+
     # actual number of files (not necessarily a multitude of 1024)
-    COUNTS = {'train': 270,
-              'val': 15,
-              'trainval': 285,
-              'test': 66}
+    COUNTS = {"train": 270, "val": 15, "trainval": 285, "test": 66}
 
     NUM_CLASSES = 4
 
-    IMAGE_KEY = 'image/encoded'
-    HEIGHT_KEY = 'image/height'
-    WIDTH_KEY = 'image/width'
-    CHANNELS_KEY = 'image/channels'
-    LABEL_KEY = 'image/mask'
+    IMAGE_KEY = "image/encoded"
+    HEIGHT_KEY = "image/height"
+    WIDTH_KEY = "image/width"
+    CHANNELS_KEY = "image/channels"
+    LABEL_KEY = "image/mask"
     NO_MODALITIES = 4  # can be 2 or 4
     NO_VAL_SHARDS = 1
 
     FEATURE_MAP = {
-        IMAGE_KEY: tf.FixedLenFeature(shape=[128, 128, 128, NO_MODALITIES], dtype=tf.float32),  # input multimodal slice
-        LABEL_KEY: tf.FixedLenFeature(shape=[128, 128, 128], dtype=tf.int64),  # segmentation mask
+        IMAGE_KEY: tf.FixedLenFeature(
+            shape=[128, 128, 128, NO_MODALITIES], dtype=tf.float32
+        ),  # input multimodal slice
+        LABEL_KEY: tf.FixedLenFeature(
+            shape=[128, 128, 128], dtype=tf.int64
+        ),  # segmentation mask
         HEIGHT_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
         WIDTH_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
-        CHANNELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64)
+        CHANNELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
     }
 
-    def __init__(self,
-                 split_name,
-                 preprocess_fn,
-                 num_epochs,
-                 shuffle,
-                 random_seed=None,
-                 drop_remainder=True):
+    def __init__(
+        self,
+        split_name,
+        preprocess_fn,
+        num_epochs,
+        shuffle,
+        dataset_dir,
+        random_seed=None,
+        drop_remainder=True,
+    ):
         """Initialize the dataset object.
         Args:
           split_name: A string split name, to load from the dataset.
@@ -441,30 +476,40 @@ class DatasetBratsSupervised3D(AbstractDataset):
         """
         # This is an instance-variable instead of a class-variable because it
         # depends on FLAGS, which is not parsed yet at class-parse-time.
-        files = os.path.join(os.path.expanduser(FLAGS.dataset_dir), '%s@%i')
+        files = str(Path(dataset_dir).expanduser().resolve() / "%s@%i")
 
         def generate_specific_sharded_(filename):
-            base, count = filename.split('@')
+            base, count = filename.split("@")
             count = int(count)
-            return ['{}-{:05d}-of-{:05d}'.format(base, i, count - 1) for i in range(count)]
+            return [
+                "{}-{:05d}-of-{:05d}".format(base, i, count - 1) for i in range(count)
+            ]
 
         if self.NO_MODALITIES == 2:
-            train_filename = 'train_3D_with_labels.tfrecord'
-            val_filename = 'validation_3D_two_modal.tfrecord'
+            train_filename = "train_3D_with_labels.tfrecord"
+            val_filename = "validation_3D_two_modal.tfrecord"
             filenames = {
-                'train': generate_specific_sharded_(files % (train_filename, 10))[:-self.NO_VAL_SHARDS],
-                'val': generate_specific_sharded_(files % (train_filename, 10))[-self.NO_VAL_SHARDS:],
-                'trainval': generate_specific_sharded_(files % (train_filename, 10)),
-                'test': generate_specific_sharded_(files % (val_filename, 3))
+                "train": generate_specific_sharded_(files % (train_filename, 10))[
+                    : -self.NO_VAL_SHARDS
+                ],
+                "val": generate_specific_sharded_(files % (train_filename, 10))[
+                    -self.NO_VAL_SHARDS :
+                ],
+                "trainval": generate_specific_sharded_(files % (train_filename, 10)),
+                "test": generate_specific_sharded_(files % (val_filename, 3)),
             }
         else:
-            train_filename = 'train_3D_with_labels_multimodal.tfrecord'
-            val_filename = 'validation_3D_multimodal.tfrecord'
+            train_filename = "train_3D_with_labels_multimodal.tfrecord"
+            val_filename = "validation_3D_multimodal.tfrecord"
             filenames = {
-                'train': generate_specific_sharded_(files % (train_filename, 10))[:-self.NO_VAL_SHARDS],
-                'val': generate_specific_sharded_(files % (train_filename, 10))[-self.NO_VAL_SHARDS:],
-                'trainval': generate_specific_sharded_(files % (train_filename, 10)),
-                'test': generate_specific_sharded_(files % (val_filename, 3))
+                "train": generate_specific_sharded_(files % (train_filename, 10))[
+                    : -self.NO_VAL_SHARDS
+                ],
+                "val": generate_specific_sharded_(files % (train_filename, 10))[
+                    -self.NO_VAL_SHARDS :
+                ],
+                "trainval": generate_specific_sharded_(files % (train_filename, 10)),
+                "test": generate_specific_sharded_(files % (val_filename, 3)),
             }
 
         tf.logging.info(filenames[split_name])
@@ -476,7 +521,8 @@ class DatasetBratsSupervised3D(AbstractDataset):
             shuffle=shuffle,
             shuffle_buffer_size=10,
             random_seed=random_seed,
-            drop_remainder=drop_remainder)
+            drop_remainder=drop_remainder,
+        )
         self.split_name = split_name
         self.preprocess_fn = preprocess_fn
 
@@ -492,7 +538,7 @@ class DatasetBratsSupervised3D(AbstractDataset):
         mask = example[self.LABEL_KEY]
         tf.logging.info(image)
 
-        return self.preprocess_fn({'image': image, 'label': mask})
+        return self.preprocess_fn({"image": image, "label": mask})
 
 
 class DatasetUKB(AbstractDataset):
@@ -501,32 +547,34 @@ class DatasetUKB(AbstractDataset):
     -> train split is derived by taking the first 17 of 19 shards of the offcial training data.
     -> val split is derived by taking the last 2 shards of the official training data.
     """
+
     VAL_SHARDS = 2
     NUM_SHARDS = 19
     # actual number of files (not necessarily a multitude of 1024)
-    COUNTS = {'train': 2443240,
-              'val': 287440,
-              'trainval': 2730680}
+    COUNTS = {"train": 2443240, "val": 287440, "trainval": 2730680}
 
-    IMAGE_KEY = 'image/encoded'
-    HEIGHT_KEY = 'image/height'
-    WIDTH_KEY = 'image/width'
-    CHANNELS_KEY = 'image/channels'
+    IMAGE_KEY = "image/encoded"
+    HEIGHT_KEY = "image/height"
+    WIDTH_KEY = "image/width"
+    CHANNELS_KEY = "image/channels"
 
     FEATURE_MAP = {
         IMAGE_KEY: tf.FixedLenFeature(shape=[128, 128, 2], dtype=tf.float32),
         HEIGHT_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
         WIDTH_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
-        CHANNELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64)
+        CHANNELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
     }
 
-    def __init__(self,
-                 split_name,
-                 preprocess_fn,
-                 num_epochs,
-                 shuffle,
-                 random_seed=None,
-                 drop_remainder=True):
+    def __init__(
+        self,
+        split_name,
+        preprocess_fn,
+        num_epochs,
+        shuffle,
+        dataset_dir,
+        random_seed=None,
+        drop_remainder=True,
+    ):
         """Initialize the dataset object.
         Args:
           split_name: A string split name, to load from the dataset. (train, val, trainval)
@@ -542,12 +590,14 @@ class DatasetUKB(AbstractDataset):
         """
         # This is an instance-variable instead of a class-variable because it
         # depends on FLAGS, which is not parsed yet at class-parse-time.
-        files = os.path.join(os.path.expanduser(FLAGS.dataset_dir), '%s@%i')
-        sharded_filenames = generate_sharded_filenames(files % ('train.tfrecord', self.NUM_SHARDS))
+        files = str(Path(dataset_dir).expanduser().resolve() / "%s@%i")
+        sharded_filenames = generate_sharded_filenames(
+            files % ("train.tfrecord", self.NUM_SHARDS)
+        )
         filenames = {
-            'train': sharded_filenames[:-self.VAL_SHARDS],
-            'val': sharded_filenames[-self.VAL_SHARDS:],
-            'trainval': sharded_filenames
+            "train": sharded_filenames[: -self.VAL_SHARDS],
+            "val": sharded_filenames[-self.VAL_SHARDS :],
+            "trainval": sharded_filenames,
         }
 
         tf.logging.info(filenames[split_name])
@@ -558,7 +608,8 @@ class DatasetUKB(AbstractDataset):
             num_epochs=num_epochs,
             shuffle=shuffle,
             random_seed=random_seed,
-            drop_remainder=drop_remainder)
+            drop_remainder=drop_remainder,
+        )
         self.split_name = split_name
         self.preprocess_fn = preprocess_fn
 
@@ -573,7 +624,7 @@ class DatasetUKB(AbstractDataset):
         image = example[self.IMAGE_KEY]
         tf.logging.info(image)
 
-        return self.preprocess_fn({'image': image})
+        return self.preprocess_fn({"image": image})
 
 
 class DatasetUKB3D(AbstractDataset):
@@ -582,34 +633,36 @@ class DatasetUKB3D(AbstractDataset):
     -> train split is derived by taking the first 17 of 19 shards of the offcial training data.
     -> val split is derived by taking the last 2 shards of the official training data.
     """
+
     VAL_SHARDS = 4
     NUM_SHARDS = 19
     # actual number of files (not necessarily a multitude of 1024)
-    COUNTS = {'train': 15360,
-              'val': 4096,
-              'trainval': 19456}
+    COUNTS = {"train": 15360, "val": 4096, "trainval": 19456}
 
-    IMAGE_KEY = 'image/encoded'
-    HEIGHT_KEY = 'image/height'
-    WIDTH_KEY = 'image/width'
-    DEPTH_KEY = 'image/depth'
-    CHANNELS_KEY = 'image/channels'
+    IMAGE_KEY = "image/encoded"
+    HEIGHT_KEY = "image/height"
+    WIDTH_KEY = "image/width"
+    DEPTH_KEY = "image/depth"
+    CHANNELS_KEY = "image/channels"
 
     FEATURE_MAP = {
         IMAGE_KEY: tf.FixedLenFeature(shape=[128, 128, 128, 2], dtype=tf.float32),
         HEIGHT_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
         WIDTH_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
         DEPTH_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
-        CHANNELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64)
+        CHANNELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
     }
 
-    def __init__(self,
-                 split_name,
-                 preprocess_fn,
-                 num_epochs,
-                 shuffle,
-                 random_seed=None,
-                 drop_remainder=True):
+    def __init__(
+        self,
+        split_name,
+        preprocess_fn,
+        num_epochs,
+        shuffle,
+        dataset_dir,
+        random_seed=None,
+        drop_remainder=True,
+    ):
         """Initialize the dataset object.
         Args:
           split_name: A string split name, to load from the dataset. (train, val, trainval)
@@ -625,12 +678,14 @@ class DatasetUKB3D(AbstractDataset):
         """
         # This is an instance-variable instead of a class-variable because it
         # depends on FLAGS, which is not parsed yet at class-parse-time.
-        files = os.path.join(os.path.expanduser(FLAGS.dataset_dir), '%s@%i')
-        sharded_filenames = generate_sharded_filenames(files % ('train_3D.tfrecord', self.NUM_SHARDS))
+        files = str(Path(dataset_dir).expanduser().resolve() / "%s@%i")
+        sharded_filenames = generate_sharded_filenames(
+            files % ("train_3D.tfrecord", self.NUM_SHARDS)
+        )
         filenames = {
-            'train': sharded_filenames[:-self.VAL_SHARDS],
-            'val': sharded_filenames[-self.VAL_SHARDS:],
-            'trainval': sharded_filenames
+            "train": sharded_filenames[: -self.VAL_SHARDS],
+            "val": sharded_filenames[-self.VAL_SHARDS :],
+            "trainval": sharded_filenames,
         }
 
         tf.logging.info(filenames[split_name])
@@ -642,7 +697,8 @@ class DatasetUKB3D(AbstractDataset):
             shuffle=shuffle,
             shuffle_buffer_size=20,
             random_seed=random_seed,
-            drop_remainder=drop_remainder)
+            drop_remainder=drop_remainder,
+        )
         self.split_name = split_name
         self.preprocess_fn = preprocess_fn
 
@@ -657,25 +713,31 @@ class DatasetUKB3D(AbstractDataset):
         image = example[self.IMAGE_KEY]
         tf.logging.info(image)
 
-        return self.preprocess_fn({'image': image})
+        return self.preprocess_fn({"image": image})
 
 
 DATASET_MAP = {
-    'brats_unsupervised': DatasetBratsUnsupervised,
-    'brats_supervised': DatasetBratsSupervised,
-    'brats_supervised_3d': DatasetBratsSupervised3D,
-    'ukb': DatasetUKB,
-    'ukb3d': DatasetUKB3D,
-    'cpc_test': DatasetCpcMnist
+    "brats_unsupervised": DatasetBratsUnsupervised,
+    "brats_supervised": DatasetBratsSupervised,
+    "brats_supervised_3d": DatasetBratsSupervised3D,
+    "ukb": DatasetUKB,
+    "ukb3d": DatasetUKB3D,
+    "cpc_test": DatasetCpcMnist,
 }
 
 
-def get_data(params,
-             split_name,
-             is_training,
-             shuffle=True,
-             num_epochs=None,
-             drop_remainder=False):
+def get_data(
+    params,
+    split_name,
+    is_training,
+    dataset,
+    preprocessing,
+    dataset_dir,
+    random_seed=None,
+    shuffle=True,
+    num_epochs=None,
+    drop_remainder=False,
+):
     """Produces image/label tensors for a given dataset.
 
     Args:
@@ -690,21 +752,23 @@ def get_data(params,
     Returns:
       image, label, example counts
     """
-    dataset = DATASET_MAP[FLAGS.dataset]
-    preprocess_fn = get_preprocess_fn(FLAGS.preprocessing, is_training)
+    dataset = DATASET_MAP[dataset]
+    preprocess_fn = get_preprocess_fn(preprocessing, is_training)
 
     return dataset(
         split_name=split_name,
         preprocess_fn=preprocess_fn,
         num_epochs=num_epochs,
         shuffle=shuffle,
-        random_seed=FLAGS.get_flag_value('random_seed', None),
-        drop_remainder=drop_remainder).input_fn(params)
+        dataset_dir=dataset_dir,
+        random_seed=random_seed,
+        drop_remainder=drop_remainder,
+    ).input_fn(params)
 
 
-def get_count(split_name):
-    return DATASET_MAP[FLAGS.dataset].COUNTS[split_name]
+def get_count(dataset, split_name):
+    return DATASET_MAP[dataset].COUNTS[split_name]
 
 
-def get_num_classes():
-    return DATASET_MAP[FLAGS.dataset].NUM_CLASSES
+def get_num_classes(dataset):
+    return DATASET_MAP[dataset].NUM_CLASSES

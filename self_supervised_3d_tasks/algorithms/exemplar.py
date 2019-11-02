@@ -9,16 +9,13 @@ import tensorflow as tf
 import tensorflow_hub as hub
 
 from self_supervised_3d_tasks import utils
-from models.utils import get_net
+from self_supervised_3d_tasks.models.utils import get_net
 from self_supervised_3d_tasks.trainer import make_estimator
 
 FLAGS = tf.flags.FLAGS
 
 
-def apply_model(image_fn,
-                is_training,
-                num_outputs,
-                make_signature=False):
+def apply_model(image_fn, is_training, num_outputs, make_signature=False):
     """Creates the patch based model output from patches representations.
 
     Args:
@@ -39,8 +36,9 @@ def apply_model(image_fn,
     images = image_fn()
 
     net = get_net(num_classes=num_outputs)
-    out, end_points = net(images, is_training,
-                          weight_decay=FLAGS.get_flag_value('weight_decay', 1e-4))
+    out, end_points = net(
+        images, is_training, weight_decay=FLAGS.get_flag_value("weight_decay", 1e-4)
+    )
 
     print(end_points)
 
@@ -48,11 +46,10 @@ def apply_model(image_fn,
         out = tf.squeeze(out, [1, 2])
 
     if make_signature:
-        hub.add_signature(inputs={'image': images}, outputs=out)
+        hub.add_signature(inputs={"image": images}, outputs=out)
         hub.add_signature(
-            name='representation',
-            inputs={'image': images},
-            outputs=end_points)
+            name="representation", inputs={"image": images}, outputs=end_points
+        )
     return out
 
 
@@ -71,57 +68,60 @@ def model_fn(data, mode):
     Returns:
       EstimatorSpec
     """
-    images = data['image']
+    images = data["image"]
     batch_size = tf.shape(images)[0]
-    print('   +++ Mode: %s, data: %s' % (mode, data))
+    print("   +++ Mode: %s, data: %s" % (mode, data))
 
     embed_dim = FLAGS.embed_dim
     patch_count = images.get_shape().as_list()[1]
 
-    if 'crop_inception_preprocess_patches3d' in FLAGS.preprocessing:
+    if "crop_inception_preprocess_patches3d" in FLAGS.preprocessing:
         images = tf.reshape(images, shape=[-1] + images.get_shape().as_list()[-4:])
     else:
         images = tf.reshape(images, shape=[-1] + images.get_shape().as_list()[-3:])
 
     if mode in [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL]:
-        if 'crop_inception_preprocess_patches3d' in FLAGS.preprocessing:
+        if "crop_inception_preprocess_patches3d" in FLAGS.preprocessing:
             images = tf.reshape(images, [-1] + images.get_shape().as_list()[-4:])
         else:
             images = tf.reshape(images, [-1] + images.get_shape().as_list()[-3:])
-        with tf.variable_scope('module'):
+        with tf.variable_scope("module"):
             image_fn = lambda: images
             logits = apply_model(
                 image_fn=image_fn,
                 is_training=(mode == tf.estimator.ModeKeys.TRAIN),
                 num_outputs=embed_dim,
-                make_signature=False)
+                make_signature=False,
+            )
     else:
         input_shape = utils.str2intlist(
-            FLAGS.get_flag_value('serving_input_shape', 'None,None,None,3'))
-        image_fn = lambda: tf.placeholder(shape=input_shape,  # pylint: disable=g-long-lambda
-                                          dtype=tf.float32)
+            FLAGS.get_flag_value("serving_input_shape", "None,None,None,3")
+        )
+        image_fn = lambda: tf.placeholder(
+            shape=input_shape, dtype=tf.float32  # pylint: disable=g-long-lambda
+        )
         apply_model_function = functools.partial(
-            apply_model,
-            image_fn=image_fn,
-            num_outputs=embed_dim,
-            make_signature=True)
+            apply_model, image_fn=image_fn, num_outputs=embed_dim, make_signature=True
+        )
 
-        tf_hub_module_spec = hub.create_module_spec(apply_model_function,
-                                                    [(utils.TAGS_IS_TRAINING, {
-                                                        'is_training': True
-                                                    }),
-                                                     (set(), {
-                                                         'is_training': False
-                                                     })],
-                                                    drop_collections=['summaries'])
+        tf_hub_module_spec = hub.create_module_spec(
+            apply_model_function,
+            [
+                (utils.TAGS_IS_TRAINING, {"is_training": True}),
+                (set(), {"is_training": False}),
+            ],
+            drop_collections=["summaries"],
+        )
         tf_hub_module = hub.Module(tf_hub_module_spec, trainable=False, tags=set())
-        hub.register_module_for_export(tf_hub_module, export_name='module')
+        hub.register_module_for_export(tf_hub_module, export_name="module")
         logits = tf_hub_module(images)
         return make_estimator(mode, predictions=logits)
 
     labels = repeat(tf.range(batch_size), patch_count)
     norm_logits = tf.nn.l2_normalize(logits, axis=0)
-    loss = tf.contrib.losses.metric_learning.triplet_semihard_loss(labels, norm_logits, margin=FLAGS.margin)
+    loss = tf.contrib.losses.metric_learning.triplet_semihard_loss(
+        labels, norm_logits, margin=FLAGS.margin
+    )
 
     logging_hook = tf.train.LoggingTensorHook({"loss": loss}, every_n_iter=10)
 
