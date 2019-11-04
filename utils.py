@@ -297,6 +297,26 @@ def tf_apply_with_probability(p, fn, x):
         lambda: x)
 
 
+def tf_apply_many_with_probability(ps, functions, x):
+    """"Apply function `fn[i]` to input `x` randomly `p[i]` percent of the time."""
+    if len(ps) != len(functions):
+        raise Exception('lengths do not match')
+
+    print(ps, functions, x)
+    print(sum(ps[:0]))
+    print(sum(ps[:1]))
+
+    rand = tf.random_uniform([], minval=0, maxval=1, dtype=tf.float32)
+
+    def _test_i(i):
+        return tf.cond(
+            tf.less(rand, sum(ps[:i+1])),
+            lambda: functions[i](x),
+            lambda: _test_i(i + 1) if (i + 1) < len(ps) else x)
+
+    return _test_i(0)
+
+
 def expand_glob(glob_patterns):
     checkpoints = []
     for pattern in glob_patterns:

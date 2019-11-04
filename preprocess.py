@@ -86,6 +86,16 @@ def get_inception_crop(is_training, **kw):
     return _inception_crop_pp
 
 
+def get_pad(padding, mode):
+    def _make_padding(data):
+        data["image"] = utils.tf_apply_to_image_or_images(lambda img: tf.pad(img, tf.constant(padding), mode),
+                                                          data["image"])
+
+        return data
+
+    return _make_padding
+
+
 def get_random_flip_lr(is_training):
     def _random_flip_lr_pp(data):
         if is_training:
@@ -94,6 +104,16 @@ def get_random_flip_lr(is_training):
         return data
 
     return _random_flip_lr_pp
+
+
+def get_random_flip_ud(is_training):
+    def _random_flip_ud_pp(data):
+        if is_training:
+            data["image"] = utils.tf_apply_to_image_or_images(
+                tf.image.random_flip_up_down, data["image"])
+        return data
+
+    return _random_flip_ud_pp
 
 
 def get_resize_preprocess(im_size, randomize_resize_method=False):
@@ -328,6 +348,27 @@ def distort_color3d(scan):
     return tf.clip_by_value(x, 0.0, 1.0)
 
 
+def get_drop_all_channels_but_one_preprocess():
+    def _drop_all_channels_but_one(idx):
+        # KEEP THE CHANNEL POSITION
+        # x = np.zeros((56,56,3))
+        # x[:,:,idx] = 1
+        # mask = tf.constant(x,dtype=tf.float32)
+        # return lambda image: tf.multiply(image, mask)
+
+        return lambda image: tf.tile(image[:, :, idx:idx+1], [1, 1, 3])
+
+    def _drop_all_channels_but_one_pp(data):
+        data["image"] = utils.tf_apply_to_image_or_images(
+            lambda img: utils.tf_apply_many_with_probability(
+                [1.0/3.0]*3,
+                [(_drop_all_channels_but_one(a)) for a in range(3)], img),
+            data["image"])
+        return data
+
+    return _drop_all_channels_but_one_pp
+
+
 def get_to_gray_preprocess(grayscale_probability):
     def _to_gray(image):
         # Transform to grayscale by taking the mean of RGB.
@@ -385,8 +426,12 @@ def get_preprocess_fn(fn_names, is_training):
                 yield get_crop(False, utils.str2intlist(FLAGS.crop_size, 2))
             elif fn_name == "inception_crop":
                 yield get_inception_crop(is_training)
+            elif fn_name == "pad":
+                yield get_pad(FLAGS.padding, FLAGS.padding_mode)
             elif fn_name == "flip_lr":
                 yield get_random_flip_lr(is_training)
+            elif fn_name == "flip_ud":
+                yield get_random_flip_ud(is_training)
             elif fn_name == "crop_inception_preprocess_patches":
                 yield get_inception_preprocess_patches(
                     is_training, utils.str2intlist(FLAGS.resize_size, 2),
@@ -396,6 +441,8 @@ def get_preprocess_fn(fn_names, is_training):
             elif fn_name == "to_gray":
                 yield get_to_gray_preprocess(
                     FLAGS.get_flag_value("grayscale_probability", 1.0))
+            elif fn_name == "drop_all_channels_but_one":
+                yield get_drop_all_channels_but_one_preprocess()
             elif fn_name == "crop_patches":
                 yield pp_lib.get_crop_patches_fn(
                     is_training,

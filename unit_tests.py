@@ -8,6 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from algorithms.patch_model_preprocess import get_crop_patches_fn
+from preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, get_pad
 
 
 def plot_sequences(x, y, labels=None, output_path=None):
@@ -39,7 +40,7 @@ def get_lena():
     # Use `convert_image_dtype` to convert to floats in the [0,1] range.
     img = tf.image.convert_image_dtype(img, tf.float32)
     # resize the image to the desired size.
-    return {"image": tf.image.resize(img, [256, 256])}
+    return {"image": tf.image.resize(img, [300, 300])}
 
 def test_mnist_data_generator():
     flags.DEFINE_string('dataset', 'cpc_test', 'Which dataset to use, typically '
@@ -84,6 +85,7 @@ def show_batch(image_batch):
 
     plt.show()
 
+
 def show_img(img):
     print(img.shape)
 
@@ -91,9 +93,21 @@ def show_img(img):
     plt.imshow(img)
     plt.show()
 
+
+def chain(f, g):
+    return lambda x: g(f(x))
+
+
 def test_preprocessing():
     with tf.Session() as sess:
-        f = get_crop_patches_fn(is_training=True, split_per_side=7, patch_jitter=-32)
+        f = get_crop(is_training=True, crop_size=(256, 256))
+        # f = chain(f, get_random_flip_ud(is_training=True)) also for new version?
+        f = chain(f, get_crop_patches_fn(is_training=True, split_per_side=7, patch_jitter=-32))
+        f = chain(f, get_random_flip_ud(is_training=True))
+        f = chain(f, get_crop(is_training=True, crop_size=(56, 56)))
+        f = chain(f, get_drop_all_channels_but_one_preprocess())
+        f = chain(f, get_pad([[4, 4], [4, 4], [0, 0]], "REFLECT"))
+
         patches = sess.run(f(get_lena()))
         print(patches["image"].shape)
         show_batch(patches["image"])
