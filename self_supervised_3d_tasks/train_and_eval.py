@@ -32,12 +32,12 @@ TPU_ITERATIONS_PER_LOOP = 500
 
 def train_and_eval(FLAGS):
     """Trains a network on (self_supervised) supervised data."""
-    model_dir = FLAGS["workdir"]
+    model_dir = FLAGS["workdir"].resolve()
+    use_tpu = FLAGS["use_tpu"]
 
-    if FLAGS["use_tpu"]:
-        master = TPUClusterResolver(tpu=[os.environ["TPU_NAME"]]).get_master()
-    else:
-        master = ""
+    cluster_master = (
+        TPUClusterResolver(tpu=[os.environ["TPU_NAME"]]).get_master() if use_tpu else ""
+    )
 
     configp = tf.ConfigProto()
     configp.gpu_options.allow_growth = True
@@ -47,8 +47,8 @@ def train_and_eval(FLAGS):
     config = tf.contrib.tpu.RunConfig(
         model_dir=model_dir,
         tf_random_seed=FLAGS.get("random_seed", None),
-        master=master,
-        evaluation_master=master,
+        master=cluster_master,
+        evaluation_master=cluster_master,
         session_config=configp,
         keep_checkpoint_every_n_hours=FLAGS.get("keep_checkpoint_every_n_hours", 4),
         save_checkpoints_secs=FLAGS.get("save_checkpoints_secs", 600),
@@ -64,140 +64,213 @@ def train_and_eval(FLAGS):
         model_fn=get_self_supervision_model(FLAGS["task"]),
         model_dir=model_dir,
         config=config,
-        use_tpu=FLAGS["use_tpu"],
+        use_tpu=use_tpu,
         train_batch_size=FLAGS["batch_size"],
         eval_batch_size=FLAGS.get("eval_batch_size", FLAGS["batch_size"]),
     )
 
     if FLAGS["run_eval"]:
-        tf.logging.info("entered run eval branch.")
-        data_fn = functools.partial(
-            datasets.get_data,
-            dataset=FLAGS["dataset"],
-            preprocessing=FLAGS["preprocessing"],
-            dataset_dir=FLAGS["dataset_dir"],
-            split_name=FLAGS.get("val_split", "val"),
-            is_training=False,
-            shuffle=False,
-            num_epochs=1,
-            drop_remainder=FLAGS["use_tpu"],
-        )
-
-        # Contrary to what the documentation claims, the `train` and the
-        # `evaluate` functions NEED to have `max_steps` and/or `steps` set and
-        # cannot make use of the iterator's end-of-input exception, so we need
-        # to do some math for that here.
-        num_samples = datasets.get_count(
-            FLAGS["dataset"], FLAGS.get("val_split", "val")
-        )
-        num_steps = num_samples // FLAGS.get("eval_batch_size", FLAGS["batch_size"])
-        tf.logging.info("val_steps: %d", num_steps)
-
-        for checkpoint in tf.contrib.training.checkpoints_iterator(
-            estimator.model_dir, timeout=10 * 60
-        ):
-
-            estimator.evaluate(
-                checkpoint_path=checkpoint, input_fn=data_fn, steps=num_steps
-            )
-
-            hub_exporter = hub.LatestModuleExporter("hub", serving_input_fn)
-            hub_exporter.export(estimator, (model_dir / "export/hub"), checkpoint)
-
-            if tf.gfile.Exists(str(FLAGS["workdir"] / "TRAINING_IS_DONE")):
-                break
-
-        # Evaluates the latest checkpoint on validation set.
-        result = estimator.evaluate(input_fn=data_fn, steps=num_steps)
-        return result
+        return evaluate(FLAGS, estimator, model_dir)
 
     elif FLAGS["train_eval"]:
-        tf.logging.info("entered training + continuous evaluation branch.")
-        train_input_fn = functools.partial(
-            datasets.get_data,
-            dataset=FLAGS["dataset"],
-            preprocessing=FLAGS["preprocessing"],
-            dataset_dir=FLAGS["dataset_dir"],
-            split_name=FLAGS.get("train_split", "train"),
-            is_training=True,
-            num_epochs=int(math.ceil(FLAGS["epochs"])),
-            drop_remainder=True,
-        )
-
-        eval_input_fn = functools.partial(
-            datasets.get_data,
-            dataset=FLAGS["dataset"],
-            preprocessing=FLAGS["preprocessing"],
-            dataset_dir=FLAGS["dataset_dir"],
-            split_name=FLAGS.get("val_split", "val"),
-            is_training=False,
-            shuffle=False,
-            num_epochs=1,
-            drop_remainder=FLAGS["use_tpu"],
-        )
-
-        num_train_samples = datasets.get_count(
-            FLAGS["dataset"], FLAGS.get("train_split", "train")
-        )
-        updates_per_epoch = num_train_samples // FLAGS["batch_size"]
-        num_train_steps = int(math.ceil(FLAGS["epochs"] * updates_per_epoch))
-
-        estimator._export_to_tpu = False
-        best_exporter = utils.BestCheckpointCopier(
-            name="best",
-            checkpoints_to_keep=2,
-            score_metric="loss",
-            compare_fn=lambda x, y: x.score < y.score,
-            sort_key_fn=lambda x: x.score,
-            sort_reverse=False,
-        )
-        final_exporter = tf.estimator.FinalExporter(
-            name="final_exporter",
-            serving_input_receiver_fn=serving_input_fn(
-                FLAGS["serving_input_shape"], FLAGS["serving_input_key"]
-            ),
-        )
-        exporters = (best_exporter, final_exporter)
-
-        train_spec = tf.estimator.TrainSpec(
-            input_fn=train_input_fn, max_steps=num_train_steps
-        )
-        eval_spec = tf.estimator.EvalSpec(
-            input_fn=eval_input_fn,
-            exporters=exporters,
-            throttle_secs=FLAGS.get("throttle_secs", 90),
-        )
-        tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+        train_and_continous_evaluation(FLAGS, estimator)
 
     else:
-        tf.logging.info("entered training branch.")
-        train_data_fn = functools.partial(
-            datasets.get_data,
-            dataset=FLAGS["dataset"],
-            preprocessing=FLAGS["preprocessing"],
-            dataset_dir=FLAGS["dataset_dir"],
-            split_name=FLAGS.get("train_split", "train"),
-            is_training=True,
-            num_epochs=int(math.ceil(FLAGS["epochs"])),
-            drop_remainder=True,
+        train(FLAGS, estimator)
+
+
+def train_and_continous_evaluation(
+        estimator,
+        dataset,
+        preprocessing,
+        dataset_dir,
+        epochs: int,
+        batch_size: int,
+        train_split="train",
+        val_split="val",
+        use_tpu=False,
+        serving_input_shape="None,None,None,3",
+        serving_input_key="image",
+        throttle_after=90,
+):
+    """I train an estimator and evaluate it along the way.
+
+    Args:
+        estimator: a tensorflow.estimator.Estimator object
+        dataset: the name of the dataset
+        preprocessing: a list of preprocessing steps identified via the function name
+        dataset_dir: a valid Path to dataset
+        epochs:
+        batch_size:
+        train_split:
+        val_split: on which split to evaluate on (one of: "val" / "test")
+        use_tpu: if there is a TPU Device which I should use
+        serving_input_shape: the shape of the input tensor as a comma seperated string
+        serving_input_key: the type of input
+        throttle_after: seconds after which I throttle while evaluating
+
+    Returns:
+        None
+
+    """
+    tf.logging.info("entered training + continuous evaluation branch.")
+    train_input_fn = functools.partial(
+        datasets.get_data,
+        dataset=dataset,
+        preprocessing=preprocessing,
+        dataset_dir=dataset_dir,
+        split_name=train_split,
+        is_training=True,
+        num_epochs=epochs,
+        drop_remainder=True,
+    )
+    eval_input_fn = functools.partial(
+        datasets.get_data,
+        dataset=dataset,
+        preprocessing=preprocessing,
+        dataset_dir=dataset_dir,
+        split_name=val_split,
+        is_training=False,
+        shuffle=False,
+        num_epochs=1,
+        drop_remainder=use_tpu,
+    )
+    num_train_samples = datasets.get_count(dataset, train_split)
+    updates_per_epoch = num_train_samples // batch_size
+    num_train_steps = int(epochs * updates_per_epoch)
+    estimator._export_to_tpu = False
+    best_exporter = utils.BestCheckpointCopier(
+        name="best",
+        checkpoints_to_keep=2,
+        score_metric="loss",
+        compare_fn=lambda x, y: x.score < y.score,
+        sort_key_fn=lambda x: x.score,
+        sort_reverse=False,
+    )
+    final_exporter = tf.estimator.FinalExporter(
+        name="final_exporter",
+        serving_input_receiver_fn=serving_input_fn(
+            serving_input_shape, serving_input_key
+        ),
+    )
+    exporters = (best_exporter, final_exporter)
+    train_spec = tf.estimator.TrainSpec(
+        input_fn=train_input_fn, max_steps=num_train_steps
+    )
+    eval_spec = tf.estimator.EvalSpec(
+        input_fn=eval_input_fn, exporters=exporters, throttle_secs=throttle_after
+    )
+    tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
+
+
+def evaluate(
+        estimator,
+        model_dir: Path,
+        dataset,
+        preprocessing,
+        dataset_dir,
+        eval_batch_size: int = None,
+        val_split="val",
+        use_tpu=False,
+):
+    """I evaluate the performance of a given estimator on a dataset.
+
+    Args:
+        estimator: a tensorflow.estimator.Estimator object
+        model_dir: a Path to the directory containing the model to be evaluated
+        dataset: the name of the dataset
+        preprocessing: a list of preprocessing steps identified via the function name
+        dataset_dir: a valid Path to dataset
+        eval_batch_size: number of samples per evaluation batch
+        val_split: on which split to evaluate on (one of: "val" / "test")
+        use_tpu: if there is a TPU Device which I should use
+
+    Returns:
+        see tensorflow.estimator.Estimator.evaluate
+
+    """
+    tf.logging.info("entered run eval branch.")
+    data_fn = functools.partial(
+        datasets.get_data,
+        dataset=dataset,
+        preprocessing=preprocessing,
+        dataset_dir=dataset_dir,
+        split_name=val_split,
+        is_training=False,
+        shuffle=False,
+        num_epochs=1,
+        drop_remainder=use_tpu,
+    )
+    # Contrary to what the documentation claims, the `train` and the
+    # `evaluate` functions NEED to have `max_steps` and/or `steps` set and
+    # cannot make use of the iterator's end-of-input exception, so we need
+    # to do some math for that here.
+    num_samples = datasets.get_count(dataset, val_split)
+    num_steps = num_samples // eval_batch_size
+    tf.logging.info("val_steps: %d", num_steps)
+    for checkpoint in tf.contrib.training.checkpoints_iterator(
+            estimator.model_dir, timeout=10 * 60
+    ):
+
+        estimator.evaluate(
+            checkpoint_path=checkpoint, input_fn=data_fn, steps=num_steps
         )
 
-        # We compute the number of steps and make use of Estimator's max_steps
-        # arguments instead of relying on the Dataset's iterator to run out after
-        # a number of epochs so that we can use 'fractional' epochs, which are
-        # used by regression tests. (And because TPUEstimator needs it anyways.)
-        num_samples = datasets.get_count(
-            FLAGS["dataset"], FLAGS.get("train_split", "train")
-        )
+        hub_exporter = hub.LatestModuleExporter("hub", serving_input_fn)
+        hub_exporter.export(estimator, (model_dir / "export/hub"), checkpoint)
 
-        # Depending on whether we drop the last batch each epoch or only at the
-        # ver end, this should be ordered differently for rounding.
-        updates_per_epoch = num_samples // FLAGS["batch_size"]
+        if tf.gfile.Exists(str(model_dir / "TRAINING_IS_DONE")):
+            break
+    # Evaluates the latest checkpoint on validation set.
+    return estimator.evaluate(input_fn=data_fn, steps=num_steps)
 
-        num_steps = int(math.ceil(FLAGS["epochs"] * updates_per_epoch))
-        tf.logging.info("train_steps: %d", num_steps)
 
-        estimator.train(train_data_fn, steps=num_steps)
+def train(
+        estimator,
+        dataset,
+        preprocessing,
+        dataset_dir,
+        epochs: int,
+        batch_size: int,
+        train_split="train",
+):
+    """I train a tensorflow estimator on the given dataset.
+
+    Args:
+        estimator: a tensorflow.estimator.Estimator object
+        dataset: the name of the dataset
+        preprocessing: a list of preprocessing steps identified via the function name
+        dataset_dir: a valid Path to dataset
+        epochs: number of epochs to be trained
+        batch_size: number of samples per batch
+        train_split: on which split to train (one of: "train" / "trainval")
+
+    Returns:
+        estimator (after training for chaining)
+
+    """
+    tf.logging.info("entered training branch.")
+    train_data_fn = functools.partial(
+        datasets.get_data,
+        dataset=dataset,
+        preprocessing=preprocessing,
+        dataset_dir=dataset_dir,
+        split_name=train_split,
+        is_training=True,
+        num_epochs=int(math.ceil(epochs)),
+        drop_remainder=True,
+    )
+    # We compute the number of steps and make use of Estimator's max_steps
+    # arguments instead of relying on the Dataset's iterator to run out after
+    # a number of epochs so that we can use 'fractional' epochs, which are
+    # used by regression tests. (And because TPUEstimator needs it anyways.)
+    num_samples = datasets.get_count(dataset, train_split)
+    # Depending on whether we drop the last batch each epoch or only at the
+    # ver end, this should be ordered differently for rounding.
+    updates_per_epoch = num_samples // batch_size
+    num_steps = int(math.ceil(epochs * updates_per_epoch))
+    tf.logging.info("train_steps: %d", num_steps)
+    return estimator.train(train_data_fn, steps=num_steps)
 
 
 def serving_input_fn(serving_input_shape, serving_input_key):
@@ -209,6 +282,10 @@ def serving_input_fn(serving_input_shape, serving_input_key):
     return tf.estimator.export.ServingInputReceiver(
         features=image_features, receiver_tensors=image_features
     )
+
+
+def main():
+    pass
 
 
 if __name__ == "__main__":

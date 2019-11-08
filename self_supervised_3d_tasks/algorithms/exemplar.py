@@ -16,7 +16,7 @@ from self_supervised_3d_tasks.trainer import make_estimator
 
 
 def apply_model(
-    image_fn, is_training, num_outputs, make_signature=False, weight_decay=1e-4
+        image_fn, is_training, net_architecture, num_outputs, make_signature=False, weight_decay=1e-4,
 ):
     """Creates the patch based model output from patches representations.
 
@@ -37,7 +37,7 @@ def apply_model(
     # restriction: all tensors should be created inside tf-hub helper function.
     images = image_fn()
 
-    net = get_net(num_classes=num_outputs)
+    net = get_net(num_classes=num_outputs, architecture=net_architecture)
     out, end_points = net(images, is_training, weight_decay=weight_decay)
 
     print(end_points)

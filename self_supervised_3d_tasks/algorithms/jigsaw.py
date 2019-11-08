@@ -23,7 +23,7 @@ def model_fn(data, mode, crop_patches3d=None, perm_subset_size=8):
     """
     images = data["image"]
 
-    if "crop_patches3d":
+    if crop_patches3d:
         perms, num_classes = patch3d_utils.load_permutations()
     else:
         perms, num_classes = patch_utils.load_permutations()
@@ -43,7 +43,7 @@ def model_fn(data, mode, crop_patches3d=None, perm_subset_size=8):
 
     labels = tf.tile(labels, tf.shape(images)[:1])
 
-    if "crop_patches3d":
+    if crop_patches3d:
         return patch3d_utils.create_estimator_model(
             images, labels, perms, num_classes, mode
         )

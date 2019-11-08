@@ -7,5 +7,5 @@ setup(
 
     package_data={
         'permutations': ['*.bin'],
-    },
+    }, install_requires=['scikit-image', 'tensorflow', 'joblib', 'numpy', 'nibabel', 'scipy', 'pillow']
 )
