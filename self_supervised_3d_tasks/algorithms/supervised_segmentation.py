@@ -7,6 +7,7 @@ from __future__ import print_function
 
 import functools
 import os
+from pathlib import Path
 
 import tensorflow as tf
 import tensorflow_hub as hub
@@ -14,13 +15,16 @@ import tensorflow_hub as hub
 from self_supervised_3d_tasks import datasets, trainer, utils
 from models.utils import get_net
 
-FLAGS = tf.flags.FLAGS
+
+# FLAGS = tf.flags.FLAGS
 
 
-def apply_model(image_fn,  # pylint: disable=missing-docstring
-                is_training,
-                num_outputs,
-                make_signature=False):
+def apply_model(
+        image_fn,  # pylint: disable=missing-docstring
+        is_training,
+        num_outputs,
+        make_signature=False,
+):
     # Image tensor needs to be created lazily in order to satisfy tf-hub
     # restriction: all tensors should be created inside tf-hub helper function.
     images = image_fn()
@@ -30,7 +34,7 @@ def apply_model(image_fn,  # pylint: disable=missing-docstring
     output, end_points = net(images, is_training)
 
     if make_signature:
-        hub.add_signature(inputs={'image': images}, outputs=output)
+        hub.add_signature(inputs={"image": images}, outputs=output)
     return output
 
 
@@ -42,19 +46,24 @@ class RestoreHook(tf.train.SessionRunHook):
     def begin(self):
         tvars = tf.trainable_variables()
 
-        (assignment_map, initialized_variable_names) = utils.get_assignment_map_from_checkpoint(tvars,
-                                                                                                self._init_checkpoint,
-                                                                                                self.ignore_list)
+        (
+            assignment_map,
+            initialized_variable_names,
+        ) = utils.get_assignment_map_from_checkpoint(
+            tvars, self._init_checkpoint, self.ignore_list
+        )
         tf.train.init_from_checkpoint(self._init_checkpoint, assignment_map)
         tf.logging.info("**** Trainable Variables ****")
         for var in tvars:
             init_string = ""
             if var.name in initialized_variable_names:
                 init_string = ", *INIT_FROM_CKPT*"
-            tf.logging.info("  name = %s, shape = %s%s", var.name, var.shape, init_string)
+            tf.logging.info(
+                "  name = %s, shape = %s%s", var.name, var.shape, init_string
+            )
 
 
-def model_fn(data, mode):
+def model_fn(data, mode, checkpoint_dir=None, serving_input_shape="None,None,None,3"):
     """Produces a loss for the fully-supervised task.
 
     Args:
@@ -64,24 +73,31 @@ def model_fn(data, mode):
     Returns:
       EstimatorSpec
     """
-    images = data['image']
+    # TODO: refactor usages
+    images = data["image"]
 
     # In predict mode (called once at the end of training), we only instantiate
     # the model in order to export a tf.hub module for it.
     # This will then make saving and loading much easier down the line.
     if mode == tf.estimator.ModeKeys.PREDICT:
-        input_shape = utils.str2intlist(FLAGS.get_flag_value('serving_input_shape', 'None,None,None,2'))
+        input_shape = utils.str2intlist(serving_input_shape)
         apply_model_function = functools.partial(
             apply_model,
-            image_fn=lambda: tf.placeholder(shape=input_shape, dtype=tf.float32),  # pylint: disable=g-long-lambda
+            image_fn=lambda: tf.placeholder(
+                shape=input_shape, dtype=tf.float32
+            ),  # pylint: disable=g-long-lambda
             num_outputs=datasets.get_num_classes(),
-            make_signature=True)
+            make_signature=True,
+        )
         tf_hub_module_spec = hub.create_module_spec(
             apply_model_function,
-            [(utils.TAGS_IS_TRAINING, {'is_training': True}),
-             (set(), {'is_training': False})])
+            [
+                (utils.TAGS_IS_TRAINING, {"is_training": True}),
+                (set(), {"is_training": False}),
+            ],
+        )
         tf_hub_module = hub.Module(tf_hub_module_spec, trainable=False, tags=set())
-        hub.register_module_for_export(tf_hub_module, export_name='module')
+        hub.register_module_for_export(tf_hub_module, export_name="module")
         predictions = tf_hub_module(images)
 
         # There is no training happening anymore, only prediciton and model export.
@@ -90,26 +106,31 @@ def model_fn(data, mode):
     # From here on, we are either in train or eval modes.
     # Create the model in the 'module' name scope so it matches nicely with
     # tf.hub's requirements for import/export later.
-    with tf.variable_scope('module'):
+    with tf.variable_scope("module"):
         predictions = apply_model(
             image_fn=lambda: images,
             is_training=(mode == tf.estimator.ModeKeys.TRAIN),
             num_outputs=datasets.get_num_classes(),
-            make_signature=False)
+            make_signature=False,
+        )
 
     model_path = None
-    if FLAGS.checkpoint_dir is not None:
-        checkpoint_dir = os.path.join(FLAGS.checkpoint_dir)
+    if checkpoint_dir:
+        checkpoint_dir = str(Path(checkpoint_dir).resolve())
         model_path = tf.train.latest_checkpoint(checkpoint_dir)
 
-    labels = data['label']
+    labels = data["label"]
 
-    dice_loss, sparse_one_hot = utils.generalised_dice_loss(prediction=tf.nn.softmax(predictions), ground_truth=labels)
+    dice_loss, sparse_one_hot = utils.generalised_dice_loss(
+        prediction=tf.nn.softmax(predictions), ground_truth=labels
+    )
     dense_one_hot = tf.sparse_tensor_to_dense(sparse_one_hot)
 
     # dice_loss, dense_one_hot = utils.iou_loss(tf.nn.softmax(predictions), labels)
 
-    cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=labels, logits=predictions)
+    cross_entropy_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
+        labels=labels, logits=predictions
+    )
     cross_entropy_loss = tf.reduce_mean(cross_entropy_loss)
 
     # your class weights
@@ -118,10 +139,15 @@ def model_fn(data, mode):
     epsilon = tf.constant(value=1e-10)
     logits = logits + epsilon
     label_flat = tf.reshape(labels, (-1, 1))
-    labels = tf.reshape(tf.one_hot(label_flat, depth=datasets.get_num_classes()), (-1, datasets.get_num_classes()))
+    labels = tf.reshape(
+        tf.one_hot(label_flat, depth=datasets.get_num_classes()),
+        (-1, datasets.get_num_classes()),
+    )
     softmax = tf.nn.softmax(logits)
-    cross_entropy = -tf.reduce_sum(tf.multiply(labels * tf.log(softmax + epsilon), class_weights),
-                                   reduction_indices=[1])
+    cross_entropy = -tf.reduce_sum(
+        tf.multiply(labels * tf.log(softmax + epsilon), class_weights),
+        reduction_indices=[1],
+    )
     weighted_cross_entropy_loss = tf.reduce_mean(cross_entropy)
 
     # ** computing full loss
@@ -132,7 +158,9 @@ def model_fn(data, mode):
 
     # ** evaluation metrics Dice Scores / F1 Scores
     # Gets a metric_fn which evaluates the dice scores for "whole tumor", "tumor core", "enhanced tumor", and avg. IoU
-    metrics_fn = utils.get_segmentation_metrics(['predictions'], num_classes=datasets.get_num_classes())
+    metrics_fn = utils.get_segmentation_metrics(
+        ["predictions"], num_classes=datasets.get_num_classes()
+    )
 
     # A tuple of metric_fn and a list of tensors to be evaluated by TPUEstimator.
     ground_truth = tf.argmax(dense_one_hot, axis=-1, output_type=tf.int32)
@@ -140,15 +168,31 @@ def model_fn(data, mode):
     eval_metrics_tuple = (metrics_fn, [ground_truth, int_predictions])
 
     logging_hook = tf.train.LoggingTensorHook(
-        {"loss": loss,
-         "weighted_ce_loss": weighted_cross_entropy_loss,
-         "ce_loss": cross_entropy_loss,
-         "dice_loss": dice_loss},
-        every_n_iter=10)
+        {
+            "loss": loss,
+            "weighted_ce_loss": weighted_cross_entropy_loss,
+            "ce_loss": cross_entropy_loss,
+            "dice_loss": dice_loss,
+        },
+        every_n_iter=10,
+    )
     if model_path is not None:
-        return trainer.make_estimator(mode, loss, eval_metrics_tuple, common_hooks=[logging_hook],
-                                      train_hooks=[
-                                          RestoreHook(model_path, ignore_list=['module/decoder/conv3d_5/bias',
-                                                                               'module/decoder/conv3d_5/kernel'])])
+        return trainer.make_estimator(
+            mode,
+            loss,
+            eval_metrics_tuple,
+            common_hooks=[logging_hook],
+            train_hooks=[
+                RestoreHook(
+                    model_path,
+                    ignore_list=[
+                        "module/decoder/conv3d_5/bias",
+                        "module/decoder/conv3d_5/kernel",
+                    ],
+                )
+            ],
+        )
     else:
-        return trainer.make_estimator(mode, loss, eval_metrics_tuple, common_hooks=[logging_hook])
+        return trainer.make_estimator(
+            mode, loss, eval_metrics_tuple, common_hooks=[logging_hook]
+        )
