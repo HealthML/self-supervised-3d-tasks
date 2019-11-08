@@ -18,6 +18,7 @@ def encoder(x,
             kernel_size: int = 7,
             activation_fn=tf.nn.relu,
             normalization_fn=batch_norm,
+            num_classes:int = None
             ):
     '''
     Args:

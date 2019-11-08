@@ -13,6 +13,7 @@ from self_supervised_3d_tasks.models import (
     unet_resnet_2d,
     unet_resnet_3d,
 )
+from self_supervised_3d_tasks.models.encoder_cpc import encoder
 
 
 def get_net(architecture, **kwargs):
@@ -29,6 +30,8 @@ def get_net(architecture, **kwargs):
         net = functools.partial(
             vggnet.vgg19, filters_factor=kwargs.get("filters_factor", 8)
         )
+    elif "cpc_encoder" == architecture:
+        net = encoder
     else:
         if "resnet50" == architecture:
             net = resnet.resnet50

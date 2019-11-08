@@ -11,7 +11,7 @@ import tensorflow_hub as hub
 import tensorflow.keras as keras
 
 import trainer
-from models.utils import get_net
+from self_supervised_3d_tasks.models.utils import get_net
 
 FLAGS = tf.flags.FLAGS
 
@@ -68,12 +68,14 @@ def apply_model(image_fn,  # pylint: disable=missing-docstring
     # Image tensor needs to be created lazily in order to satisfy tf-hub
     # restriction: all tensors should be created inside tf-hub helper function.
     data = image_fn()
-    images = data["encoded"]
-    predict_terms = data['pred_terms']
-    terms = data['terms']
+    encoded = data["encoded"]
+    encoded_pred = data['encoded_pred']
+
+    # terms = images.shape[0]
+    predict_terms = encoded_pred.shape[0]
 
     # using a generic encoder
-    encoder_model = get_net()
+    encoder_model = get_net("cpc_encoder")
 
     ##################
     ##################
@@ -82,17 +84,16 @@ def apply_model(image_fn,  # pylint: disable=missing-docstring
 
     # learning_rate = FLAGS.get_flag_value('learning_rate', 1e-4)
     code_size = FLAGS.get_flag_value('code_size', 128)
-    image_shape = (images.shape[0], images.shape[0], 3)
 
     # add specific Layers for CPC
-    x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))
-    x_encoded = keras.layers.TimeDistributed(encoder_model)(x_input)
+    # x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))
+    x_encoded = keras.layers.TimeDistributed(encoder_model)(encoded)
 
     context = network_autoregressive(x_encoded)
     preds = network_prediction(context, code_size, predict_terms)
 
-    y_input = keras.layers.Input((predict_terms, image_shape[0], image_shape[1], image_shape[2]))
-    y_encoded = keras.layers.TimeDistributed(encoder_model)(y_input)
+    # y_input = keras.layers.Input((predict_terms, image_shape[0], image_shape[1], image_shape[2]))
+    y_encoded = keras.layers.TimeDistributed(encoder_model)(encoded_pred)
 
     # CPC layer
     dot_product_probs = CPCLayer()([preds, y_encoded])
@@ -113,11 +114,11 @@ def apply_model(image_fn,  # pylint: disable=missing-docstring
     ##################
 
     if make_signature:
-        hub.add_signature(inputs={'images': data["encoded"]}, outputs=dot_product_probs)
+        hub.add_signature(inputs={'encoded': data["encoded"], 'encoded_pred': data['encoded_pred']}, outputs=dot_product_probs)
         hub.add_signature(
             name='representation',
-            inputs={'image': images},
-            outputs=end_points)
+            inputs={'encoded': data["encoded"]},
+            outputs=context)
 
     return dot_product_probs
 
@@ -134,11 +135,7 @@ def model_fn(data, mode):
 
     if mode in [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL]:
 
-        encoded = data['encoded']
-        encoded_pred = data['encoded_pred']
         labels = data['labels']
-        pred_terms = data['pred_terms']
-        terms = data['terms']
 
         with tf.variable_scope('module'):
             image_fn = lambda: data
@@ -147,6 +144,15 @@ def model_fn(data, mode):
                 is_training=(mode == tf.estimator.ModeKeys.TRAIN),
                 make_signature=False)
 
-        loss = keras.losses.binary_crossentropy(dot_product_probs, labels)
-        logging_hook = tf.train.LoggingTensorHook({"loss": loss}, every_n_iter=10)
-        return trainer.make_estimator(mode=mode, loss=loss, predictions=dot_product_probs, common_hooks=logging_hook)
+    eval_metrics = (
+        lambda lab, prod: {  # TODO: check if this is correct
+            "accuracy": tf.metrics.accuracy(
+                labels=lab, predictions=tf.argmax(prod, axis=-1)
+            )
+        },
+        [labels, dot_product_probs],
+    )
+
+    loss = keras.losses.binary_crossentropy(dot_product_probs, labels)
+    logging_hook = tf.train.LoggingTensorHook({"loss": loss}, every_n_iter=10)
+    return trainer.make_estimator(mode=mode, loss=loss, eval_metrics=eval_metrics, common_hooks=logging_hook)

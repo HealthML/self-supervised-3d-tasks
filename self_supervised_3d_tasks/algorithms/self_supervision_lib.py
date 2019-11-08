@@ -7,7 +7,8 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from self_supervised_3d_tasks.algorithms import exemplar, supervised_classification, jigsaw, rotation
+from self_supervised_3d_tasks.algorithms import exemplar, supervised_classification, jigsaw, rotation, \
+    contrastive_predictive_coding
 from self_supervised_3d_tasks.algorithms import relative_patch_location, supervised_segmentation
 
 
@@ -21,6 +22,7 @@ def get_self_supervision_model(self_supervision, kwargs):
         "jigsaw": jigsaw.model_fn,
         "relative_patch_location": relative_patch_location.model_fn,
         "exemplar": exemplar.model_fn,
+        "contrastive_predictive_coding": contrastive_predictive_coding.model_fn,
     }
 
     model_fn = mapping.get(self_supervision)
