@@ -16,7 +16,12 @@ from self_supervised_3d_tasks.trainer import make_estimator
 
 
 def apply_model(
-        image_fn, is_training, net_architecture, num_outputs, make_signature=False, weight_decay=1e-4,
+        image_fn,
+        is_training,
+        net_architecture,
+        num_outputs,
+        make_signature=False,
+        weight_decay=1e-4,
 ):
     """Creates the patch based model output from patches representations.
 
@@ -58,7 +63,15 @@ def repeat(x, times):
     return tf.reshape(tf.tile(tf.expand_dims(x, -1), [1, times]), [-1])
 
 
-def model_fn(data, mode, embed_dim, margin, serving_input_shape="None,None,None,3"):
+def model_fn(
+        data,
+        mode,
+        embed_dim,
+        margin,
+        architecture,
+        crop_inception_preprocess_patches3d=False,
+        serving_input_shape="None,None,None,3",
+):
     """Produces a loss for the exemplar task supervision.
 
     Args:
@@ -74,13 +87,13 @@ def model_fn(data, mode, embed_dim, margin, serving_input_shape="None,None,None,
 
     patch_count = images.get_shape().as_list()[1]
 
-    if "crop_inception_preprocess_patches3d" in FLAGS.preprocessing:
+    if crop_inception_preprocess_patches3d:
         images = tf.reshape(images, shape=[-1] + images.get_shape().as_list()[-4:])
     else:
         images = tf.reshape(images, shape=[-1] + images.get_shape().as_list()[-3:])
 
     if mode in [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL]:
-        if "crop_inception_preprocess_patches3d" in FLAGS.preprocessing:
+        if crop_inception_preprocess_patches3d:
             images = tf.reshape(images, [-1] + images.get_shape().as_list()[-4:])
         else:
             images = tf.reshape(images, [-1] + images.get_shape().as_list()[-3:])
@@ -91,6 +104,7 @@ def model_fn(data, mode, embed_dim, margin, serving_input_shape="None,None,None,
                 is_training=(mode == tf.estimator.ModeKeys.TRAIN),
                 num_outputs=embed_dim,
                 make_signature=False,
+                net_architecture=architecture,
             )
     else:
         input_shape = utils.str2intlist(serving_input_shape)
