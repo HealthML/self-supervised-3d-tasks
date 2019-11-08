@@ -4,10 +4,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import functools
+
 import tensorflow as tf
 import tensorflow_hub as hub
 import tensorflow.keras as keras
 
+import trainer
 from models.utils import get_net
 
 FLAGS = tf.flags.FLAGS
@@ -61,55 +64,56 @@ class CPCLayer(keras.engine.Layer):
 
 def apply_model(image_fn,  # pylint: disable=missing-docstring
                 is_training,
-                num_outputs,
                 make_signature=False):
     # Image tensor needs to be created lazily in order to satisfy tf-hub
     # restriction: all tensors should be created inside tf-hub helper function.
-    images = image_fn()
+    data = image_fn()
+    images = data["encoded"]
+    predict_terms = data['pred_terms']
+    terms = data['terms']
 
     # using a generic encoder
-    net = get_net(num_classes=num_outputs)
-    x_encoded, end_points = net(images, is_training)
+    encoder_model = get_net()
 
     ##################
     ##################
     ##################
     ##################
 
-    learning_rate = FLAGS.get_flag_value('learning_rate', 1e-4)
-    predict_terms = FLAGS.get_flag_value('predict_terms', 4)
+    # learning_rate = FLAGS.get_flag_value('learning_rate', 1e-4)
     code_size = FLAGS.get_flag_value('code_size', 128)
-
     image_shape = (images.shape[0], images.shape[0], 3)
 
-
     # add specific Layers for CPC
+    x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))
+    x_encoded = keras.layers.TimeDistributed(encoder_model)(x_input)
+
     context = network_autoregressive(x_encoded)
     preds = network_prediction(context, code_size, predict_terms)
 
     y_input = keras.layers.Input((predict_terms, image_shape[0], image_shape[1], image_shape[2]))
-    y_encoded = keras.layers.TimeDistributed(net)(y_input)
+    y_encoded = keras.layers.TimeDistributed(encoder_model)(y_input)
 
-    # Loss
+    # CPC layer
     dot_product_probs = CPCLayer()([preds, y_encoded])
 
     # Model
-    cpc_model = keras.models.Model(inputs=[images, y_input], outputs=dot_product_probs)
+    # cpc_model = keras.models.Model(inputs=[x_input, y_input], outputs=dot_product_probs)
 
     # Compile model
-    cpc_model.compile(
-        optimizer=keras.optimizers.Adam(lr=learning_rate),
-        loss='binary_crossentropy',
-        metrics=['binary_accuracy']
-    )
-    cpc_model.summary()
+    # cpc_model.compile(
+    #     optimizer=keras.optimizers.Adam(lr=learning_rate),
+    #     loss='binary_crossentropy',
+    #     metrics=['binary_accuracy']
+    # )
+    # cpc_model.summary()
 
     ##################
     ##################
     ##################
 
     if make_signature:
-        hub.add_signature(inputs={'image': images}, outputs=dot_product_probs)
+        hub.add_signature(inputs={'images': data["encoded"]}, outputs=dot_product_probs)
         hub.add_signature(
             name='representation',
             inputs={'image': images},
@@ -128,5 +132,21 @@ def model_fn(data, mode):
       EstimatorSpec
     """
 
-    images = data['image']
+    if mode in [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL]:
 
+        encoded = data['encoded']
+        encoded_pred = data['encoded_pred']
+        labels = data['labels']
+        pred_terms = data['pred_terms']
+        terms = data['terms']
+
+        with tf.variable_scope('module'):
+            image_fn = lambda: data
+            dot_product_probs = apply_model(
+                image_fn=image_fn,
+                is_training=(mode == tf.estimator.ModeKeys.TRAIN),
+                make_signature=False)
+
+        loss = keras.losses.binary_crossentropy(dot_product_probs, labels)
+        logging_hook = tf.train.LoggingTensorHook({"loss": loss}, every_n_iter=10)
+        return trainer.make_estimator(mode=mode, loss=loss, predictions=dot_product_probs, common_hooks=logging_hook)
