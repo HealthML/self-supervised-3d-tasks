@@ -683,5 +683,18 @@ if __name__ == "__main__":
 
     flags = parser.parse_args()
     logging.info(flags)
+
+    # define mapping here for later use TODO: use them!
+    dependend_flags = {
+        "exemplar": {
+            "required": ["embed_dim", "margin", "architecture"],
+            "optional": ["crop_inception_preprocess_patches3d", "serving_input_shape"],
+        },
+        "supervised_classification": {
+            "required": ["dataset", "architecture"],
+            "optional": ["serving_input_shape"]
+        }
+    }
+
     train_and_eval(vars(flags))
     logging.info("I'm done with my work, ciao!")
