@@ -193,6 +193,7 @@ class DatasetCpcMnist(AbstractDataset):
         drop_remainder=True,
     ):
         files = os.path.join(os.path.expanduser(FLAGS.dataset_dir), "%s@%i")
+        # TODO: look one line up
 
         filenames = {
             "train": generate_sharded_filenames(files % ("train.tfrecord", 12))[:-2],
@@ -770,5 +771,5 @@ def get_count(dataset, split_name):
     return DATASET_MAP[dataset].COUNTS[split_name]
 
 
-def get_num_classes(dataset):
+def get_num_classes_for_dataset(dataset):
     return DATASET_MAP[dataset].NUM_CLASSES
