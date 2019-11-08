@@ -9,8 +9,10 @@ import functools
 import tensorflow as tf
 import tensorflow_hub as hub
 
-from self_supervised_3d_tasks import datasets, trainer, utils
-from models.utils import get_net
+from self_supervised_3d_tasks import utils
+from ..datasets import get_num_classes_for_dataset
+from ..trainer import make_estimator
+from ..models.utils import get_net
 
 
 # FLAGS = tf.flags.FLAGS
@@ -20,13 +22,14 @@ def apply_model(
         image_fn,  # pylint: disable=missing-docstring
         is_training,
         num_outputs,
+        architecture,
         make_signature=False,
 ):
     # Image tensor needs to be created lazily in order to satisfy tf-hub
     # restriction: all tensors should be created inside tf-hub helper function.
     images = image_fn()
 
-    net = get_net(num_classes=num_outputs)
+    net = get_net(architecture, num_classes=num_outputs)
 
     output, end_points = net(images, is_training)
 
@@ -38,7 +41,7 @@ def apply_model(
     return output
 
 
-def model_fn(data, mode, serving_input_shape="None,None,None,3"):
+def model_fn(data, mode, dataset, architecture, serving_input_shape="None,None,None,3"):
     """Produces a loss for the fully-supervised task.
 
   Args:
@@ -61,7 +64,8 @@ def model_fn(data, mode, serving_input_shape="None,None,None,3"):
             image_fn=lambda: tf.placeholder(
                 shape=input_shape, dtype=tf.float32
             ),  # pylint: disable=g-long-lambda
-            num_outputs=datasets.get_num_classes(),
+            num_outputs=get_num_classes_for_dataset(dataset),
+            architecture=architecture,
             make_signature=True,
         )
         tf_hub_module_spec = hub.create_module_spec(
@@ -76,7 +80,7 @@ def model_fn(data, mode, serving_input_shape="None,None,None,3"):
         logits = tf_hub_module(images)
 
         # There is no training happening anymore, only prediciton and model export.
-        return trainer.make_estimator(mode, predictions=logits)
+        return make_estimator(mode, predictions=logits)
 
     # From here on, we are either in train or eval modes.
     # Create the model in the 'module' name scope so it matches nicely with
@@ -85,7 +89,8 @@ def model_fn(data, mode, serving_input_shape="None,None,None,3"):
         logits = apply_model(
             image_fn=lambda: images,
             is_training=(mode == tf.estimator.ModeKeys.TRAIN),
-            num_outputs=datasets.get_num_classes(),
+            num_outputs=get_num_classes_for_dataset(dataset),
+            architecture=architecture,
             make_signature=False,
         )
 
@@ -102,4 +107,4 @@ def model_fn(data, mode, serving_input_shape="None,None,None,3"):
     # A tuple of metric_fn and a list of tensors to be evaluated by TPUEstimator.
     eval_metrics_tuple = (metrics_fn, [labels, logits])
 
-    return trainer.make_estimator(mode, loss, eval_metrics_tuple)
+    return make_estimator(mode, loss, eval_metrics_tuple)
