@@ -443,7 +443,7 @@ def get_to_gray_preprocess(grayscale_probability):
     return _to_gray_pp
 
 
-def get_preprocess_fn(fn_names, is_training):
+def get_preprocess_fn(fn_names, is_training, **dependend_params):
     """Returns preprocessing function.
 
     Args:
@@ -468,22 +468,26 @@ def get_preprocess_fn(fn_names, is_training):
                 yield get_value_range_preprocess(-1, 1)
             elif fn_name == "resize":
                 yield get_resize_preprocess(
-                    utils.str2intlist(FLAGS.resize_size, 2),
+                    utils.str2intlist(dependend_params["resize_size"], 2),
                     is_training
-                    and FLAGS.get_flag_value("randomize_resize_method", False),
+                    and dependend_params.get("randomize_resize_method", False),
                 )
             elif fn_name == "resize_segmentation":
                 yield get_resize_segmentation_preprocess(
-                    utils.str2intlist(FLAGS.resize_size, 2),
+                    utils.str2intlist(dependend_params["resize_size"], 2),
                     is_training
-                    and FLAGS.get_flag_value("randomize_resize_method", False),
+                    and dependend_params.get("randomize_resize_method", False),
                 )
             elif fn_name == "resize_small":
-                yield get_resize_small(FLAGS.smaller_size)
+                yield get_resize_small(dependend_params["smaller_size"])
             elif fn_name == "crop":
-                yield get_crop(is_training, utils.str2intlist(FLAGS.crop_size, 2))
+                yield get_crop(
+                    is_training, utils.str2intlist(dependend_params["crop_size"], 2)
+                )
             elif fn_name == "central_crop":
-                yield get_crop(False, utils.str2intlist(FLAGS.crop_size, 2))
+                yield get_crop(
+                    False, utils.str2intlist(dependend_params["crop_size"], 2)
+                )
             elif fn_name == "inception_crop":
                 yield get_inception_crop(is_training)
             elif fn_name == "pad":
@@ -495,30 +499,31 @@ def get_preprocess_fn(fn_names, is_training):
             elif fn_name == "crop_inception_preprocess_patches":
                 yield get_inception_preprocess_patches(
                     is_training,
-                    utils.str2intlist(FLAGS.resize_size, 2),
-                    FLAGS.num_of_inception_patches,
+                    utils.str2intlist(dependend_params["resize_size"], 2),
+                    dependend_params["num_of_inception_patches"],
                 )
             elif fn_name == "crop_inception_preprocess_patches3d":
                 yield get_inception_preprocess_patches3d(
-                    FLAGS.num_of_inception_patches, fast_mode=FLAGS.fast_mode
+                    dependend_params["num_of_inception_patches"],
+                    fast_mode=dependend_params["fast_mode"],
                 )
             elif fn_name == "to_gray":
                 yield get_to_gray_preprocess(
-                    FLAGS.get_flag_value("grayscale_probability", 1.0)
+                    dependend_params.get("grayscale_probability", 1.0)
                 )
             elif fn_name == "drop_all_channels_but_one":
                 yield get_drop_all_channels_but_one_preprocess()
             elif fn_name == "crop_patches":
                 yield pp_lib.get_crop_patches_fn(
                     is_training,
-                    split_per_side=FLAGS.splits_per_side,
-                    patch_jitter=FLAGS.get_flag_value("patch_jitter", 0),
+                    split_per_side=dependend_params["splits_per_side"],
+                    patch_jitter=dependend_params.get("patch_jitter", 0),
                 )
             elif fn_name == "crop_patches3d":
                 yield pp_lib.get_crop_patches3d_fn(
                     is_training,
-                    split_per_side=FLAGS.splits_per_side,
-                    patch_jitter=FLAGS.get_flag_value("patch_jitter", 0),
+                    split_per_side=dependend_params["splits_per_side"],
+                    patch_jitter=dependend_params.get("patch_jitter", 0),
                 )
             elif fn_name == "standardization":
                 yield get_standardization_preprocess()
@@ -532,7 +537,7 @@ def get_preprocess_fn(fn_names, is_training):
 
             elif fn_name == "inception_preprocess":
                 yield get_inception_preprocess(
-                    is_training, utils.str2intlist(FLAGS.resize_size, 2)
+                    is_training, utils.str2intlist(dependend_params["resize_size"], 2)
                 )
             else:
                 raise ValueError("Not supported preprocessing %s" % fn_name)
@@ -540,9 +545,9 @@ def get_preprocess_fn(fn_names, is_training):
         # Apply all the individual steps in sequence.
         tf.logging.info("Data before pre-processing:\n%s", data)
         for fn_name in fn_names:
-            print(fn_name)
+            print(">>>>>", fn_name)
             for p in expand(fn_name.strip()):
-                data = p(data)
+                data = p(data, dependend_params)
                 tf.logging.info("Data after `%s`:\n%s", p, data)
         return data
 

@@ -12,10 +12,12 @@ from self_supervised_3d_tasks import utils
 from self_supervised_3d_tasks.models.utils import get_net
 from self_supervised_3d_tasks.trainer import make_estimator
 
-FLAGS = tf.flags.FLAGS
+# FLAGS = tf.flags.FLAGS
 
 
-def apply_model(image_fn, is_training, num_outputs, make_signature=False):
+def apply_model(
+    image_fn, is_training, num_outputs, make_signature=False, weight_decay=1e-4
+):
     """Creates the patch based model output from patches representations.
 
     Args:
@@ -36,9 +38,7 @@ def apply_model(image_fn, is_training, num_outputs, make_signature=False):
     images = image_fn()
 
     net = get_net(num_classes=num_outputs)
-    out, end_points = net(
-        images, is_training, weight_decay=FLAGS.get_flag_value("weight_decay", 1e-4)
-    )
+    out, end_points = net(images, is_training, weight_decay=weight_decay)
 
     print(end_points)
 
@@ -58,7 +58,7 @@ def repeat(x, times):
     return tf.reshape(tf.tile(tf.expand_dims(x, -1), [1, times]), [-1])
 
 
-def model_fn(data, mode):
+def model_fn(data, mode, embed_dim, margin, serving_input_shape="None,None,None,3"):
     """Produces a loss for the exemplar task supervision.
 
     Args:
@@ -72,7 +72,6 @@ def model_fn(data, mode):
     batch_size = tf.shape(images)[0]
     print("   +++ Mode: %s, data: %s" % (mode, data))
 
-    embed_dim = FLAGS.embed_dim
     patch_count = images.get_shape().as_list()[1]
 
     if "crop_inception_preprocess_patches3d" in FLAGS.preprocessing:
@@ -94,9 +93,7 @@ def model_fn(data, mode):
                 make_signature=False,
             )
     else:
-        input_shape = utils.str2intlist(
-            FLAGS.get_flag_value("serving_input_shape", "None,None,None,3")
-        )
+        input_shape = utils.str2intlist(serving_input_shape)
         image_fn = lambda: tf.placeholder(
             shape=input_shape, dtype=tf.float32  # pylint: disable=g-long-lambda
         )
@@ -120,7 +117,7 @@ def model_fn(data, mode):
     labels = repeat(tf.range(batch_size), patch_count)
     norm_logits = tf.nn.l2_normalize(logits, axis=0)
     loss = tf.contrib.losses.metric_learning.triplet_semihard_loss(
-        labels, norm_logits, margin=FLAGS.margin
+        labels, norm_logits, margin=margin
     )
 
     logging_hook = tf.train.LoggingTensorHook({"loss": loss}, every_n_iter=10)
