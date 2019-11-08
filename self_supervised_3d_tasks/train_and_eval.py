@@ -34,6 +34,13 @@ def train_and_eval(FLAGS):
     """Trains a network on (self_supervised) supervised data."""
     model_dir = FLAGS["workdir"].resolve()
     use_tpu = FLAGS["use_tpu"]
+    batch_size = FLAGS["batch_size"]
+    eval_batch_size = FLAGS.get("eval_batch_size", batch_size)
+    dataset = FLAGS["dataset"]
+    dataset_dir = FLAGS["dataset_dir"]
+    preprocessing = FLAGS["preprocessing"]
+    epochs = FLAGS["epochs"]
+    model_kwargs = FLAGS.get("model_kwargs", {})
 
     cluster_master = (
         TPUClusterResolver(tpu=[os.environ["TPU_NAME"]]).get_master() if use_tpu else ""
@@ -61,22 +68,60 @@ def train_and_eval(FLAGS):
     # The global batch-sizes are passed to the TPU estimator, and it will pass
     # along the local batch size in the model_fn's `params` argument dict.
     estimator = tf.contrib.tpu.TPUEstimator(
-        model_fn=get_self_supervision_model(FLAGS["task"]),
+        model_fn=get_self_supervision_model(FLAGS["task"], model_kwargs),
         model_dir=model_dir,
         config=config,
         use_tpu=use_tpu,
-        train_batch_size=FLAGS["batch_size"],
-        eval_batch_size=FLAGS.get("eval_batch_size", FLAGS["batch_size"]),
+        train_batch_size=batch_size,
+        eval_batch_size=eval_batch_size,
     )
 
     if FLAGS["run_eval"]:
-        return evaluate(FLAGS, estimator, model_dir)
+        eval_mapped = evaluate
+        optional_flags = ["val_split", "use_tpu"]
+        for flag in optional_flags:
+            if FLAGS.get(flag, None):
+                eval_mapped = functools.partial(eval_mapped, **{flag: FLAGS[flag]})
+        return eval_mapped(
+            estimator,
+            model_dir,
+            dataset,
+            preprocessing,
+            dataset_dir,
+            eval_batch_size=eval_batch_size,
+        )
 
     elif FLAGS["train_eval"]:
-        train_and_continous_evaluation(FLAGS, estimator)
+        tace_mapped = train_and_continous_evaluation
+        optional_flags = [
+            "train_split",
+            "val_split",
+            "serving_input_shape",
+            "serving_input_key",
+            "throttle_after",
+        ]
+        for flag in optional_flags:
+            if FLAGS.get(flag, None):
+                tace_mapped = functools.partial(tace_mapped, **{flag: FLAGS[flag]})
+        tace_mapped(
+            estimator,
+            dataset,
+            preprocessing,
+            dataset_dir,
+            epochs,
+            batch_size,
+            use_tpu=use_tpu,
+        )
 
     else:
-        train(FLAGS, estimator)
+        train_mapped = train
+        optional_flags = ["train_split"]
+        for flag in optional_flags:
+            if FLAGS.get(flag, None):
+                train_mapped = functools.partial(train_mapped, **{flag: FLAGS[flag]})
+        return train_mapped(
+            estimator, dataset, preprocessing, dataset_dir, epochs, batch_size
+        )
 
 
 def train_and_continous_evaluation(
@@ -538,7 +583,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--epochs", type=int, help="Number of epochs to run training.", required=True
+        "--epochs", type=int, help="Number of epochs to run training.", default=5
     )
 
     parser.add_argument(
