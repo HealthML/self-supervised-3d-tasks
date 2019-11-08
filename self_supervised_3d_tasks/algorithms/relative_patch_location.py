@@ -7,12 +7,13 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from algorithms import patch_utils, patch3d_utils
-
-FLAGS = tf.flags.FLAGS
+from self_supervised_3d_tasks.algorithms import patch_utils, patch3d_utils
 
 
-def model_fn(data, mode):
+# FLAGS = tf.flags.FLAGS
+
+
+def model_fn(data, mode, crop_patches3d=False):
     """Produces a loss for the relative patch location task.
 
     Args:
@@ -22,17 +23,18 @@ def model_fn(data, mode):
     Returns:
       EstimatorSpec
     """
+    # TODO: refactor usages
     images = data['image']
 
     # Patch locations
-    if 'crop_patches3d' in FLAGS.preprocessing:
+    if crop_patches3d:
         perms, num_classes = patch3d_utils.generate_patch_locations()
     else:
         perms, num_classes = patch_utils.generate_patch_locations()
 
     labels = tf.tile(list(range(num_classes)), tf.shape(images)[:1])
 
-    if 'crop_patches3d' in FLAGS.preprocessing:
+    if crop_patches3d:
         return patch3d_utils.create_estimator_model(images, labels, perms, num_classes, mode)
     else:
         return patch_utils.create_estimator_model(images, labels, perms, num_classes, mode)

@@ -9,21 +9,22 @@ from __future__ import print_function
 import functools
 import random
 
-import numpy as np
 import tensorflow as tf
 
-import inception_preprocessing
-import utils
-from algorithms import patch_model_preprocess as pp_lib
-
-FLAGS = tf.flags.FLAGS
+from self_supervised_3d_tasks import inception_preprocessing, utils
+from self_supervised_3d_tasks.algorithms import patch_model_preprocess as pp_lib
 
 
 def get_inception_preprocess(is_training, im_size):
     def _inception_preprocess(data):
         data["image"] = inception_preprocessing.preprocess_image(
-            data["image"], im_size[0], im_size[1], is_training,
-            add_image_summaries=False, crop_image=False)
+            data["image"],
+            im_size[0],
+            im_size[1],
+            is_training,
+            add_image_summaries=False,
+            crop_image=False,
+        )
         return data
 
     return _inception_preprocess
@@ -60,7 +61,8 @@ def get_crop(is_training, crop_size):
 
     def _crop_pp(data):
         crop_fn = functools.partial(
-            pp_lib.crop, is_training=is_training, crop_size=crop_size)
+            pp_lib.crop, is_training=is_training, crop_size=crop_size
+        )
         data["image"] = utils.tf_apply_to_image_or_images(crop_fn, data["image"])
 
         return data
@@ -75,8 +77,11 @@ def get_inception_crop(is_training, **kw):
         if is_training:
             image = data["image"]
             begin, size, _ = tf.image.sample_distorted_bounding_box(
-                tf.shape(image), tf.zeros([0, 0, 4], tf.float32),
-                use_image_if_no_bounding_boxes=True, **kw)
+                tf.shape(image),
+                tf.zeros([0, 0, 4], tf.float32),
+                use_image_if_no_bounding_boxes=True,
+                **kw
+            )
             data["image"] = tf.slice(image, begin, size)
             # Unfortunately, the above operation loses the depth-dimension. So we need
             # to Restore it the manual way.
@@ -88,8 +93,9 @@ def get_inception_crop(is_training, **kw):
 
 def get_pad(padding, mode):
     def _make_padding(data):
-        data["image"] = utils.tf_apply_to_image_or_images(lambda img: tf.pad(img, tf.constant(padding), mode),
-                                                          data["image"])
+        data["image"] = utils.tf_apply_to_image_or_images(
+            lambda img: tf.pad(img, tf.constant(padding), mode), data["image"]
+        )
 
         return data
 
@@ -100,7 +106,8 @@ def get_random_flip_lr(is_training):
     def _random_flip_lr_pp(data):
         if is_training:
             data["image"] = utils.tf_apply_to_image_or_images(
-                tf.image.random_flip_left_right, data["image"])
+                tf.image.random_flip_left_right, data["image"]
+            )
         return data
 
     return _random_flip_lr_pp
@@ -110,7 +117,8 @@ def get_random_flip_ud(is_training):
     def _random_flip_ud_pp(data):
         if is_training:
             data["image"] = utils.tf_apply_to_image_or_images(
-                tf.image.random_flip_up_down, data["image"])
+                tf.image.random_flip_up_down, data["image"]
+            )
         return data
 
     return _random_flip_ud_pp
@@ -118,14 +126,15 @@ def get_random_flip_ud(is_training):
 
 def get_resize_preprocess(im_size, randomize_resize_method=False):
     def _resize(image, method, align_corners):
-
         def _process():
             # The resized_images are of type float32 and might fall outside of range
             # [0, 255].
             resized = tf.cast(
                 tf.image.resize_images(
-                    image, im_size, method, align_corners=align_corners),
-                dtype=tf.float32)
+                    image, im_size, method, align_corners=align_corners
+                ),
+                dtype=tf.float32,
+            )
             return resized
 
         return _process
@@ -136,18 +145,24 @@ def get_resize_preprocess(im_size, randomize_resize_method=False):
         if randomize_resize_method:
             # pick random resizing method
             r = tf.random_uniform([], 0, 3, dtype=tf.int32)
-            im = tf.case({
-                tf.equal(r, tf.cast(0, r.dtype)):
-                    _resize(im, tf.image.ResizeMethod.BILINEAR, True),
-                tf.equal(r, tf.cast(1, r.dtype)):
-                    _resize(im, tf.image.ResizeMethod.NEAREST_NEIGHBOR, True),
-                tf.equal(r, tf.cast(2, r.dtype)):
-                    _resize(im, tf.image.ResizeMethod.BICUBIC, True),
-                # NOTE: use align_corners=False for AREA resize, but True for the
-                # others. See https://github.com/tensorflow/tensorflow/issues/6720
-                tf.equal(r, tf.cast(3, r.dtype)):
-                    _resize(im, tf.image.ResizeMethod.AREA, False),
-            })
+            im = tf.case(
+                {
+                    tf.equal(r, tf.cast(0, r.dtype)): _resize(
+                        im, tf.image.ResizeMethod.BILINEAR, True
+                    ),
+                    tf.equal(r, tf.cast(1, r.dtype)): _resize(
+                        im, tf.image.ResizeMethod.NEAREST_NEIGHBOR, True
+                    ),
+                    tf.equal(r, tf.cast(2, r.dtype)): _resize(
+                        im, tf.image.ResizeMethod.BICUBIC, True
+                    ),
+                    # NOTE: use align_corners=False for AREA resize, but True for the
+                    # others. See https://github.com/tensorflow/tensorflow/issues/6720
+                    tf.equal(r, tf.cast(3, r.dtype)): _resize(
+                        im, tf.image.ResizeMethod.AREA, False
+                    ),
+                }
+            )
         else:
             im = tf.image.resize_images(im, im_size)
         data["image"] = im
@@ -158,16 +173,21 @@ def get_resize_preprocess(im_size, randomize_resize_method=False):
 
 def get_resize_segmentation_preprocess(im_size, randomize_resize_method=False):
     def _resize_image_mask(image, mask, method_im, method_mask, align_corners):
-
         def _process():
             # The resized_images are of type float32 and might fall outside of range
             # [0, 255].
             resized_im = tf.cast(
-                tf.image.resize_images(image, im_size, method_im, align_corners=align_corners),
-                dtype=tf.float32)
+                tf.image.resize_images(
+                    image, im_size, method_im, align_corners=align_corners
+                ),
+                dtype=tf.float32,
+            )
             resized_mask = tf.cast(
-                tf.image.resize_images(mask, im_size, method_mask, align_corners=align_corners),
-                dtype=tf.float32)
+                tf.image.resize_images(
+                    mask, im_size, method_mask, align_corners=align_corners
+                ),
+                dtype=tf.float32,
+            )
             return resized_im, resized_mask
 
         return _process
@@ -179,21 +199,45 @@ def get_resize_segmentation_preprocess(im_size, randomize_resize_method=False):
         if randomize_resize_method:
             # pick random resizing method
             r = tf.random_uniform([], 0, 3, dtype=tf.int32)
-            im, mask = tf.case({
-                tf.equal(r, tf.cast(0, r.dtype)): _resize_image_mask(im, mask, tf.image.ResizeMethod.BILINEAR,
-                                                                     tf.image.ResizeMethod.NEAREST_NEIGHBOR, True),
-                tf.equal(r, tf.cast(1, r.dtype)): _resize_image_mask(im, mask, tf.image.ResizeMethod.NEAREST_NEIGHBOR,
-                                                                     tf.image.ResizeMethod.NEAREST_NEIGHBOR, True),
-                tf.equal(r, tf.cast(2, r.dtype)): _resize_image_mask(im, mask, tf.image.ResizeMethod.BICUBIC,
-                                                                     tf.image.ResizeMethod.NEAREST_NEIGHBOR, True),
-                # NOTE: use align_corners=False for AREA resize, but True for the
-                # others. See https://github.com/tensorflow/tensorflow/issues/6720
-                tf.equal(r, tf.cast(3, r.dtype)): _resize_image_mask(im, mask, tf.image.ResizeMethod.AREA,
-                                                                     tf.image.ResizeMethod.NEAREST_NEIGHBOR, False),
-            })
+            im, mask = tf.case(
+                {
+                    tf.equal(r, tf.cast(0, r.dtype)): _resize_image_mask(
+                        im,
+                        mask,
+                        tf.image.ResizeMethod.BILINEAR,
+                        tf.image.ResizeMethod.NEAREST_NEIGHBOR,
+                        True,
+                    ),
+                    tf.equal(r, tf.cast(1, r.dtype)): _resize_image_mask(
+                        im,
+                        mask,
+                        tf.image.ResizeMethod.NEAREST_NEIGHBOR,
+                        tf.image.ResizeMethod.NEAREST_NEIGHBOR,
+                        True,
+                    ),
+                    tf.equal(r, tf.cast(2, r.dtype)): _resize_image_mask(
+                        im,
+                        mask,
+                        tf.image.ResizeMethod.BICUBIC,
+                        tf.image.ResizeMethod.NEAREST_NEIGHBOR,
+                        True,
+                    ),
+                    # NOTE: use align_corners=False for AREA resize, but True for the
+                    # others. See https://github.com/tensorflow/tensorflow/issues/6720
+                    tf.equal(r, tf.cast(3, r.dtype)): _resize_image_mask(
+                        im,
+                        mask,
+                        tf.image.ResizeMethod.AREA,
+                        tf.image.ResizeMethod.NEAREST_NEIGHBOR,
+                        False,
+                    ),
+                }
+            )
         else:
             im = tf.image.resize_images(im, im_size)
-            mask = tf.image.resize_images(mask, im_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+            mask = tf.image.resize_images(
+                mask, im_size, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR
+            )
         mask = tf.squeeze(mask)
         data["image"] = im
         data["label"] = mask
@@ -209,12 +253,14 @@ def get_rotate_preprocess():
         data["label"] = tf.constant([0, 1, 2, 3])
         # We use our own instead of tf.image.rot90 because that one broke
         # internally shortly before deadline...
-        data["image"] = tf.stack([
-            data["image"],
-            tf.transpose(tf.reverse_v2(data["image"], [1]), [1, 0, 2]),
-            tf.reverse_v2(data["image"], [0, 1]),
-            tf.reverse_v2(tf.transpose(data["image"], [1, 0, 2]), [1])
-        ])
+        data["image"] = tf.stack(
+            [
+                data["image"],
+                tf.transpose(tf.reverse_v2(data["image"], [1]), [1, 0, 2]),
+                tf.reverse_v2(data["image"], [0, 1]),
+                tf.reverse_v2(tf.transpose(data["image"], [1, 0, 2]), [1]),
+            ]
+        )
         return data
 
     return _rotate_pp
@@ -227,18 +273,20 @@ def get_rotate3d_preprocess():
         # data["label"] = tf.constant([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
         data["label"] = tf.constant([0, 1, 2, 3, 4, 5, 6])
 
-        data["image"] = tf.stack([
-            data["image"],
-            tf.transpose(tf.reverse_v2(data["image"], [1]), [1, 0, 2, 3]),
-            # tf.reverse_v2(data["image"], [0, 1]), # 180 degrees on z axis
-            tf.reverse_v2(tf.transpose(data["image"], [1, 0, 2, 3]), [1]),
-            tf.transpose(tf.reverse_v2(data["image"], [1]), [0, 2, 1, 3]),
-            # tf.reverse_v2(data["image"], [1, 2]), # 180 degrees on x axis
-            tf.reverse_v2(tf.transpose(data["image"], [0, 2, 1, 3]), [1]),
-            tf.transpose(tf.reverse_v2(data["image"], [0]), [2, 1, 0, 3]),
-            # tf.reverse_v2(data["image"], [0, 2]), # 180 degrees on y axis
-            tf.reverse_v2(tf.transpose(data["image"], [2, 1, 0, 3]), [0])
-        ])
+        data["image"] = tf.stack(
+            [
+                data["image"],
+                tf.transpose(tf.reverse_v2(data["image"], [1]), [1, 0, 2, 3]),
+                # tf.reverse_v2(data["image"], [0, 1]), # 180 degrees on z axis
+                tf.reverse_v2(tf.transpose(data["image"], [1, 0, 2, 3]), [1]),
+                tf.transpose(tf.reverse_v2(data["image"], [1]), [0, 2, 1, 3]),
+                # tf.reverse_v2(data["image"], [1, 2]), # 180 degrees on x axis
+                tf.reverse_v2(tf.transpose(data["image"], [0, 2, 1, 3]), [1]),
+                tf.transpose(tf.reverse_v2(data["image"], [0]), [2, 1, 0, 3]),
+                # tf.reverse_v2(data["image"], [0, 2]), # 180 degrees on y axis
+                tf.reverse_v2(tf.transpose(data["image"], [2, 1, 0, 3]), [0]),
+            ]
+        )
         return data
 
     return _rotate_pp
@@ -272,7 +320,8 @@ def get_standardization_preprocess():
     def _standardization_pp(data):
         # Trick: normalize each patch to avoid low level statistics.
         data["image"] = utils.tf_apply_to_image_or_images(
-            tf.image.per_image_standardization, data["image"])
+            tf.image.per_image_standardization, data["image"]
+        )
         return data
 
     return _standardization_pp
@@ -289,7 +338,9 @@ def get_inception_preprocess_patches(is_training, resize_size, num_of_patches):
                     resize_size[1],
                     is_training,
                     add_image_summaries=False,
-                    crop_image=False))
+                    crop_image=False,
+                )
+            )
         patches = tf.stack(patches)
         data["image"] = patches
         return data
@@ -310,11 +361,11 @@ def get_inception_preprocess_patches3d(num_of_patches, fast_mode=True):
             if rand_flip_axis == 0:
                 distorted_scan = scan
             elif rand_flip_axis == 1:
-                distorted_scan = tf.reverse_v2(scan, [0, 1]),  # 180 degrees on z axis
+                distorted_scan = (tf.reverse_v2(scan, [0, 1]),)  # 180 degrees on z axis
             elif rand_flip_axis == 2:
-                distorted_scan = tf.reverse_v2(scan, [1, 2]),  # 180 degrees on x axis
+                distorted_scan = (tf.reverse_v2(scan, [1, 2]),)  # 180 degrees on x axis
             else:
-                distorted_scan = tf.reverse_v2(scan, [0, 2]),  # 180 degrees on y axis
+                distorted_scan = (tf.reverse_v2(scan, [0, 2]),)  # 180 degrees on y axis
 
             num_cases = 1 if fast_mode else 4
             for case in range(num_cases):
@@ -334,7 +385,7 @@ def get_inception_preprocess_patches3d(num_of_patches, fast_mode=True):
 def distort_color3d(scan):
     x = scan
     # adjust_brightness
-    max_delta = 32. / 255.
+    max_delta = 32.0 / 255.0
     delta = tf.random_uniform([], -max_delta, max_delta)
     x = tf.add(x, tf.cast(delta, tf.float32))
 
@@ -343,7 +394,10 @@ def distort_color3d(scan):
     upper = 1.5
     contrast_factor = tf.random_uniform([], lower, upper)
     x_mean = tf.reduce_mean(x, keep_dims=True)
-    x = tf.add(tf.multiply(tf.subtract(x, tf.reduce_mean(x, keep_dims=True)), contrast_factor), x_mean)
+    x = tf.add(
+        tf.multiply(tf.subtract(x, tf.reduce_mean(x, keep_dims=True)), contrast_factor),
+        x_mean,
+    )
 
     return tf.clip_by_value(x, 0.0, 1.0)
 
@@ -356,14 +410,17 @@ def get_drop_all_channels_but_one_preprocess():
         # mask = tf.constant(x,dtype=tf.float32)
         # return lambda image: tf.multiply(image, mask)
 
-        return lambda image: tf.tile(image[:, :, idx:idx+1], [1, 1, 3])
+        return lambda image: tf.tile(image[:, :, idx : idx + 1], [1, 1, 3])
 
     def _drop_all_channels_but_one_pp(data):
         data["image"] = utils.tf_apply_to_image_or_images(
             lambda img: utils.tf_apply_many_with_probability(
-                [1.0/3.0]*3,
-                [(_drop_all_channels_but_one(a)) for a in range(3)], img),
-            data["image"])
+                [1.0 / 3.0] * 3,
+                [(_drop_all_channels_but_one(a)) for a in range(3)],
+                img,
+            ),
+            data["image"],
+        )
         return data
 
     return _drop_all_channels_but_one_pp
@@ -377,14 +434,16 @@ def get_to_gray_preprocess(grayscale_probability):
     def _to_gray_pp(data):
         data["image"] = utils.tf_apply_to_image_or_images(
             lambda img: utils.tf_apply_with_probability(  # pylint:disable=g-long-lambda
-                grayscale_probability, _to_gray, img),
-            data["image"])
+                grayscale_probability, _to_gray, img
+            ),
+            data["image"],
+        )
         return data
 
     return _to_gray_pp
 
 
-def get_preprocess_fn(fn_names, is_training):
+def get_preprocess_fn(fn_names, is_training, **dependend_params):
     """Returns preprocessing function.
 
     Args:
@@ -409,21 +468,26 @@ def get_preprocess_fn(fn_names, is_training):
                 yield get_value_range_preprocess(-1, 1)
             elif fn_name == "resize":
                 yield get_resize_preprocess(
-                    utils.str2intlist(FLAGS.resize_size, 2),
-                    is_training and FLAGS.get_flag_value("randomize_resize_method",
-                                                         False))
+                    utils.str2intlist(dependend_params["resize_size"], 2),
+                    is_training
+                    and dependend_params.get("randomize_resize_method", False),
+                )
             elif fn_name == "resize_segmentation":
                 yield get_resize_segmentation_preprocess(
-                    utils.str2intlist(FLAGS.resize_size, 2),
-                    is_training and FLAGS.get_flag_value("randomize_resize_method",
-                                                         False))
+                    utils.str2intlist(dependend_params["resize_size"], 2),
+                    is_training
+                    and dependend_params.get("randomize_resize_method", False),
+                )
             elif fn_name == "resize_small":
-                yield get_resize_small(FLAGS.smaller_size)
+                yield get_resize_small(dependend_params["smaller_size"])
             elif fn_name == "crop":
-                yield get_crop(is_training,
-                               utils.str2intlist(FLAGS.crop_size, 2))
+                yield get_crop(
+                    is_training, utils.str2intlist(dependend_params["crop_size"], 2)
+                )
             elif fn_name == "central_crop":
-                yield get_crop(False, utils.str2intlist(FLAGS.crop_size, 2))
+                yield get_crop(
+                    False, utils.str2intlist(dependend_params["crop_size"], 2)
+                )
             elif fn_name == "inception_crop":
                 yield get_inception_crop(is_training)
             elif fn_name == "pad":
@@ -434,25 +498,33 @@ def get_preprocess_fn(fn_names, is_training):
                 yield get_random_flip_ud(is_training)
             elif fn_name == "crop_inception_preprocess_patches":
                 yield get_inception_preprocess_patches(
-                    is_training, utils.str2intlist(FLAGS.resize_size, 2),
-                    FLAGS.num_of_inception_patches)
+                    is_training,
+                    utils.str2intlist(dependend_params["resize_size"], 2),
+                    dependend_params["num_of_inception_patches"],
+                )
             elif fn_name == "crop_inception_preprocess_patches3d":
-                yield get_inception_preprocess_patches3d(FLAGS.num_of_inception_patches, fast_mode=FLAGS.fast_mode)
+                yield get_inception_preprocess_patches3d(
+                    dependend_params["num_of_inception_patches"],
+                    fast_mode=dependend_params["fast_mode"],
+                )
             elif fn_name == "to_gray":
                 yield get_to_gray_preprocess(
-                    FLAGS.get_flag_value("grayscale_probability", 1.0))
+                    dependend_params.get("grayscale_probability", 1.0)
+                )
             elif fn_name == "drop_all_channels_but_one":
                 yield get_drop_all_channels_but_one_preprocess()
             elif fn_name == "crop_patches":
                 yield pp_lib.get_crop_patches_fn(
                     is_training,
-                    split_per_side=FLAGS.splits_per_side,
-                    patch_jitter=FLAGS.get_flag_value("patch_jitter", 0))
+                    split_per_side=dependend_params["splits_per_side"],
+                    patch_jitter=dependend_params.get("patch_jitter", 0),
+                )
             elif fn_name == "crop_patches3d":
                 yield pp_lib.get_crop_patches3d_fn(
                     is_training,
-                    split_per_side=FLAGS.splits_per_side,
-                    patch_jitter=FLAGS.get_flag_value("patch_jitter", 0))
+                    split_per_side=dependend_params["splits_per_side"],
+                    patch_jitter=dependend_params.get("patch_jitter", 0),
+                )
             elif fn_name == "standardization":
                 yield get_standardization_preprocess()
             elif fn_name == "rotate":
@@ -465,15 +537,17 @@ def get_preprocess_fn(fn_names, is_training):
 
             elif fn_name == "inception_preprocess":
                 yield get_inception_preprocess(
-                    is_training, utils.str2intlist(FLAGS.resize_size, 2))
+                    is_training, utils.str2intlist(dependend_params["resize_size"], 2)
+                )
             else:
                 raise ValueError("Not supported preprocessing %s" % fn_name)
 
         # Apply all the individual steps in sequence.
         tf.logging.info("Data before pre-processing:\n%s", data)
-        for fn_name in fn_names.split(","):
+        for fn_name in fn_names:
+            print(">>>>>", fn_name)
             for p in expand(fn_name.strip()):
-                data = p(data)
+                data = p(data, dependend_params)
                 tf.logging.info("Data after `%s`:\n%s", p, data)
         return data
 

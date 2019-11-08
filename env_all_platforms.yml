@@ -9,7 +9,7 @@ dependencies:
   - scikit-learn
   - scipy
   - tensorboard
-  - tensorflow
+  - tensorflow<2.0.0
   - tensorflow-base
   - pip
   - pip:

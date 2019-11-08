@@ -7,11 +7,11 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from algorithms import relative_patch_location, exemplar, supervised_classification, jigsaw, rotation, \
-    supervised_segmentation
+from self_supervised_3d_tasks.algorithms import exemplar, supervised_classification, jigsaw, rotation
+from self_supervised_3d_tasks.algorithms import relative_patch_location, supervised_segmentation
 
 
-def get_self_supervision_model(self_supervision):
+def get_self_supervision_model(self_supervision, kwargs):
     """Gets self_supervised supervised training data and labels."""
 
     mapping = {
@@ -45,6 +45,6 @@ def get_self_supervision_model(self_supervision):
         del labels, params  # unused
         tf.logging.info("Calling model_fn in mode %s with data:", mode)
         tf.logging.info(features)
-        return model_fn(features, mode)
+        return model_fn(features, mode, **kwargs)
 
     return _model_fn
