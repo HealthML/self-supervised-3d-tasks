@@ -10,8 +10,8 @@ import tensorflow as tf
 import tensorflow_hub as hub
 import tensorflow.keras as keras
 
-import trainer
-from models.utils import get_net
+import self_supervised_3d_tasks.trainer as trainer
+from self_supervised_3d_tasks.models.utils import get_net
 
 
 def network_autoregressive(x):
