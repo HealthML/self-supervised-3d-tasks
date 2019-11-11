@@ -11,7 +11,10 @@ import tensorflow_hub as hub
 import tensorflow.keras as keras
 
 import trainer
+
+from self_supervised_3d_tasks import utils
 from self_supervised_3d_tasks.models.utils import get_net
+from self_supervised_3d_tasks.trainer import make_estimator
 
 FLAGS = tf.flags.FLAGS
 
@@ -122,7 +125,9 @@ def apply_model(image_fn,  # pylint: disable=missing-docstring
 
     return dot_product_probs
 
-def model_fn(data, mode):
+
+# TODO: is this really the right shape?
+def model_fn(data, mode,serving_input_shape="None,None,None,None,3"):
     """Produces a loss for the exemplar task supervision.
 
     Args:
@@ -143,6 +148,32 @@ def model_fn(data, mode):
                 image_fn=image_fn,
                 is_training=(mode == tf.estimator.ModeKeys.TRAIN),
                 make_signature=False)
+
+    else:
+        input_shape = utils.str2intlist(serving_input_shape)
+        image_fn = lambda: tf.placeholder(  # pylint: disable=g-long-lambda
+            shape=input_shape, dtype=tf.float32
+        )
+
+        apply_model_function = functools.partial(
+            apply_model,
+            image_fn=image_fn,
+            make_signature=True,
+        )
+
+        tf_hub_module_spec = hub.create_module_spec(
+            apply_model_function,
+            [
+                (utils.TAGS_IS_TRAINING, {"is_training": True}),
+                (set(), {"is_training": False}),
+            ],
+            drop_collections=["summaries"],
+        )
+
+        tf_hub_module = hub.Module(tf_hub_module_spec, trainable=False, tags=set())
+        hub.register_module_for_export(tf_hub_module, export_name="module")
+        dot_product_probs = tf_hub_module([data['encoded'], data['encoded_pred']])
+        return make_estimator(mode, predictions=dot_product_probs)
 
     eval_metrics = (
         lambda lab, prod: {  # TODO: check if this is correct
