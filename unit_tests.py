@@ -1,14 +1,14 @@
 import functools
 
 import absl.flags as flags
-import datasets
 import matplotlib.pyplot as plt
 import numpy as np
-
 import tensorflow as tf
 
-from algorithms.patch_model_preprocess import get_crop_patches_fn
-from preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, get_pad
+from self_supervised_3d_tasks.algorithms.patch_model_preprocess import get_crop_patches_fn
+from self_supervised_3d_tasks.datasets import get_data
+from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
+    get_pad
 
 
 def plot_sequences(x, y, labels=None, output_path=None):
@@ -51,7 +51,7 @@ def test_mnist_data_generator():
     flags.DEFINE_integer('random_seed', 1, "")
 
     f = functools.partial(
-        datasets.get_data,
+        get_data,
         split_name='train',
         is_training=True,
         num_epochs=1,

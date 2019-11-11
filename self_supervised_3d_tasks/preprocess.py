@@ -491,7 +491,7 @@ def get_preprocess_fn(fn_names, is_training, **dependend_params):
             elif fn_name == "inception_crop":
                 yield get_inception_crop(is_training)
             elif fn_name == "pad":
-                yield get_pad(FLAGS.padding, FLAGS.padding_mode)
+                yield get_pad(dependend_params["padding"], dependend_params["padding_mode"])
             elif fn_name == "flip_lr":
                 yield get_random_flip_lr(is_training)
             elif fn_name == "flip_ud":

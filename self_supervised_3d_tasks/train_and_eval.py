@@ -6,20 +6,20 @@ r"""The main script for starting training and evaluation.
 from __future__ import absolute_import
 from __future__ import division
 
+import argparse
 import functools
+import logging
 import math
 import os
-
-import argparse
-import logging
 from pathlib import Path
+
 import tensorflow as tf
 import tensorflow_hub as hub
 from tensorflow.contrib.cluster_resolver import TPUClusterResolver
 
-import datasets
-import utils
-from algorithms.self_supervision_lib import get_self_supervision_model
+import self_supervised_3d_tasks.utils as utils
+from self_supervised_3d_tasks.algorithms.self_supervision_lib import get_self_supervision_model
+from self_supervised_3d_tasks.datasets import get_count, get_data
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -160,7 +160,7 @@ def train_and_continous_evaluation(
     """
     tf.logging.info("entered training + continuous evaluation branch.")
     train_input_fn = functools.partial(
-        datasets.get_data,
+        get_data,
         dataset=dataset,
         preprocessing=preprocessing,
         dataset_dir=dataset_dir,
@@ -170,7 +170,7 @@ def train_and_continous_evaluation(
         drop_remainder=True,
     )
     eval_input_fn = functools.partial(
-        datasets.get_data,
+        get_data,
         dataset=dataset,
         preprocessing=preprocessing,
         dataset_dir=dataset_dir,
@@ -180,7 +180,7 @@ def train_and_continous_evaluation(
         num_epochs=1,
         drop_remainder=use_tpu,
     )
-    num_train_samples = datasets.get_count(dataset, train_split)
+    num_train_samples = get_count(dataset, train_split)
     updates_per_epoch = num_train_samples // batch_size
     num_train_steps = int(epochs * updates_per_epoch)
     estimator._export_to_tpu = False
@@ -236,7 +236,7 @@ def evaluate(
     """
     tf.logging.info("entered run eval branch.")
     data_fn = functools.partial(
-        datasets.get_data,
+        get_data,
         dataset=dataset,
         preprocessing=preprocessing,
         dataset_dir=dataset_dir,
@@ -250,7 +250,7 @@ def evaluate(
     # `evaluate` functions NEED to have `max_steps` and/or `steps` set and
     # cannot make use of the iterator's end-of-input exception, so we need
     # to do some math for that here.
-    num_samples = datasets.get_count(dataset, val_split)
+    num_samples = get_count(dataset, val_split)
     num_steps = num_samples // eval_batch_size
     tf.logging.info("val_steps: %d", num_steps)
     for checkpoint in tf.contrib.training.checkpoints_iterator(
@@ -296,7 +296,7 @@ def train(
     """
     tf.logging.info("entered training branch.")
     train_data_fn = functools.partial(
-        datasets.get_data,
+        get_data,
         dataset=dataset,
         preprocessing=preprocessing,
         dataset_dir=dataset_dir,
@@ -309,7 +309,7 @@ def train(
     # arguments instead of relying on the Dataset's iterator to run out after
     # a number of epochs so that we can use 'fractional' epochs, which are
     # used by regression tests. (And because TPUEstimator needs it anyways.)
-    num_samples = datasets.get_count(dataset, train_split)
+    num_samples = get_count(dataset, train_split)
     # Depending on whether we drop the last batch each epoch or only at the
     # ver end, this should be ordered differently for rounding.
     updates_per_epoch = num_samples // batch_size

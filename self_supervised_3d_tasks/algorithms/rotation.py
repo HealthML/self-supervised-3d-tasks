@@ -7,11 +7,12 @@ from __future__ import division
 from __future__ import print_function
 
 import functools
+
 import tensorflow as tf
 import tensorflow_hub as hub
 
-from models.utils import get_net
 from self_supervised_3d_tasks import trainer, utils
+from self_supervised_3d_tasks.models.utils import get_net
 
 
 # FLAGS = tf.flags.FLAGS

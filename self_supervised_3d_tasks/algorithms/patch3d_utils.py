@@ -6,12 +6,13 @@ from __future__ import print_function
 
 import functools
 import struct
+
 import numpy as np
 import tensorflow as tf
 import tensorflow_hub as hub
 
 from self_supervised_3d_tasks import preprocess, utils
-from models.utils import get_net
+from self_supervised_3d_tasks.models.utils import get_net
 from self_supervised_3d_tasks.trainer import make_estimator
 
 PATCH_H_COUNT = 3

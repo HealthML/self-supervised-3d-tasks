@@ -185,6 +185,7 @@ class DatasetCpcMnist(AbstractDataset):
 
     def __init__(
         self,
+            dataset_dir,
         split_name,
         preprocess_fn,
         num_epochs,
@@ -192,7 +193,7 @@ class DatasetCpcMnist(AbstractDataset):
         random_seed=None,
         drop_remainder=True,
     ):
-        files = os.path.join(os.path.expanduser(FLAGS.dataset_dir), "%s@%i")
+        files = os.path.join(os.path.expanduser(dataset_dir), "%s@%i")
         # TODO: look one line up
 
         filenames = {
