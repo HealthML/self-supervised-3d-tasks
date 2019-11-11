@@ -6,24 +6,25 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from self_supervised_3d_tasks import datasets, utils
+from self_supervised_3d_tasks import utils
+from .datasets import get_count
 
 
 # FLAGS = tf.flags.FLAGS
 
 
 def get_lr(
-    global_step,
-    base_lr,
-    steps_per_epoch,  # pylint: disable=missing-docstring
-    decay_epochs,
-    lr_decay_factor,
-    warmup_epochs,
+        global_step,
+        base_lr,
+        steps_per_epoch,  # pylint: disable=missing-docstring
+        decay_epochs,
+        lr_decay_factor,
+        warmup_epochs,
 ):
     warmup_lr = 0.0
     if warmup_epochs > 0:
         warmup_lr = tf.cast(global_step, tf.float32) * (
-            base_lr / (warmup_epochs * steps_per_epoch)
+                base_lr / (warmup_epochs * steps_per_epoch)
         )
 
     normal_lr = tf.train.piecewise_constant(
@@ -47,13 +48,21 @@ class Trainer(object):
 
     # TODO: refactor usages -- no: flags is a dict here
 
-    def __init__(self, FLAGS, update_batchnorm_params=True):
-        self.FLAGS = FLAGS
+    def __init__(self, dataset, learning_rate, epochs, batch_size=16, train_split="train", update_batchnorm_params=True,
+                 lr_scale_batch_size=0, lr_decay_factor=0.1, decay_epochs=None, optimizer="sgd", warmup_epochs=0):
         self.update_batchnorm_params = update_batchnorm_params
+        self.train_split = train_split
+        self.optimizer = optimizer
+        self.dataset = dataset
+        self.batch_size = batch_size
+        self.lr = learning_rate
+        self.epochs = epochs
+        self.lr_scale_batch_size = lr_scale_batch_size
+        self.lr_decay_factor = lr_decay_factor
+        self.warmup_epochs = warmup_epochs
 
-        split = self.FLAGS.get_flag_value("train_split", "train")
-        num_samples = datasets.get_count(self.FLAGS["dataset"], split)
-        steps_per_epoch = num_samples // self.FLAGS.batch_size
+        num_samples = get_count(self.dataset, self.train_split)
+        steps_per_epoch = num_samples // self.batch_size
 
         global_step = tf.train.get_or_create_global_step()
         self.global_step_inc = tf.assign_add(global_step, 1)
@@ -63,37 +72,37 @@ class Trainer(object):
         # canonical than learning rate is linearly scaled. This is very convinient
         # as this allows to vary batch size without recomputing learning rate.
         lr_factor = 1.0
-        if self.FLAGS.get_flag_value("lr_scale_batch_size", 0):
-            lr_factor = self.FLAGS.batch_size / float(self.FLAGS.lr_scale_batch_size)
+        if self.lr_scale_batch_size:
+            lr_factor = self.batch_size / float(self.lr_scale_batch_size)
 
-        deps = self.FLAGS.get_flag_value("decay_epochs", None)
-        decay_epochs = utils.str2intlist(deps) if deps else [self.FLAGS.epochs]
+        deps = self.decay_epochs
+        decay_epochs = utils.str2intlist(deps) if deps else [self.epochs]
 
         self.lr = get_lr(
             global_step,
-            base_lr=self.FLAGS.lr * lr_factor,
+            base_lr=self.lr * lr_factor,
             steps_per_epoch=steps_per_epoch,
             decay_epochs=decay_epochs,
-            lr_decay_factor=self.FLAGS.get_flag_value("lr_decay_factor", 0.1),
-            warmup_epochs=self.FLAGS.get_flag_value("warmup_epochs", 0),
+            lr_decay_factor=self.lr_decay_factor,
+            warmup_epochs=self.warmup_epochs,
         )
 
         # TODO(marvinritter): Re-enable summaries with support for TPU training.
         # tf.summary.scalar('learning_rate', self_supervised.lr)
 
     def get_train_op(
-        self,
-        loss,  # pylint: disable=missing-docstring
-        var_list=None,
-        add_reg_loss=True,
-        use_tpu=False,
+            self,
+            loss,  # pylint: disable=missing-docstring
+            var_list=None,
+            add_reg_loss=True,
+            use_tpu=False,
     ):
 
         if add_reg_loss:
             l2_loss = tf.reduce_sum(tf.losses.get_regularization_losses())
             loss += l2_loss
 
-        optimizer = self.FLAGS.get_flag_value("optimizer", "sgd")
+        optimizer = self.optimizer
         if optimizer == "sgd":
             optimizer = tf.train.MomentumOptimizer(learning_rate=self.lr, momentum=0.9)
         elif optimizer == "adam":
@@ -121,12 +130,12 @@ class Trainer(object):
 
 
 def make_estimator(
-    mode,
-    loss=None,
-    eval_metrics=None,
-    predictions=None,
-    common_hooks=None,
-    train_hooks=None,
+        mode,
+        loss=None,
+        eval_metrics=None,
+        predictions=None,
+        common_hooks=None,
+        train_hooks=None,
         use_tpu=False,
 ):
     """Returns an EstimatorSpec (maybe TPU) for all modes."""
