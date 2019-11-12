@@ -18,8 +18,8 @@ import tensorflow_hub as hub
 from tensorflow.contrib.cluster_resolver import TPUClusterResolver
 
 import self_supervised_3d_tasks.utils as utils
-from self_supervised_3d_tasks.algorithms.self_supervision_lib import get_self_supervision_model
-from self_supervised_3d_tasks.datasets import get_count, get_data
+from .algorithms.self_supervision_lib import get_self_supervision_model
+from .datasets import get_count, get_data
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"

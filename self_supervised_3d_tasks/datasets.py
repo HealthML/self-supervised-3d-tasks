@@ -11,7 +11,7 @@ from pathlib import Path
 
 import tensorflow as tf
 
-from self_supervised_3d_tasks.preprocess import get_preprocess_fn
+from . preprocess import get_preprocess_fn
 
 
 class AbstractDataset(object):
