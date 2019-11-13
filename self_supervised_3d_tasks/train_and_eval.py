@@ -684,15 +684,20 @@ if __name__ == "__main__":
     logging.info(flags)
 
     # define mapping here for later use TODO: use them!
-    dependend_flags = {
+    # ALL need batch_size to be given to the model
+    dependend_flags_of_tasks = {
         "exemplar": {
             "required": ["embed_dim", "margin", "architecture"],
             "optional": ["crop_inception_preprocess_patches3d", "serving_input_shape"],
         },
         "supervised_classification": {
             "required": ["dataset", "architecture"],
-            "optional": ["serving_input_shape"]
-        }
+            "optional": ["serving_input_shape"],
+        },
+        "jigsaw": {
+            "required": [],
+            "optional": ["crop_patches3d", "perm_subset_size", "serving_input_shape"],
+        },
     }
 
     train_and_eval(vars(flags))

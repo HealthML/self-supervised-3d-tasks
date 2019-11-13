@@ -11,7 +11,14 @@ from . import patch_utils
 from . import patch3d_utils
 
 
-def model_fn(data, mode, crop_patches3d=None, perm_subset_size=8):
+def model_fn(
+        data,
+        mode,
+        batch_size,
+        crop_patches3d=None,
+        perm_subset_size=8,
+        serving_input_shape="None,None,None,3",
+):
     """Produces a loss for the jigsaw task.
 
     Args:
@@ -21,6 +28,7 @@ def model_fn(data, mode, crop_patches3d=None, perm_subset_size=8):
     Returns:
       EstimatorSpec
     """
+    # TODO: refactor usages
     images = data["image"]
 
     if crop_patches3d:
@@ -45,9 +53,21 @@ def model_fn(data, mode, crop_patches3d=None, perm_subset_size=8):
 
     if crop_patches3d:
         return patch3d_utils.create_estimator_model(
-            images, labels, perms, num_classes, mode
+            images,
+            labels,
+            perms,
+            num_classes,
+            mode,
+            batch_size,
+            serving_input_shape=serving_input_shape,
         )
     else:
         return patch_utils.create_estimator_model(
-            images, labels, perms, num_classes, mode
+            images,
+            labels,
+            perms,
+            num_classes,
+            mode,
+            batch_size,
+            serving_input_shape=serving_input_shape,
         )

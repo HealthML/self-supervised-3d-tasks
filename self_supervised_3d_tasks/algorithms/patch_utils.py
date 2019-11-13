@@ -31,6 +31,7 @@ def apply_model(
         is_training,
         num_outputs,
         perms,
+        batch_size,
         embed_dim=1000,
         weight_decay=1e-4,
         make_signature=False,
@@ -60,7 +61,7 @@ def apply_model(
     out, end_points = net(images, is_training, weight_decay=weight_decay)
 
     if not make_signature:
-        out = permutate_and_concat_batch_patches(out, perms, is_training)
+        out = permutate_and_concat_batch_patches(out, perms, batch_size)
         out = fully_connected(out, num_outputs, is_training=is_training)
 
         out = tf.squeeze(out, [1, 2])
@@ -101,7 +102,7 @@ def image_grid(images, ny, nx, padding=0):
 
 
 def create_estimator_model(
-        images, labels, perms, num_classes, mode, serving_input_shape="None,None,None3"
+        images, labels, perms, num_classes, mode, batch_size, serving_input_shape="None,None,None3"
 ):
     """Creates EstimatorSpec for the patch based self_supervised supervised models.
 
@@ -126,6 +127,7 @@ def create_estimator_model(
                 image_fn=image_fn,
                 is_training=(mode == tf.estimator.ModeKeys.TRAIN),
                 num_outputs=num_classes,
+                batch_size=batch_size,
                 perms=perms,
                 make_signature=False,
             )
@@ -139,6 +141,7 @@ def create_estimator_model(
             apply_model,
             image_fn=image_fn,
             num_outputs=num_classes,
+            batch_size=batch_size,
             perms=perms,
             make_signature=True,
         )
