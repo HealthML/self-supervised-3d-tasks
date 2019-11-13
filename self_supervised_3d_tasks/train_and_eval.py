@@ -563,11 +563,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--last_relu",
         type=bool,
+        default=True,
         help="Whether to include (default) the final "
         "ReLU layer in ResNet/RevNet models or not.",
     )
 
-    parser.add_argument("--mode", type=str, help="Which ResNet to use, `v1` or `v2`.")
+    parser.add_argument(
+        "--mode", type=str, default="v2", help="Which ResNet to use, `v1` or `v2`."
+    )
 
     # Flags about the optimization process.
     parser.add_argument(
@@ -685,6 +688,7 @@ if __name__ == "__main__":
 
     # define mapping here for later use TODO: use them!
     # ALL need batch_size to be given to the model
+    # rotate3d, crop_patches3d is a possible preprocessing step
     dependend_flags_of_tasks = {
         "exemplar": {
             "required": ["embed_dim", "margin", "architecture"],
@@ -694,14 +698,25 @@ if __name__ == "__main__":
             "required": ["dataset", "architecture"],
             "optional": ["serving_input_shape"],
         },
+        "supervised_segmentation": {
+            "required": ["architecture", "batch_size"],
+            "optional": [],
+        },
+        "rotation": {"required": ["architecture"], "optional": []},
         "jigsaw": {
-            "required": [],
+            "required": ["architecture"],
             "optional": ["crop_patches3d", "perm_subset_size", "serving_input_shape"],
         },
         "relative_patch_location": {
-            "required": [],
+            "required": ["architecture"],
             "optional": ["crop_patches3d", "serving_input_shape"],
         },
+    }
+    dependend_flags_of_architectures = {
+        "unet_resnet*": {"required": [], "optional": ["filters_factor"]},
+        "vgg": {"required": [], "optional": ["filters_factor"]},
+        "resnet50": {"required": [], "optional": ["last_relu", "mode"]},
+        "revnet50": {"required": [], "optional": ["last_relu", "mode"]},
     }
 
     train_and_eval(vars(flags))

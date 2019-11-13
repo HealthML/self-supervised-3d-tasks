@@ -14,7 +14,13 @@ from self_supervised_3d_tasks.algorithms import patch_utils, patch3d_utils
 
 
 def model_fn(
-        data, mode, batch_size, crop_patches3d=False, serving_input_shape="None,None,None,3"
+        data,
+        mode,
+        batch_size,
+        architecture,
+        crop_patches3d=False,
+        serving_input_shape="None,None,None,3",
+        net_params={},
 ):
     """Produces a loss for the relative patch location task.
 
@@ -44,7 +50,10 @@ def model_fn(
             num_classes,
             mode,
             batch_size,
+            task="relative_patch_location",
+            architecture=architecture,
             serving_input_shape=serving_input_shape,
+            net_params=net_params,
         )
     else:
         return patch_utils.create_estimator_model(
@@ -54,5 +63,8 @@ def model_fn(
             num_classes,
             mode,
             batch_size,
+            task="relative_patch_location",
+            architecture=architecture,
             serving_input_shape=serving_input_shape,
+            net_params=net_params,
         )

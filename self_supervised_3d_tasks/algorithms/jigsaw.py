@@ -18,6 +18,7 @@ def model_fn(
         crop_patches3d=None,
         perm_subset_size=8,
         serving_input_shape="None,None,None,3",
+        net_params={},
 ):
     """Produces a loss for the jigsaw task.
 
@@ -59,7 +60,9 @@ def model_fn(
             num_classes,
             mode,
             batch_size,
+            task="jigsaw",
             serving_input_shape=serving_input_shape,
+            net_params=net_params,
         )
     else:
         return patch_utils.create_estimator_model(
@@ -69,5 +72,7 @@ def model_fn(
             num_classes,
             mode,
             batch_size,
+            task="jigsaw",
             serving_input_shape=serving_input_shape,
+            net_params=net_params,
         )
