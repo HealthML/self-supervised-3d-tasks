@@ -4,10 +4,9 @@ import absl.flags as flags
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-
-from self_supervised_3d_tasks.algorithms.patch_model_preprocess import get_crop_patches_fn
-from self_supervised_3d_tasks.datasets import get_data
-from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
+from algorithms.patch_model_preprocess import get_crop_patches_fn
+from datasets import get_data
+from preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
     get_pad
 
 
