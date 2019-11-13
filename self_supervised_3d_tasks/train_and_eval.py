@@ -698,6 +698,10 @@ if __name__ == "__main__":
             "required": [],
             "optional": ["crop_patches3d", "perm_subset_size", "serving_input_shape"],
         },
+        "relative_patch_location": {
+            "required": [],
+            "optional": ["crop_patches3d", "serving_input_shape"],
+        },
     }
 
     train_and_eval(vars(flags))
