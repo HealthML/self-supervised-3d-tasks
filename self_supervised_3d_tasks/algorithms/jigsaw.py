@@ -7,8 +7,8 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from self_supervised_3d_tasks.algorithms import patch_utils
-from self_supervised_3d_tasks.algorithms import patch3d_utils
+from . import patch_utils
+from . import patch3d_utils
 
 
 def model_fn(data, mode, crop_patches3d=None, perm_subset_size=8):

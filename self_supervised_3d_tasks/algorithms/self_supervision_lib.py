@@ -7,13 +7,13 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from self_supervised_3d_tasks.algorithms import (
+from . import (
     exemplar,
     supervised_classification,
     jigsaw,
     rotation,
 )
-from self_supervised_3d_tasks.algorithms import (
+from . import (
     relative_patch_location,
     supervised_segmentation,
 )

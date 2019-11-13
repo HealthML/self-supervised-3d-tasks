@@ -12,10 +12,10 @@ from pathlib import Path
 import tensorflow as tf
 import tensorflow_hub as hub
 
-from self_supervised_3d_tasks import utils
-from ..trainer import make_estimator
-from ..datasets import get_num_classes_for_dataset
-from ..models.utils import get_net
+from .. import utils
+from .. trainer import make_estimator
+from .. datasets import get_num_classes_for_dataset
+from .. models.utils import get_net
 
 
 # FLAGS = tf.flags.FLAGS

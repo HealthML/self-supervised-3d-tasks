@@ -9,7 +9,7 @@ import functools
 import tensorflow as tf
 import tensorflow_hub as hub
 
-from self_supervised_3d_tasks import utils
+from .. import utils
 from ..datasets import get_num_classes_for_dataset
 from ..trainer import make_estimator
 from ..models.utils import get_net
