@@ -699,10 +699,13 @@ if __name__ == "__main__":
             "optional": ["serving_input_shape"],
         },
         "supervised_segmentation": {
-            "required": ["architecture", "batch_size"],
-            "optional": [],
+            "required": ["architecture", "dataset", "batch_size"],
+            "optional": ["checkpoint_dir", "serving_input_shape"],
         },
-        "rotation": {"required": ["architecture"], "optional": []},
+        "rotation": {
+            "required": ["architecture"],
+            "optional": ["rotate3d", "serving_input_shape"],
+        },
         "jigsaw": {
             "required": ["architecture"],
             "optional": ["crop_patches3d", "perm_subset_size", "serving_input_shape"],

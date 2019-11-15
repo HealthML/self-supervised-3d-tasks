@@ -12,7 +12,7 @@ import tensorflow as tf
 import tensorflow_hub as hub
 
 from .. import trainer, utils
-from .. models.utils import get_net
+from ..models.utils import get_net
 
 
 # FLAGS = tf.flags.FLAGS
@@ -22,13 +22,15 @@ def apply_model(
         image_fn,  # pylint: disable=missing-docstring
         is_training,
         num_outputs,
+        architecture,
         make_signature=False,
+        net_params={},
 ):
     # Image tensor needs to be created lazily in order to satisfy tf-hub
     # restriction: all tensors should be created inside tf-hub helper function.
     images = image_fn()
 
-    net = get_net(num_classes=num_outputs)
+    net = get_net(architecture, num_classes=num_outputs, task="rotation", **net_params)
 
     output, end_points = net(images, is_training)
 
@@ -40,7 +42,14 @@ def apply_model(
     return output
 
 
-def model_fn(data, mode, rotate3d=False, serving_input_shape="None,None,None,3"):
+def model_fn(
+        data,
+        mode,
+        architecture,
+        rotate3d=False,
+        serving_input_shape="None,None,None,3",
+        net_params={},
+):
     """Produces a loss for the rotation task.
 
     Args:
@@ -68,7 +77,9 @@ def model_fn(data, mode, rotate3d=False, serving_input_shape="None,None,None,3")
                 image_fn=image_fn,
                 is_training=(mode == tf.estimator.ModeKeys.TRAIN),
                 num_outputs=num_angles,
+                architecture=architecture,
                 make_signature=False,
+                net_params=net_params,
             )
     else:
         input_shape = utils.str2intlist(serving_input_shape)
@@ -76,7 +87,12 @@ def model_fn(data, mode, rotate3d=False, serving_input_shape="None,None,None,3")
             shape=input_shape, dtype=tf.float32  # pylint: disable=g-long-lambda
         )
         apply_model_function = functools.partial(
-            apply_model, image_fn=image_fn, num_outputs=num_angles, make_signature=True
+            apply_model,
+            image_fn=image_fn,
+            num_outputs=num_angles,
+            make_signature=True,
+            architecture=architecture,
+            net_params=net_params,
         )
         tf_hub_module_spec = hub.create_module_spec(
             apply_model_function,
