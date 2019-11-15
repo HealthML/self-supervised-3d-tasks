@@ -8,6 +8,7 @@ from __future__ import division
 
 import argparse
 import functools
+import json
 import logging
 import math
 import os
@@ -15,11 +16,11 @@ from pathlib import Path
 
 import tensorflow as tf
 import tensorflow_hub as hub
+from tensorflow.contrib.cluster_resolver import TPUClusterResolver
 
-from .utils import BestCheckpointCopier, str2intlist
 from .algorithms.self_supervision_lib import get_self_supervision_model
 from .datasets import get_count, get_data
-from tensorflow.contrib.cluster_resolver import TPUClusterResolver
+from .utils import BestCheckpointCopier, str2intlist
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -329,7 +330,13 @@ def serving_input_fn(serving_input_shape, serving_input_key):
     )
 
 
+def get_dependend_flags():
+    with open("self_supervised_3d_tasks/dependend_flags.json", 'r') as f:
+        return json.load(f)
+
 def check_task_dependend_flags(flags):
+    dependend_flags = get_dependend_flags()
+
     class MissingFlagError(Exception):
         def __init__(self, task, missing_flag):
             self.task = task
@@ -340,40 +347,19 @@ def check_task_dependend_flags(flags):
                 f'For the task "{self.task}" the flag {self.missing_flag} is required.'
             )
 
-    # ALL need batch_size to be given to the model
-    # rotate3d, crop_patches3d is a possible preprocessing step
-    dependend_flags_of_tasks = {
-        "exemplar": {
-            "required": ["embed_dim", "margin", "architecture"],
-            "optional": ["crop_inception_preprocess_patches3d", "serving_input_shape"],
-        },
-        "supervised_classification": {
-            "required": ["dataset", "architecture"],
-            "optional": ["serving_input_shape"],
-        },
-        "supervised_segmentation": {
-            "required": ["architecture", "dataset", "batch_size"],
-            "optional": ["checkpoint_dir", "serving_input_shape"],
-        },
-        "rotation": {
-            "required": ["architecture"],
-            "optional": ["rotate3d", "serving_input_shape"],
-        },
-        "jigsaw": {
-            "required": ["architecture"],
-            "optional": ["crop_patches3d", "perm_subset_size", "serving_input_shape"],
-        },
-        "relative_patch_location": {
-            "required": ["architecture"],
-            "optional": ["crop_patches3d", "serving_input_shape"],
-        },
-    }
+    # TODO: rotate3d, crop_patches3d are possible preprocessing step
+
+    # test dependend flags on task (e.g. jigsaw)
     task = flags["task"]
-    for flag in dependend_flags_of_architectures[task]["required"]:
-        try:
-            print(flags[flag])
-        except KeyError as e:
+    for flag in dependend_flags["dependend_flags_of_tasks"][task]["required"]:
+        if not flags[flag]:
             raise MissingFlagError(task, flag)
+
+    # test dependent flags on architecture (e.g. resnet50)
+    architecture = flags["architecture"]
+    for flag in dependend_flags["dependend_flags_of_architectures"][architecture]["required"]:
+        if not flags[flag]:
+            raise MissingFlagError(architecture, flag)
 
 
 def main():
@@ -732,20 +718,6 @@ if __name__ == "__main__":
 
     flags = parser.parse_args()
     logging.info(flags)
-
-    # define mapping here for later use TODO: use them!
-    dependend_flags_of_architectures = {
-        "unet_resnet*": {"required": [], "optional": ["filters_factor"]},
-        "vgg": {"required": [], "optional": ["filters_factor"]},
-        "resnet50": {
-            "required": [],
-            "optional": ["filters_factor", "last_relu", "mode"],
-        },
-        "revnet50": {
-            "required": [],
-            "optional": ["filters_factor", "last_relu", "mode"],
-        },
-    }
 
     check_task_dependend_flags(vars(flags))
     train_and_eval(vars(flags))
