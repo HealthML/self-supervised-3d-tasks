@@ -13,9 +13,9 @@ import tensorflow as tf
 import tensorflow_hub as hub
 
 from .. import utils
-from .. trainer import make_estimator
-from .. datasets import get_num_classes_for_dataset
-from .. models.utils import get_net
+from ..trainer import make_estimator
+from ..datasets import get_num_classes_for_dataset
+from ..models.utils import get_net
 
 
 # FLAGS = tf.flags.FLAGS
@@ -25,13 +25,20 @@ def apply_model(
         image_fn,  # pylint: disable=missing-docstring
         is_training,
         num_outputs,
+        architecture,
         make_signature=False,
+        net_params={},
 ):
     # Image tensor needs to be created lazily in order to satisfy tf-hub
     # restriction: all tensors should be created inside tf-hub helper function.
     images = image_fn()
 
-    net = get_net(num_classes=num_outputs)
+    net = get_net(
+        architecture,
+        task="supervised_segmentation",
+        num_classes=num_outputs,
+        **net_params
+    )
 
     output, end_points = net(images, is_training)
 
@@ -66,7 +73,13 @@ class RestoreHook(tf.train.SessionRunHook):
 
 
 def model_fn(
-        data, mode, dataset, checkpoint_dir=None, serving_input_shape="None,None,None,3"
+        data,
+        mode,
+        dataset,
+        architecture,
+        checkpoint_dir=None,
+        serving_input_shape="None,None,None,3",
+        net_params={},
 ):
     """Produces a loss for the fully-supervised task.
 
@@ -78,6 +91,7 @@ def model_fn(
       EstimatorSpec
     """
     # TODO: refactor usages
+    # TODO: where the f** has the batch size gone?
     images = data["image"]
 
     # In predict mode (called once at the end of training), we only instantiate
@@ -91,7 +105,9 @@ def model_fn(
                 shape=input_shape, dtype=tf.float32
             ),  # pylint: disable=g-long-lambda
             num_outputs=get_num_classes_for_dataset(dataset),
+            architecture=architecture,
             make_signature=True,
+            net_params=net_params,
         )
         tf_hub_module_spec = hub.create_module_spec(
             apply_model_function,
@@ -115,7 +131,9 @@ def model_fn(
             image_fn=lambda: images,
             is_training=(mode == tf.estimator.ModeKeys.TRAIN),
             num_outputs=get_num_classes_for_dataset(dataset),
+            architecture=architecture,
             make_signature=False,
+            net_params=net_params,
         )
 
     model_path = None

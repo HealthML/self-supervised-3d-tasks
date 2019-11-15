@@ -24,12 +24,18 @@ def apply_model(
         num_outputs,
         architecture,
         make_signature=False,
+        net_params={},
 ):
     # Image tensor needs to be created lazily in order to satisfy tf-hub
     # restriction: all tensors should be created inside tf-hub helper function.
     images = image_fn()
 
-    net = get_net(architecture, num_classes=num_outputs)
+    net = get_net(
+        architecture,
+        num_classes=num_outputs,
+        task="supervised_classification",
+        **net_params
+    )
 
     output, end_points = net(images, is_training)
 
@@ -41,7 +47,14 @@ def apply_model(
     return output
 
 
-def model_fn(data, mode, dataset, architecture, serving_input_shape="None,None,None,3"):
+def model_fn(
+        data,
+        mode,
+        dataset,
+        architecture,
+        serving_input_shape="None,None,None,3",
+        net_params={},
+):
     """Produces a loss for the fully-supervised task.
 
   Args:
@@ -67,6 +80,7 @@ def model_fn(data, mode, dataset, architecture, serving_input_shape="None,None,N
             num_outputs=get_num_classes_for_dataset(dataset),
             architecture=architecture,
             make_signature=True,
+            net_params=net_params,
         )
         tf_hub_module_spec = hub.create_module_spec(
             apply_model_function,
@@ -92,6 +106,7 @@ def model_fn(data, mode, dataset, architecture, serving_input_shape="None,None,N
             num_outputs=get_num_classes_for_dataset(dataset),
             architecture=architecture,
             make_signature=False,
+            net_params=net_params,
         )
 
     labels = data["label"]
