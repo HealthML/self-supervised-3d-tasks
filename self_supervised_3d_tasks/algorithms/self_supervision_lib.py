@@ -53,6 +53,15 @@ def get_self_supervision_model(self_supervision, model_args=[], model_kwargs={})
         del labels, params  # unused
         tf.logging.info("Calling model_fn in mode %s with data:", mode)
         tf.logging.info(features)
-        return model_fn(features, mode, *model_args, **model_kwargs)
+
+        dict_model = [model_kwargs["architecture"]]
+
+        dict_params = {
+            "rotate3d" : model_kwargs["rotate3d"],
+            "serving_input_shape" : model_kwargs["serving_input_shape"],
+            "net_params" : model_kwargs
+        }
+
+        return model_fn(features, mode, *dict_model, **dict_params)
 
     return _model_fn

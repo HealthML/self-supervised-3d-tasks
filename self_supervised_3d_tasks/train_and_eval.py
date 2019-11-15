@@ -15,9 +15,10 @@ from pathlib import Path
 
 import tensorflow as tf
 import tensorflow_hub as hub
-import utils as utils
-from algorithms.self_supervision_lib import get_self_supervision_model
-from datasets import get_count, get_data
+
+from .utils import BestCheckpointCopier, str2intlist
+from .algorithms.self_supervision_lib import get_self_supervision_model
+from .datasets import get_count, get_data
 from tensorflow.contrib.cluster_resolver import TPUClusterResolver
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -39,7 +40,7 @@ def train_and_eval(FLAGS):
     dataset_dir = FLAGS["dataset_dir"]
     preprocessing = FLAGS["preprocessing"]
     epochs = FLAGS["epochs"]
-    model_kwargs = FLAGS.get("model_kwargs", {})
+    model_kwargs = FLAGS #FLAGS.get("model_kwargs", {})
 
     cluster_master = (
         TPUClusterResolver(tpu=[os.environ["TPU_NAME"]]).get_master() if use_tpu else ""
@@ -67,7 +68,7 @@ def train_and_eval(FLAGS):
     # The global batch-sizes are passed to the TPU estimator, and it will pass
     # along the local batch size in the model_fn's `params` argument dict.
     estimator = tf.contrib.tpu.TPUEstimator(
-        model_fn=get_self_supervision_model(FLAGS["task"], model_kwargs),
+        model_fn=get_self_supervision_model(FLAGS["task"], model_kwargs=model_kwargs),
         model_dir=model_dir,
         config=config,
         use_tpu=use_tpu,
@@ -183,7 +184,7 @@ def train_and_continous_evaluation(
     updates_per_epoch = num_train_samples // batch_size
     num_train_steps = int(epochs * updates_per_epoch)
     estimator._export_to_tpu = False
-    best_exporter = utils.BestCheckpointCopier(
+    best_exporter = BestCheckpointCopier(
         name="best",
         checkpoints_to_keep=2,
         score_metric="loss",
@@ -319,7 +320,7 @@ def train(
 
 def serving_input_fn(serving_input_shape, serving_input_key):
     """A serving input fn."""
-    input_shape = utils.str2intlist(serving_input_shape)
+    input_shape = str2intlist(serving_input_shape)
     image_features = {
         serving_input_key: tf.placeholder(dtype=tf.float32, shape=input_shape)
     }
