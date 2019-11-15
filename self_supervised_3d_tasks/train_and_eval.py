@@ -328,6 +328,53 @@ def serving_input_fn(serving_input_shape, serving_input_key):
     )
 
 
+def check_task_dependend_flags(flags):
+    class MissingFlagError(Exception):
+        def __init__(self, task, missing_flag):
+            self.task = task
+            self.missing_flag = missing_flag
+
+        def __str__(self):
+            return (
+                f'For the task "{self.task}" the flag {self.missing_flag} is required.'
+            )
+
+    # ALL need batch_size to be given to the model
+    # rotate3d, crop_patches3d is a possible preprocessing step
+    dependend_flags_of_tasks = {
+        "exemplar": {
+            "required": ["embed_dim", "margin", "architecture"],
+            "optional": ["crop_inception_preprocess_patches3d", "serving_input_shape"],
+        },
+        "supervised_classification": {
+            "required": ["dataset", "architecture"],
+            "optional": ["serving_input_shape"],
+        },
+        "supervised_segmentation": {
+            "required": ["architecture", "dataset", "batch_size"],
+            "optional": ["checkpoint_dir", "serving_input_shape"],
+        },
+        "rotation": {
+            "required": ["architecture"],
+            "optional": ["rotate3d", "serving_input_shape"],
+        },
+        "jigsaw": {
+            "required": ["architecture"],
+            "optional": ["crop_patches3d", "perm_subset_size", "serving_input_shape"],
+        },
+        "relative_patch_location": {
+            "required": ["architecture"],
+            "optional": ["crop_patches3d", "serving_input_shape"],
+        },
+    }
+    task = flags["task"]
+    for flag in dependend_flags_of_architectures[task]["required"]:
+        try:
+            print(flags[flag])
+        except KeyError as e:
+            raise MissingFlagError(task, flag)
+
+
 def main():
     pass
 
@@ -629,7 +676,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--weight_decay",
         type=float,
-        help="Strength of weight-decay. " "Defaults to 1e-4, and may be set to 0.",
+        help="Strength of weight-decay. Defaults to 1e-4, and may be set to 0.",
     )
 
     # Flags about pre-processing/data augmentation.
@@ -652,8 +699,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--preprocessing",
         type=lambda s: [item for item in s.split(",")],
-        help="A comma-separated list of "
-        "pre-processing steps to perform, see preprocess.py.",
+        help="A comma-separated list of pre-processing steps to perform, see preprocess.py.",
     )
     # flags.mark_flag_as_required("preprocessing")  # TODO: necessary?
 
@@ -687,40 +733,19 @@ if __name__ == "__main__":
     logging.info(flags)
 
     # define mapping here for later use TODO: use them!
-    # ALL need batch_size to be given to the model
-    # rotate3d, crop_patches3d is a possible preprocessing step
-    dependend_flags_of_tasks = {
-        "exemplar": {
-            "required": ["embed_dim", "margin", "architecture"],
-            "optional": ["crop_inception_preprocess_patches3d", "serving_input_shape"],
-        },
-        "supervised_classification": {
-            "required": ["dataset", "architecture"],
-            "optional": ["serving_input_shape"],
-        },
-        "supervised_segmentation": {
-            "required": ["architecture", "dataset", "batch_size"],
-            "optional": ["checkpoint_dir", "serving_input_shape"],
-        },
-        "rotation": {
-            "required": ["architecture"],
-            "optional": ["rotate3d", "serving_input_shape"],
-        },
-        "jigsaw": {
-            "required": ["architecture"],
-            "optional": ["crop_patches3d", "perm_subset_size", "serving_input_shape"],
-        },
-        "relative_patch_location": {
-            "required": ["architecture"],
-            "optional": ["crop_patches3d", "serving_input_shape"],
-        },
-    }
     dependend_flags_of_architectures = {
         "unet_resnet*": {"required": [], "optional": ["filters_factor"]},
         "vgg": {"required": [], "optional": ["filters_factor"]},
-        "resnet50": {"required": [], "optional": ["last_relu", "mode"]},
-        "revnet50": {"required": [], "optional": ["last_relu", "mode"]},
+        "resnet50": {
+            "required": [],
+            "optional": ["filters_factor", "last_relu", "mode"],
+        },
+        "revnet50": {
+            "required": [],
+            "optional": ["filters_factor", "last_relu", "mode"],
+        },
     }
 
+    check_task_dependend_flags(vars(flags))
     train_and_eval(vars(flags))
     logging.info("I'm done with my work, ciao!")
