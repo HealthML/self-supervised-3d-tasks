@@ -33,7 +33,7 @@ TPU_ITERATIONS_PER_LOOP = 500
 
 def train_and_eval(FLAGS):
     """Trains a network on (self_supervised) supervised data."""
-    model_dir = FLAGS["workdir"].resolve()
+    model_dir = Path(FLAGS["workdir"]).resolve()
     use_tpu = FLAGS["use_tpu"]
     batch_size = FLAGS["batch_size"]
     eval_batch_size = FLAGS.get("eval_batch_size", batch_size)
@@ -62,7 +62,7 @@ def train_and_eval(FLAGS):
         save_checkpoints_secs=FLAGS.get("save_checkpoints_secs", 600),
         tpu_config=tf.contrib.tpu.TPUConfig(
             iterations_per_loop=TPU_ITERATIONS_PER_LOOP,
-            tpu_job_name=FLAGS["tpu_worker_name"],
+            tpu_job_name=FLAGS.get("tpu_worker_name", ""),
         ),
     )
 
@@ -77,7 +77,7 @@ def train_and_eval(FLAGS):
         eval_batch_size=eval_batch_size,
     )
 
-    if FLAGS["run_eval"]:
+    if FLAGS.get("run_eval", False):
         eval_mapped = evaluate
         optional_flags = ["val_split", "use_tpu"]
         for flag in optional_flags:
@@ -92,7 +92,7 @@ def train_and_eval(FLAGS):
             eval_batch_size=eval_batch_size,
         )
 
-    elif FLAGS["train_eval"]:
+    elif FLAGS.get("train_eval", False):
         tace_mapped = train_and_continous_evaluation
         optional_flags = [
             "train_split",
@@ -114,6 +114,7 @@ def train_and_eval(FLAGS):
             use_tpu=use_tpu,
         )
 
+    # TRAIN
     else:
         train_mapped = train
         optional_flags = ["train_split"]
@@ -138,6 +139,7 @@ def train_and_continous_evaluation(
         serving_input_shape="None,None,None,3",
         serving_input_key="image",
         throttle_after=90,
+        FLAGS = {}
 ):
     """I train an estimator and evaluate it along the way.
 
@@ -169,6 +171,7 @@ def train_and_continous_evaluation(
         is_training=True,
         num_epochs=epochs,
         drop_remainder=True,
+        dataset_parameter=FLAGS
     )
     eval_input_fn = functools.partial(
         get_data,
@@ -180,6 +183,7 @@ def train_and_continous_evaluation(
         shuffle=False,
         num_epochs=1,
         drop_remainder=use_tpu,
+        dataset_parameter=FLAGS
     )
     num_train_samples = get_count(dataset, train_split)
     updates_per_epoch = num_train_samples // batch_size
@@ -316,6 +320,9 @@ def train(
     updates_per_epoch = num_samples // batch_size
     num_steps = int(math.ceil(epochs * updates_per_epoch))
     tf.logging.info("train_steps: %d", num_steps)
+
+
+
     return estimator.train(train_data_fn, steps=num_steps)
 
 

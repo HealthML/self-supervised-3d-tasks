@@ -56,8 +56,9 @@ def get_self_supervision_model(self_supervision, model_args=[], model_kwargs={})
 
         dict_model = [model_kwargs["architecture"]]
 
+        # TODO: resolve quick fix!!!
         dict_params = {
-            "rotate3d" : model_kwargs["rotate3d"],
+            "rotate3d" : True,
             "serving_input_shape" : model_kwargs["serving_input_shape"],
             "net_params" : model_kwargs
         }

@@ -739,6 +739,7 @@ def get_data(
     shuffle=True,
     num_epochs=None,
     drop_remainder=False,
+    dataset_parameter={}
 ):
     """Produces image/label tensors for a given dataset.
 
@@ -755,7 +756,7 @@ def get_data(
       image, label, example counts
     """
     dataset = DATASET_MAP[dataset]
-    preprocess_fn = get_preprocess_fn(preprocessing, is_training)
+    preprocess_fn = get_preprocess_fn(preprocessing, is_training, **dataset_parameter)
 
     return dataset(
         split_name=split_name,

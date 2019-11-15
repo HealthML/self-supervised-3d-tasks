@@ -30,6 +30,9 @@ def apply_model(
     # restriction: all tensors should be created inside tf-hub helper function.
     images = image_fn()
 
+    # TODO: resolve quick fix
+    del net_params["task"]
+    del net_params["architecture"]
     net = get_net(architecture, num_classes=num_outputs, task="rotation", **net_params)
 
     output, end_points = net(images, is_training)
@@ -48,7 +51,7 @@ def model_fn(
         architecture,
         rotate3d=False,
         serving_input_shape="None,None,None,3",
-        net_params={},
+        net_params={}
 ):
     """Produces a loss for the rotation task.
 
@@ -105,7 +108,7 @@ def model_fn(
         hub.register_module_for_export(tf_hub_module, export_name="module")
         logits = tf_hub_module(images)
 
-        return trainer.make_estimator(mode, predictions=logits)
+        return trainer.make_estimator(mode, predictions=logits, estimator_params=net_params)
 
     labels = tf.reshape(data["label"], [-1])
 
@@ -124,4 +127,4 @@ def model_fn(
 
     logging_hook = tf.train.LoggingTensorHook({"loss": loss}, every_n_iter=10)
 
-    return trainer.make_estimator(mode, loss, eval_metrics, logits, logging_hook)
+    return trainer.make_estimator(mode, loss, eval_metrics, logits, logging_hook, estimator_params=net_params)

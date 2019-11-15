@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import json
-import self_supervised_3d_tasks.train_and_eval as train_and_eval
+from self_supervised_3d_tasks.train_and_eval import train_and_eval
 
 
 def main():

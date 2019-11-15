@@ -48,14 +48,14 @@ class Trainer(object):
 
     # TODO: refactor usages -- no: flags is a dict here
 
-    def __init__(self, dataset, learning_rate, epochs, batch_size=16, train_split="train", update_batchnorm_params=True,
-                 lr_scale_batch_size=0, lr_decay_factor=0.1, decay_epochs=None, optimizer="sgd", warmup_epochs=0):
+    def __init__(self, dataset, lr, epochs, batch_size=16, train_split="train", update_batchnorm_params=True,
+                 lr_scale_batch_size=0, lr_decay_factor=0.1, decay_epochs=None, optimizer="sgd", warmup_epochs=0, **kwargs):
         self.update_batchnorm_params = update_batchnorm_params
         self.train_split = train_split
         self.optimizer = optimizer
         self.dataset = dataset
         self.batch_size = batch_size
-        self.lr = learning_rate
+        self.lr = lr
         self.epochs = epochs
         self.lr_scale_batch_size = lr_scale_batch_size
         self.lr_decay_factor = lr_decay_factor
@@ -69,13 +69,13 @@ class Trainer(object):
 
         # lr_scale_batch_size defines a canonical batch size that is coupled with
         # the initial learning rate. If actual batch size is not the same as
-        # canonical than learning rate is linearly scaled. This is very convinient
+        # canonical than learning rate is linearly scaled. This is very convenient
         # as this allows to vary batch size without recomputing learning rate.
         lr_factor = 1.0
         if self.lr_scale_batch_size:
             lr_factor = self.batch_size / float(self.lr_scale_batch_size)
 
-        deps = self.decay_epochs
+        deps = decay_epochs
         decay_epochs = utils.str2intlist(deps) if deps else [self.epochs]
 
         self.lr = get_lr(
@@ -137,6 +137,7 @@ def make_estimator(
         common_hooks=None,
         train_hooks=None,
         use_tpu=False,
+        estimator_params={}
 ):
     """Returns an EstimatorSpec (maybe TPU) for all modes."""
     # TODO: refactor usages
@@ -162,7 +163,7 @@ def make_estimator(
 
     if mode == tf.estimator.ModeKeys.TRAIN:
         assert loss is not None, "Need to pass `loss` arg."
-        trainer = Trainer(update_batchnorm_params=True)
+        trainer = Trainer(update_batchnorm_params=True, **estimator_params)
         train_op = trainer.get_train_op(loss, use_tpu=use_tpu)
         if common_hooks is not None:
             if not isinstance(common_hooks, list):
