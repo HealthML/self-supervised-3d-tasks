@@ -321,7 +321,8 @@ def train(
     num_steps = int(math.ceil(epochs * updates_per_epoch))
     tf.logging.info("train_steps: %d", num_steps)
 
-
+    with tf.Session() as sess:
+        writer = tf.summary.FileWriter("logs", sess.graph)
 
     return estimator.train(train_data_fn, steps=num_steps)
 
