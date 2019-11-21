@@ -25,7 +25,7 @@ def get_net(architecture, task, num_classes=None, weight_decay=1e-4, **kwargs):
         Network for use in apply_model functions
 
     """
-    # TODO: switch consition so it makes sense as a sentence
+    # TODO: switch condition so it makes sense as a sentence
     if "vgg19" == architecture:
         net = functools.partial(
             vggnet.vgg19, filters_factor=kwargs.get("filters_factor", 8)
