@@ -6,32 +6,15 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-import inspect
 
+from ..dependend_flags.flag_utils import (
+    check_for_missing_arguments,
+    collect_model_kwargs,
+)
 from . import exemplar, supervised_classification, jigsaw, rotation
 from . import relative_patch_location, supervised_segmentation
 
 from ..errors import MissingFlagsError
-
-
-def check_for_missing_arguments(model_fn, kwargs):
-    model_fn_parameters = inspect.signature(model_fn).parameters.values()
-    missing_flags = []
-    for param in model_fn_parameters:
-        if isinstance(param.default, inspect._empty.__class__):
-            # the argument has no default value --> required parameter --> check if given!
-            if not param.name in kwargs:
-                missing_flags.append(param.name)
-    return missing_flags
-
-
-def collect_model_kwargs(model_fn, kwargs):
-    model_fn_parameters = inspect.signature(model_fn).parameters.values()
-    kwargs_collected = {}
-    for param in model_fn_parameters:
-        if param.name in kwargs:
-            kwargs_collected[param.name] = kwargs[param.name]
-    return kwargs_collected
 
 
 def get_self_supervision_model(self_supervision, model_kwargs={}):
@@ -54,7 +37,6 @@ def get_self_supervision_model(self_supervision, model_kwargs={}):
     if missing_flags:
         raise MissingFlagsError(self_supervision, missing_flags)
 
-
     def _model_fn(features, labels, mode, params):
         """Returns the EstimatorSpec to run the model.
 
@@ -75,6 +57,11 @@ def get_self_supervision_model(self_supervision, model_kwargs={}):
         tf.logging.info(features)
         tf.logging.info("Parameters: ", **model_kwargs)
 
-        return model_fn(features, mode, **collect_model_kwargs(model_fn, model_kwargs))
+        return model_fn(
+            features,
+            mode,
+            **collect_model_kwargs(model_fn, model_kwargs),
+            net_params=model_kwargs
+        )
 
     return _model_fn
