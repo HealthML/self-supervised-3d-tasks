@@ -18,6 +18,7 @@ import tensorflow as tf
 import tensorflow_hub as hub
 from tensorflow.contrib.cluster_resolver import TPUClusterResolver
 
+from self_supervised_3d_tasks.errors import MissingFlagsError
 from .algorithms.self_supervision_lib import get_self_supervision_model
 from .datasets import get_count, get_data
 from .utils import BestCheckpointCopier, str2intlist
@@ -344,30 +345,19 @@ def get_dependend_flags():
 
 def check_task_dependend_flags(flags):
     dependend_flags = get_dependend_flags()
-
-    class MissingFlagError(Exception):
-        def __init__(self, task, missing_flag):
-            self.task = task
-            self.missing_flag = missing_flag
-
-        def __str__(self):
-            return (
-                f'For the task "{self.task}" the flag {self.missing_flag} is required.'
-            )
-
     # TODO: rotate3d, crop_patches3d are possible preprocessing step
 
     # test dependend flags on task (e.g. jigsaw)
     task = flags["task"]
     for flag in dependend_flags["dependend_flags_of_tasks"][task]["required"]:
         if not flags[flag]:
-            raise MissingFlagError(task, flag)
+            raise MissingFlagsError(task, flag)
 
     # test dependent flags on architecture (e.g. resnet50)
     architecture = flags["architecture"]
     for flag in dependend_flags["dependend_flags_of_architectures"][architecture]["required"]:
         if not flags[flag]:
-            raise MissingFlagError(architecture, flag)
+            raise MissingFlagsError(architecture, flag)
 
 
 def main():
