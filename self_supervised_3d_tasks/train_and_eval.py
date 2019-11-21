@@ -616,7 +616,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--mode", type=str, default="v2", help="Which ResNet to use, `v1` or `v2`."
+        "--resnet_mode", type=str, default="v2", help="Which ResNet to use, `v1` or `v2`."
     )
 
     # Flags about the optimization process.

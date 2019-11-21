@@ -23,5 +23,5 @@
   "keep_checkpoint_every_n_hours": 48.0,
   "use_tpu": false,
   "last_relu": true,
-  "mode": "v1"
+  "resnet_mode": "v1"
 }

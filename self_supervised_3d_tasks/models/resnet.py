@@ -162,9 +162,9 @@ def resnet(x,  # pylint: disable=missing-docstring
            last_relu=True,
            normalization_fn=batch_norm,
            global_pool=True,
-           mode='v2'):
-    assert mode in ['v1', 'v2'], 'Unknown Resnet mode: {}'.format(mode)
-    unit = bottleneck_v2 if mode == 'v2' else bottleneck_v1
+           resnet_mode='v2'):
+    assert resnet_mode in ['v1', 'v2'], 'Unknown Resnet mode: {}'.format(resnet_mode)
+    unit = bottleneck_v2 if resnet_mode == 'v2' else bottleneck_v1
 
     end_points = {}
 
@@ -180,7 +180,7 @@ def resnet(x,  # pylint: disable=missing-docstring
                              padding='VALID', use_bias=False,
                              kernel_regularizer=kernel_regularizer)
 
-        if mode == 'v1':
+        if resnet_mode == 'v1':
             x = normalization_fn(x, training=is_training)
             x = activation_fn(x)
 
@@ -221,10 +221,10 @@ def resnet(x,  # pylint: disable=missing-docstring
         x = unit(x, filters, strides=1, **params)
     end_points['block4'] = x
 
-    if (mode == 'v1') and (not last_relu):
+    if (resnet_mode == 'v1') and (not last_relu):
         raise ValueError('last_relu is always True (implicitly) in the v1 mode.')
 
-    if mode == 'v2':
+    if resnet_mode == 'v2':
         x = normalization_fn(x, training=is_training)
         if last_relu:
             x = activation_fn(x)
@@ -297,8 +297,8 @@ def revnet(x,  # pylint: disable=missing-docstring
            activation_fn=tf.nn.relu,
            normalization_fn=batch_norm,
            last_relu=False,
-           mode='v2'):
-    del mode  # unused parameter, exists for compatibility with resnet function
+           resnet_mode='v2'):
+    del resnet_mode  # unused parameter, exists for compatibility with resnet function
 
     unit = bottleneck_rev
 
