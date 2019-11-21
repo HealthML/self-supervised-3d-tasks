@@ -5,6 +5,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import functools
+
 import tensorflow as tf
 
 from ..dependend_flags.flag_utils import (
@@ -33,10 +35,6 @@ def get_self_supervision_model(self_supervision, model_kwargs={}):
     if model_fn is None:
         raise ValueError("Unknown self_supervised-supervision: %s" % self_supervision)
 
-    missing_flags = check_for_missing_arguments(model_fn, model_kwargs)
-    if missing_flags:
-        raise MissingFlagsError(self_supervision, missing_flags)
-
     def _model_fn(features, labels, mode, params):
         """Returns the EstimatorSpec to run the model.
 
@@ -57,11 +55,16 @@ def get_self_supervision_model(self_supervision, model_kwargs={}):
         tf.logging.info(features)
         tf.logging.info("Parameters: ", **model_kwargs)
 
-        return model_fn(
-            features,
-            mode,
-            **collect_model_kwargs(model_fn, model_kwargs),
-            net_params=model_kwargs
-        )
+        model_fn_mapped = functools.partial(
+            model_fn,
+            data=features,
+            mode=mode,
+            net_params=model_kwargs)
+
+        missing_flags = check_for_missing_arguments(model_fn_mapped, model_kwargs)
+        if missing_flags:
+            raise MissingFlagsError(self_supervision, missing_flags)
+
+        return model_fn_mapped(**collect_model_kwargs(model_fn, model_kwargs))
 
     return _model_fn
