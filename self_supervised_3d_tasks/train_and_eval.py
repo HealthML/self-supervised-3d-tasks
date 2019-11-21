@@ -42,7 +42,7 @@ def train_and_eval(FLAGS):
     dataset_dir = FLAGS["dataset_dir"]
     preprocessing = FLAGS["preprocessing"]
     epochs = FLAGS["epochs"]
-    model_kwargs = FLAGS #FLAGS.get("model_kwargs", {})
+    model_kwargs = FLAGS  # FLAGS.get("model_kwargs", {})
 
     cluster_master = (
         TPUClusterResolver(tpu=[os.environ["TPU_NAME"]]).get_master() if use_tpu else ""
@@ -91,6 +91,7 @@ def train_and_eval(FLAGS):
             preprocessing,
             dataset_dir,
             eval_batch_size=eval_batch_size,
+            FLAGS=FLAGS,
         )
 
     elif FLAGS.get("train_eval", False):
@@ -113,6 +114,7 @@ def train_and_eval(FLAGS):
             epochs,
             batch_size,
             use_tpu=use_tpu,
+            FLAGS=FLAGS,
         )
 
     # TRAIN
@@ -123,7 +125,13 @@ def train_and_eval(FLAGS):
             if FLAGS.get(flag, None):
                 train_mapped = functools.partial(train_mapped, **{flag: FLAGS[flag]})
         return train_mapped(
-            estimator, dataset, preprocessing, dataset_dir, epochs, batch_size
+            estimator,
+            dataset,
+            preprocessing,
+            dataset_dir,
+            epochs,
+            batch_size,
+            FLAGS=FLAGS,
         )
 
 
@@ -140,7 +148,7 @@ def train_and_continous_evaluation(
         serving_input_shape="None,None,None,3",
         serving_input_key="image",
         throttle_after=90,
-        FLAGS = {}
+        FLAGS={},
 ):
     """I train an estimator and evaluate it along the way.
 
@@ -172,7 +180,7 @@ def train_and_continous_evaluation(
         is_training=True,
         num_epochs=epochs,
         drop_remainder=True,
-        dataset_parameter=FLAGS
+        dataset_parameter=FLAGS,
     )
     eval_input_fn = functools.partial(
         get_data,
@@ -184,7 +192,7 @@ def train_and_continous_evaluation(
         shuffle=False,
         num_epochs=1,
         drop_remainder=use_tpu,
-        dataset_parameter=FLAGS
+        dataset_parameter=FLAGS,
     )
     num_train_samples = get_count(dataset, train_split)
     updates_per_epoch = num_train_samples // batch_size
@@ -223,6 +231,7 @@ def evaluate(
         eval_batch_size: int = None,
         val_split="val",
         use_tpu=False,
+        FLAGS={},
 ):
     """I evaluate the performance of a given estimator on a dataset.
 
@@ -251,6 +260,7 @@ def evaluate(
         shuffle=False,
         num_epochs=1,
         drop_remainder=use_tpu,
+        dataset_parameter=FLAGS,
     )
     # Contrary to what the documentation claims, the `train` and the
     # `evaluate` functions NEED to have `max_steps` and/or `steps` set and
@@ -284,6 +294,7 @@ def train(
         epochs: int,
         batch_size: int,
         train_split="train",
+        FLAGS={},
 ):
     """I train a tensorflow estimator on the given dataset.
 
@@ -310,6 +321,7 @@ def train(
         is_training=True,
         num_epochs=int(math.ceil(epochs)),
         drop_remainder=True,
+        dataset_parameter=FLAGS,
     )
     # We compute the number of steps and make use of Estimator's max_steps
     # arguments instead of relying on the Dataset's iterator to run out after
@@ -340,8 +352,9 @@ def serving_input_fn(serving_input_shape, serving_input_key):
 
 
 def get_dependend_flags():
-    with open("self_supervised_3d_tasks/dependend_flags.json", 'r') as f:
+    with open("self_supervised_3d_tasks/dependend_flags.json", "r") as f:
         return json.load(f)
+
 
 def check_task_dependend_flags(flags):
     dependend_flags = get_dependend_flags()
@@ -355,7 +368,9 @@ def check_task_dependend_flags(flags):
 
     # test dependent flags on architecture (e.g. resnet50)
     architecture = flags["architecture"]
-    for flag in dependend_flags["dependend_flags_of_architectures"][architecture]["required"]:
+    for flag in dependend_flags["dependend_flags_of_architectures"][architecture][
+        "required"
+    ]:
         if not flags[flag]:
             raise MissingFlagsError(architecture, flag)
 
