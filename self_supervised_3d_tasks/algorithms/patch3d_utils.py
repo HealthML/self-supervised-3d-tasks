@@ -58,6 +58,10 @@ def apply_model(
     """
     images = image_fn()
 
+    # TODO: resolve quick fix
+    del net_params["task"]
+    del net_params["architecture"]
+
     net = get_net(
         architecture,
         num_classes=embed_dim,
@@ -192,7 +196,7 @@ def create_estimator_model(
         [labels, logits],
     )
     logging_hook = tf.train.LoggingTensorHook({"loss": loss}, every_n_iter=10)
-    return make_estimator(mode, loss, eval_metrics, logits, logging_hook)
+    return make_estimator(mode, loss, eval_metrics, logits, logging_hook, estimator_params=net_params)
 
 
 def fully_connected(

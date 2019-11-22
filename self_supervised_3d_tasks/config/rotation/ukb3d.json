@@ -17,11 +17,12 @@
   "lr_scale_batch_size": 1,
   "epochs": 100,
   "warmup_epochs": 5,
-  "serving_input_shape": "None,128,128,128,2",
+  "serving_input_shape": "None,128,128,128,4",
   "save_checkpoints_secs": 200,
   "throttle_secs": 400,
   "keep_checkpoint_every_n_hours": 48.0,
   "use_tpu": false,
   "last_relu": true,
-  "resnet_mode": "v1"
+  "resnet_mode": "v1",
+  "rotate3d": true
 }
