@@ -4,34 +4,37 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import functools
+
 import tensorflow as tf
-import tensorflow.keras as keras
 import tensorflow_hub as hub
+import tensorflow.keras as keras
 
-import self_supervised_3d_tasks.trainer as trainer
+import trainer
+
+from self_supervised_3d_tasks import utils
 from self_supervised_3d_tasks.models.utils import get_net
+from self_supervised_3d_tasks.trainer import make_estimator
 
+FLAGS = tf.flags.FLAGS
 
 def network_autoregressive(x):
-    """ Define the network that integrates information along the sequence """
+
+    ''' Define the network that integrates information along the sequence '''
 
     # x = keras.layers.GRU(units=256, return_sequences=True)(x)
     # x = keras.layers.BatchNormalization()(x)
-    x = keras.layers.GRU(units=256, return_sequences=False, name="ar_context")(x)
+    x = keras.layers.GRU(units=256, return_sequences=False, name='ar_context')(x)
 
     return x
 
-
 def network_prediction(context, code_size, predict_terms):
-    """ Define the network mapping context to multiple embeddings """
+
+    ''' Define the network mapping context to multiple embeddings '''
 
     outputs = []
     for i in range(predict_terms):
-        outputs.append(
-            keras.layers.Dense(
-                units=code_size, activation="linear", name="z_t_{i}".format(i=i)
-            )(context)
-        )
+        outputs.append(keras.layers.Dense(units=code_size, activation="linear", name='z_t_{i}'.format(i=i))(context))
 
     if len(outputs) == 1:
         output = keras.layers.Lambda(lambda x: tf.expand_dims(x, axis=1))(outputs[0])
@@ -40,9 +43,9 @@ def network_prediction(context, code_size, predict_terms):
 
     return output
 
-
 class CPCLayer(keras.engine.Layer):
-    """ Computes dot product between true and predicted embedding vectors """
+
+    ''' Computes dot product between true and predicted embedding vectors '''
 
     def __init__(self, **kwargs):
         super(CPCLayer, self).__init__(**kwargs)
@@ -52,9 +55,7 @@ class CPCLayer(keras.engine.Layer):
         # Compute dot product among vectors
         preds, y_encoded = inputs
         dot_product = tf.math.reduce_mean(y_encoded * preds, axis=-1)
-        dot_product = tf.math.reduce_mean(
-            dot_product, axis=-1, keepdims=True
-        )  # average along the temporal dimension
+        dot_product = tf.math.reduce_mean(dot_product, axis=-1, keepdims=True)  # average along the temporal dimension
 
         # Keras loss functions take probabilities
         dot_product_probs = tf.math.sigmoid(dot_product)
@@ -64,17 +65,20 @@ class CPCLayer(keras.engine.Layer):
     def compute_output_shape(self, input_shape):
         return (input_shape[0][0], 1)
 
-
-def apply_model(image_fn, is_training, code_size=128, make_signature=False):
+def apply_model(image_fn,  # pylint: disable=missing-docstring
+                is_training,
+                make_signature=False):
     # Image tensor needs to be created lazily in order to satisfy tf-hub
     # restriction: all tensors should be created inside tf-hub helper function.
     data = image_fn()
-    images = data["encoded"]
-    predict_terms = data["pred_terms"]
-    terms = data["terms"]
+    encoded = data["encoded"]
+    encoded_pred = data['encoded_pred']
+
+    # terms = images.shape[0]
+    predict_terms = encoded_pred.shape[0]
 
     # using a generic encoder
-    encoder_model = get_net()
+    encoder_model = get_net("cpc_encoder")
 
     ##################
     ##################
@@ -82,21 +86,17 @@ def apply_model(image_fn, is_training, code_size=128, make_signature=False):
     ##################
 
     # learning_rate = FLAGS.get_flag_value('learning_rate', 1e-4)
-    image_shape = (images.shape[0], images.shape[0], 3)
+    code_size = FLAGS.get_flag_value('code_size', 128)
 
     # add specific Layers for CPC
-    x_input = keras.layers.Input(
-        (terms, image_shape[0], image_shape[1], image_shape[2])
-    )
-    x_encoded = keras.layers.TimeDistributed(encoder_model)(x_input)
+    # x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))
+    x_encoded = keras.layers.TimeDistributed(encoder_model)(encoded)
 
     context = network_autoregressive(x_encoded)
     preds = network_prediction(context, code_size, predict_terms)
 
-    y_input = keras.layers.Input(
-        (predict_terms, image_shape[0], image_shape[1], image_shape[2])
-    )
-    y_encoded = keras.layers.TimeDistributed(encoder_model)(y_input)
+    # y_input = keras.layers.Input((predict_terms, image_shape[0], image_shape[1], image_shape[2]))
+    y_encoded = keras.layers.TimeDistributed(encoder_model)(encoded_pred)
 
     # CPC layer
     dot_product_probs = CPCLayer()([preds, y_encoded])
@@ -117,15 +117,17 @@ def apply_model(image_fn, is_training, code_size=128, make_signature=False):
     ##################
 
     if make_signature:
-        hub.add_signature(inputs={"images": data["encoded"]}, outputs=dot_product_probs)
+        hub.add_signature(inputs={'encoded': data["encoded"], 'encoded_pred': data['encoded_pred']}, outputs=dot_product_probs)
         hub.add_signature(
-            name="representation", inputs={"image": images}, outputs=end_points
-        )
+            name='representation',
+            inputs={'encoded': data["encoded"]},
+            outputs=context)
 
     return dot_product_probs
 
 
-def model_fn(data, mode):
+# TODO: is this really the right shape?
+def model_fn(data, mode,serving_input_shape="None,None,None,None,3"):
     """Produces a loss for the exemplar task supervision.
 
     Args:
@@ -137,25 +139,51 @@ def model_fn(data, mode):
     """
 
     if mode in [tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL]:
-        encoded = data["encoded"]
-        encoded_pred = data["encoded_pred"]
-        labels = data["labels"]
-        pred_terms = data["pred_terms"]
-        terms = data["terms"]
 
-        with tf.variable_scope("module"):
+        labels = data['labels']
+
+        with tf.variable_scope('module'):
             image_fn = lambda: data
             dot_product_probs = apply_model(
                 image_fn=image_fn,
                 is_training=(mode == tf.estimator.ModeKeys.TRAIN),
-                make_signature=False,
-            )
+                make_signature=False)
 
-        loss = keras.losses.binary_crossentropy(dot_product_probs, labels)
-        logging_hook = tf.train.LoggingTensorHook({"loss": loss}, every_n_iter=10)
-        return trainer.make_estimator(
-            mode=mode,
-            loss=loss,
-            predictions=dot_product_probs,
-            common_hooks=logging_hook,
+    else:
+        input_shape = utils.str2intlist(serving_input_shape)
+        image_fn = lambda: tf.placeholder(  # pylint: disable=g-long-lambda
+            shape=input_shape, dtype=tf.float32
         )
+
+        apply_model_function = functools.partial(
+            apply_model,
+            image_fn=image_fn,
+            make_signature=True,
+        )
+
+        tf_hub_module_spec = hub.create_module_spec(
+            apply_model_function,
+            [
+                (utils.TAGS_IS_TRAINING, {"is_training": True}),
+                (set(), {"is_training": False}),
+            ],
+            drop_collections=["summaries"],
+        )
+
+        tf_hub_module = hub.Module(tf_hub_module_spec, trainable=False, tags=set())
+        hub.register_module_for_export(tf_hub_module, export_name="module")
+        dot_product_probs = tf_hub_module([data['encoded'], data['encoded_pred']])
+        return make_estimator(mode, predictions=dot_product_probs)
+
+    eval_metrics = (
+        lambda lab, prod: {  # TODO: check if this is correct
+            "accuracy": tf.metrics.accuracy(
+                labels=lab, predictions=tf.argmax(prod, axis=-1)
+            )
+        },
+        [labels, dot_product_probs],
+    )
+
+    loss = keras.losses.binary_crossentropy(dot_product_probs, labels)
+    logging_hook = tf.train.LoggingTensorHook({"loss": loss}, every_n_iter=10)
+    return trainer.make_estimator(mode=mode, loss=loss, eval_metrics=eval_metrics, common_hooks=logging_hook)
