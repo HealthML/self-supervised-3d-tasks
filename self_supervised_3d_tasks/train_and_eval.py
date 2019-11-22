@@ -34,7 +34,7 @@ TPU_ITERATIONS_PER_LOOP = 500
 
 def train_and_eval(FLAGS):
     """Trains a network on (self_supervised) supervised data."""
-    model_dir = Path(FLAGS["workdir"]).resolve()
+    model_dir = Path(FLAGS["workdir"]).expanduser().resolve()
     use_tpu = FLAGS["use_tpu"]
     batch_size = FLAGS["batch_size"]
     eval_batch_size = FLAGS.get("eval_batch_size", batch_size)
