@@ -20,7 +20,9 @@ def collect_model_kwargs(model_fn, kwargs, allow_remapping=False):
     Args:
         model_fn: the function for which we collect the arguments
         kwargs: the "pool" of kwargs that could be mapped
-        allow_remapping: If the model_fn is a functools.partial, should I allow the redefinition of a model_fn argument
+        allow_remapping: If the model_fn is a functools.partial,
+                         should I allow the redefinition of a model_fn argument
+                         that has already been mapped
 
     Returns:
 
