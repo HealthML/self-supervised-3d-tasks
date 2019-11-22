@@ -33,6 +33,8 @@ TPU_ITERATIONS_PER_LOOP = 500
 
 
 def train_and_eval(FLAGS):
+    tf.logging.set_verbosity(tf.logging.INFO)
+
     """Trains a network on (self_supervised) supervised data."""
     model_dir = Path(FLAGS["workdir"]).expanduser().resolve()
     use_tpu = FLAGS["use_tpu"]

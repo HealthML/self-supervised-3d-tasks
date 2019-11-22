@@ -43,7 +43,7 @@ def network_prediction(context, code_size, predict_terms):
 
     return output
 
-class CPCLayer(keras.engine.Layer):
+class CPCLayer(keras.layers.Layer):
 
     ''' Computes dot product between true and predicted embedding vectors '''
 
@@ -67,18 +67,25 @@ class CPCLayer(keras.engine.Layer):
 
 def apply_model(image_fn,  # pylint: disable=missing-docstring
                 is_training,
-                make_signature=False):
+                code_size,
+                make_signature=False,
+                **net_params):
     # Image tensor needs to be created lazily in order to satisfy tf-hub
     # restriction: all tensors should be created inside tf-hub helper function.
     data = image_fn()
     encoded = data["encoded"]
-    encoded_pred = data['encoded_pred']
+    encoded_pred = data['pred']
 
     # terms = images.shape[0]
     predict_terms = encoded_pred.shape[0]
 
     # using a generic encoder
-    encoder_model = get_net("cpc_encoder")
+    input = keras.Input(encoded.shape[2:])
+
+    encoder_model = get_net("cpc_encoder", task="cpc", num_classes=2, **net_params)
+    encoder_model = encoder_model(input, is_training)
+    encoder_model = keras.models.Model(input, encoder_model, name='encoder')
+    encoder_model.summary()
 
     ##################
     ##################
@@ -86,7 +93,7 @@ def apply_model(image_fn,  # pylint: disable=missing-docstring
     ##################
 
     # learning_rate = FLAGS.get_flag_value('learning_rate', 1e-4)
-    code_size = FLAGS.get_flag_value('code_size', 128)
+    # code_size = FLAGS.get_flag_value('code_size', 128)
 
     # add specific Layers for CPC
     # x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))
@@ -117,7 +124,7 @@ def apply_model(image_fn,  # pylint: disable=missing-docstring
     ##################
 
     if make_signature:
-        hub.add_signature(inputs={'encoded': data["encoded"], 'encoded_pred': data['encoded_pred']}, outputs=dot_product_probs)
+        hub.add_signature(inputs={'encoded': data["encoded"], 'pred': data['pred']}, outputs=dot_product_probs)
         hub.add_signature(
             name='representation',
             inputs={'encoded': data["encoded"]},
@@ -127,7 +134,7 @@ def apply_model(image_fn,  # pylint: disable=missing-docstring
 
 
 # TODO: is this really the right shape?
-def model_fn(data, mode,serving_input_shape="None,None,None,None,3"):
+def model_fn(data, mode, code_size=126, serving_input_shape="None,None,None,None,3", net_params={}):
     """Produces a loss for the exemplar task supervision.
 
     Args:
@@ -147,7 +154,9 @@ def model_fn(data, mode,serving_input_shape="None,None,None,None,3"):
             dot_product_probs = apply_model(
                 image_fn=image_fn,
                 is_training=(mode == tf.estimator.ModeKeys.TRAIN),
-                make_signature=False)
+                make_signature=False,
+                net_params=net_params,
+                code_size=code_size)
 
     else:
         input_shape = utils.str2intlist(serving_input_shape)
@@ -159,7 +168,8 @@ def model_fn(data, mode,serving_input_shape="None,None,None,None,3"):
             apply_model,
             image_fn=image_fn,
             make_signature=True,
-        )
+            net_params=net_params,
+            code_size=code_size)
 
         tf_hub_module_spec = hub.create_module_spec(
             apply_model_function,
@@ -172,7 +182,7 @@ def model_fn(data, mode,serving_input_shape="None,None,None,None,3"):
 
         tf_hub_module = hub.Module(tf_hub_module_spec, trainable=False, tags=set())
         hub.register_module_for_export(tf_hub_module, export_name="module")
-        dot_product_probs = tf_hub_module([data['encoded'], data['encoded_pred']])
+        dot_product_probs = tf_hub_module([data['encoded'], data['pred']])
         return make_estimator(mode, predictions=dot_product_probs)
 
     eval_metrics = (

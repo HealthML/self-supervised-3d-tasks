@@ -8,6 +8,7 @@ from __future__ import print_function
 import functools
 
 import tensorflow as tf
+from self_supervised_3d_tasks.algorithms import contrastive_predictive_coding
 
 from ..dependend_flags.flag_utils import (
     check_for_missing_arguments,
@@ -29,6 +30,7 @@ def get_self_supervision_model(self_supervision, model_kwargs={}):
         "jigsaw": jigsaw.model_fn,
         "relative_patch_location": relative_patch_location.model_fn,
         "exemplar": exemplar.model_fn,
+        "cpc": contrastive_predictive_coding.model_fn,
     }
 
     model_fn = mapping.get(self_supervision)
@@ -53,7 +55,7 @@ def get_self_supervision_model(self_supervision, model_kwargs={}):
         del labels, params  # unused
         tf.logging.info("Calling model_fn in mode %s with data:", mode)
         tf.logging.info(features)
-        tf.logging.info("Parameters: ", **model_kwargs)
+        tf.logging.info("Parameters: ", *model_kwargs)
 
         model_fn_mapped = functools.partial(
             model_fn,
