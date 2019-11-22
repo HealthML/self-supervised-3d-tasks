@@ -12,8 +12,10 @@ from pathlib import Path
 import tensorflow as tf
 import tensorflow_hub as hub
 
-from self_supervised_3d_tasks import datasets, trainer, utils
-from models.utils import get_net
+from .. import utils
+from ..trainer import make_estimator
+from ..datasets import get_num_classes_for_dataset
+from ..models.utils import get_net
 
 
 # FLAGS = tf.flags.FLAGS
@@ -23,13 +25,20 @@ def apply_model(
         image_fn,  # pylint: disable=missing-docstring
         is_training,
         num_outputs,
+        architecture,
         make_signature=False,
+        net_params={},
 ):
     # Image tensor needs to be created lazily in order to satisfy tf-hub
     # restriction: all tensors should be created inside tf-hub helper function.
     images = image_fn()
 
-    net = get_net(num_classes=num_outputs)
+    net = get_net(
+        architecture,
+        task="supervised_segmentation",
+        num_classes=num_outputs,
+        **net_params
+    )
 
     output, end_points = net(images, is_training)
 
@@ -63,7 +72,15 @@ class RestoreHook(tf.train.SessionRunHook):
             )
 
 
-def model_fn(data, mode, checkpoint_dir=None, serving_input_shape="None,None,None,3"):
+def model_fn(
+        data,
+        mode,
+        dataset,
+        architecture,
+        checkpoint_dir=None,
+        serving_input_shape="None,None,None,3",
+        net_params={},
+):
     """Produces a loss for the fully-supervised task.
 
     Args:
@@ -74,6 +91,7 @@ def model_fn(data, mode, checkpoint_dir=None, serving_input_shape="None,None,Non
       EstimatorSpec
     """
     # TODO: refactor usages
+    # TODO: where the f** has the batch size gone?
     images = data["image"]
 
     # In predict mode (called once at the end of training), we only instantiate
@@ -86,8 +104,10 @@ def model_fn(data, mode, checkpoint_dir=None, serving_input_shape="None,None,Non
             image_fn=lambda: tf.placeholder(
                 shape=input_shape, dtype=tf.float32
             ),  # pylint: disable=g-long-lambda
-            num_outputs=datasets.get_num_classes(),
+            num_outputs=get_num_classes_for_dataset(dataset),
+            architecture=architecture,
             make_signature=True,
+            net_params=net_params,
         )
         tf_hub_module_spec = hub.create_module_spec(
             apply_model_function,
@@ -101,7 +121,7 @@ def model_fn(data, mode, checkpoint_dir=None, serving_input_shape="None,None,Non
         predictions = tf_hub_module(images)
 
         # There is no training happening anymore, only prediciton and model export.
-        return trainer.make_estimator(mode, predictions=predictions)
+        return make_estimator(mode, predictions=predictions)
 
     # From here on, we are either in train or eval modes.
     # Create the model in the 'module' name scope so it matches nicely with
@@ -110,8 +130,10 @@ def model_fn(data, mode, checkpoint_dir=None, serving_input_shape="None,None,Non
         predictions = apply_model(
             image_fn=lambda: images,
             is_training=(mode == tf.estimator.ModeKeys.TRAIN),
-            num_outputs=datasets.get_num_classes(),
+            num_outputs=get_num_classes_for_dataset(dataset),
+            architecture=architecture,
             make_signature=False,
+            net_params=net_params,
         )
 
     model_path = None
@@ -135,13 +157,13 @@ def model_fn(data, mode, checkpoint_dir=None, serving_input_shape="None,None,Non
 
     # your class weights
     class_weights = tf.constant([[0.1, 100.0, 100.0, 100.0]])
-    logits = tf.reshape(predictions, (-1, datasets.get_num_classes()))
+    logits = tf.reshape(predictions, (-1, get_num_classes_for_dataset(dataset)))
     epsilon = tf.constant(value=1e-10)
     logits = logits + epsilon
     label_flat = tf.reshape(labels, (-1, 1))
     labels = tf.reshape(
-        tf.one_hot(label_flat, depth=datasets.get_num_classes()),
-        (-1, datasets.get_num_classes()),
+        tf.one_hot(label_flat, depth=get_num_classes_for_dataset(dataset)),
+        (-1, get_num_classes_for_dataset(dataset)),
     )
     softmax = tf.nn.softmax(logits)
     cross_entropy = -tf.reduce_sum(
@@ -159,7 +181,7 @@ def model_fn(data, mode, checkpoint_dir=None, serving_input_shape="None,None,Non
     # ** evaluation metrics Dice Scores / F1 Scores
     # Gets a metric_fn which evaluates the dice scores for "whole tumor", "tumor core", "enhanced tumor", and avg. IoU
     metrics_fn = utils.get_segmentation_metrics(
-        ["predictions"], num_classes=datasets.get_num_classes()
+        ["predictions"], num_classes=get_num_classes_for_dataset(dataset)
     )
 
     # A tuple of metric_fn and a list of tensors to be evaluated by TPUEstimator.
@@ -177,7 +199,7 @@ def model_fn(data, mode, checkpoint_dir=None, serving_input_shape="None,None,Non
         every_n_iter=10,
     )
     if model_path is not None:
-        return trainer.make_estimator(
+        return make_estimator(
             mode,
             loss,
             eval_metrics_tuple,
@@ -193,6 +215,6 @@ def model_fn(data, mode, checkpoint_dir=None, serving_input_shape="None,None,Non
             ],
         )
     else:
-        return trainer.make_estimator(
+        return make_estimator(
             mode, loss, eval_metrics_tuple, common_hooks=[logging_hook]
         )

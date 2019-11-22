@@ -7,11 +7,19 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from self_supervised_3d_tasks.algorithms import patch_utils
-from self_supervised_3d_tasks.algorithms import patch3d_utils
+from . import patch_utils
+from . import patch3d_utils
 
 
-def model_fn(data, mode, crop_patches3d=None, perm_subset_size=8):
+def model_fn(
+        data,
+        mode,
+        batch_size,
+        crop_patches3d=None,
+        perm_subset_size=8,
+        serving_input_shape="None,None,None,3",
+        net_params={},
+):
     """Produces a loss for the jigsaw task.
 
     Args:
@@ -21,6 +29,7 @@ def model_fn(data, mode, crop_patches3d=None, perm_subset_size=8):
     Returns:
       EstimatorSpec
     """
+    # TODO: refactor usages
     images = data["image"]
 
     if crop_patches3d:
@@ -45,9 +54,25 @@ def model_fn(data, mode, crop_patches3d=None, perm_subset_size=8):
 
     if crop_patches3d:
         return patch3d_utils.create_estimator_model(
-            images, labels, perms, num_classes, mode
+            images,
+            labels,
+            perms,
+            num_classes,
+            mode,
+            batch_size,
+            task="jigsaw",
+            serving_input_shape=serving_input_shape,
+            net_params=net_params,
         )
     else:
         return patch_utils.create_estimator_model(
-            images, labels, perms, num_classes, mode
+            images,
+            labels,
+            perms,
+            num_classes,
+            mode,
+            batch_size,
+            task="jigsaw",
+            serving_input_shape=serving_input_shape,
+            net_params=net_params,
         )

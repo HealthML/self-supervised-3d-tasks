@@ -6,13 +6,14 @@ from __future__ import print_function
 
 import functools
 import struct
+
 import numpy as np
 import tensorflow as tf
 import tensorflow_hub as hub
 
-from self_supervised_3d_tasks import preprocess, utils
-from models.utils import get_net
-from self_supervised_3d_tasks.trainer import make_estimator
+from .. import preprocess, utils
+from ..models.utils import get_net
+from ..trainer import make_estimator
 
 # FLAGS = tf.flags.FLAGS
 
@@ -30,9 +31,13 @@ def apply_model(
         is_training,
         num_outputs,
         perms,
+        batch_size,
+        task,
+        architecture,
         embed_dim=1000,
         weight_decay=1e-4,
         make_signature=False,
+        net_params={},
 ):
     # TODO: refactor usages of this function
     """Creates the patch based model output from patches representations.
@@ -55,11 +60,17 @@ def apply_model(
     """
     images = image_fn()
 
-    net = get_net(num_classes=embed_dim)
-    out, end_points = net(images, is_training, weight_decay=weight_decay)
+    net = get_net(
+        architecture,
+        num_classes=embed_dim,
+        weight_decay=weight_decay,
+        task=task,
+        **net_params
+    )
+    out, end_points = net(images, is_training)
 
     if not make_signature:
-        out = permutate_and_concat_batch_patches(out, perms, is_training)
+        out = permutate_and_concat_batch_patches(out, perms, batch_size)
         out = fully_connected(out, num_outputs, is_training=is_training)
 
         out = tf.squeeze(out, [1, 2])
@@ -100,7 +111,16 @@ def image_grid(images, ny, nx, padding=0):
 
 
 def create_estimator_model(
-        images, labels, perms, num_classes, mode, serving_input_shape="None,None,None3"
+        images,
+        labels,
+        perms,
+        num_classes,
+        mode,
+        batch_size,
+        task,
+        architecture,
+        serving_input_shape="None,None,None3",
+        net_params={},
 ):
     """Creates EstimatorSpec for the patch based self_supervised supervised models.
 
@@ -125,8 +145,12 @@ def create_estimator_model(
                 image_fn=image_fn,
                 is_training=(mode == tf.estimator.ModeKeys.TRAIN),
                 num_outputs=num_classes,
+                batch_size=batch_size,
                 perms=perms,
+                task=task,
+                architecture=architecture,
                 make_signature=False,
+                net_params=net_params,
             )
     else:
         input_shape = utils.str2intlist(serving_input_shape)
@@ -138,8 +162,12 @@ def create_estimator_model(
             apply_model,
             image_fn=image_fn,
             num_outputs=num_classes,
+            batch_size=batch_size,
             perms=perms,
+            task=task,
+            architecture=architecture,
             make_signature=True,
+            net_params=net_params,
         )
 
         tf_hub_module_spec = hub.create_module_spec(
@@ -289,7 +317,10 @@ def permutate_and_concat_batch_patches(batch_patch_embeddings, perms, batch_size
     patches = tf.reshape(batch_patch_embeddings, shape=[-1, PATCH_COUNT, h, w, c])
 
     patches = tf.stack(
-        [permutate_and_concat_image_patches(patches[i], perms) for i in range(batch_size)]
+        [
+            permutate_and_concat_image_patches(patches[i], perms)
+            for i in range(batch_size)
+        ]
     )
 
     patches = tf.reshape(patches, shape=[-1, h, w, perms.shape[1] * c])

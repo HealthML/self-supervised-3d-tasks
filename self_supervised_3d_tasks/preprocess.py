@@ -269,24 +269,25 @@ def get_rotate_preprocess():
 def get_rotate3d_preprocess():
     """Returns a function that does 90deg rotations and sets according labels."""
 
+    # TODO: Change back to normal
     def _rotate_pp(data):
         # data["label"] = tf.constant([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-        data["label"] = tf.constant([0, 1, 2, 3, 4, 5, 6])
+        # data["label"] = tf.constant([0, 1, 2, 3, 4, 5, 6])
 
-        data["image"] = tf.stack(
-            [
-                data["image"],
-                tf.transpose(tf.reverse_v2(data["image"], [1]), [1, 0, 2, 3]),
-                # tf.reverse_v2(data["image"], [0, 1]), # 180 degrees on z axis
-                tf.reverse_v2(tf.transpose(data["image"], [1, 0, 2, 3]), [1]),
-                tf.transpose(tf.reverse_v2(data["image"], [1]), [0, 2, 1, 3]),
-                # tf.reverse_v2(data["image"], [1, 2]), # 180 degrees on x axis
-                tf.reverse_v2(tf.transpose(data["image"], [0, 2, 1, 3]), [1]),
-                tf.transpose(tf.reverse_v2(data["image"], [0]), [2, 1, 0, 3]),
-                # tf.reverse_v2(data["image"], [0, 2]), # 180 degrees on y axis
-                tf.reverse_v2(tf.transpose(data["image"], [2, 1, 0, 3]), [0]),
-            ]
-        )
+        data["label"] = tf.constant([0])
+
+        data["image"] = tf.stack([
+            data["image"]
+            # tf.transpose(tf.reverse_v2(data["image"], [1]), [1, 0, 2, 3]),
+            # # tf.reverse_v2(data["image"], [0, 1]), # 180 degrees on z axis
+            # tf.reverse_v2(tf.transpose(data["image"], [1, 0, 2, 3]), [1]),
+            # tf.transpose(tf.reverse_v2(data["image"], [1]), [0, 2, 1, 3]),
+            # # tf.reverse_v2(data["image"], [1, 2]), # 180 degrees on x axis
+            # tf.reverse_v2(tf.transpose(data["image"], [0, 2, 1, 3]), [1]),
+            # tf.transpose(tf.reverse_v2(data["image"], [0]), [2, 1, 0, 3]),
+            # # tf.reverse_v2(data["image"], [0, 2]), # 180 degrees on y axis
+            # tf.reverse_v2(tf.transpose(data["image"], [2, 1, 0, 3]), [0])
+        ])
         return data
 
     return _rotate_pp
@@ -491,7 +492,7 @@ def get_preprocess_fn(fn_names, is_training, **dependend_params):
             elif fn_name == "inception_crop":
                 yield get_inception_crop(is_training)
             elif fn_name == "pad":
-                yield get_pad(FLAGS.padding, FLAGS.padding_mode)
+                yield get_pad(dependend_params["padding"], dependend_params["padding_mode"])
             elif fn_name == "flip_lr":
                 yield get_random_flip_lr(is_training)
             elif fn_name == "flip_ud":
@@ -547,7 +548,7 @@ def get_preprocess_fn(fn_names, is_training, **dependend_params):
         for fn_name in fn_names:
             print(">>>>>", fn_name)
             for p in expand(fn_name.strip()):
-                data = p(data, dependend_params)
+                data = p(data)
                 tf.logging.info("Data after `%s`:\n%s", p, data)
         return data
 

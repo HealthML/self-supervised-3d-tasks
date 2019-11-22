@@ -6,20 +6,22 @@ r"""The main script for starting training and evaluation.
 from __future__ import absolute_import
 from __future__ import division
 
+import argparse
 import functools
+import json
+import logging
 import math
 import os
-
-import argparse
-import logging
 from pathlib import Path
+
 import tensorflow as tf
 import tensorflow_hub as hub
 from tensorflow.contrib.cluster_resolver import TPUClusterResolver
 
-import datasets
-import utils
-from algorithms.self_supervision_lib import get_self_supervision_model
+from self_supervised_3d_tasks.errors import MissingFlagsError
+from .algorithms.self_supervision_lib import get_self_supervision_model
+from .datasets import get_count, get_data
+from .utils import BestCheckpointCopier, str2intlist
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -32,8 +34,15 @@ TPU_ITERATIONS_PER_LOOP = 500
 
 def train_and_eval(FLAGS):
     """Trains a network on (self_supervised) supervised data."""
-    model_dir = FLAGS["workdir"].resolve()
+    model_dir = Path(FLAGS["workdir"]).resolve()
     use_tpu = FLAGS["use_tpu"]
+    batch_size = FLAGS["batch_size"]
+    eval_batch_size = FLAGS.get("eval_batch_size", batch_size)
+    dataset = FLAGS["dataset"]
+    dataset_dir = FLAGS["dataset_dir"]
+    preprocessing = FLAGS["preprocessing"]
+    epochs = FLAGS["epochs"]
+    model_kwargs = FLAGS  # FLAGS.get("model_kwargs", {})
 
     cluster_master = (
         TPUClusterResolver(tpu=[os.environ["TPU_NAME"]]).get_master() if use_tpu else ""
@@ -54,29 +63,76 @@ def train_and_eval(FLAGS):
         save_checkpoints_secs=FLAGS.get("save_checkpoints_secs", 600),
         tpu_config=tf.contrib.tpu.TPUConfig(
             iterations_per_loop=TPU_ITERATIONS_PER_LOOP,
-            tpu_job_name=FLAGS["tpu_worker_name"],
+            tpu_job_name=FLAGS.get("tpu_worker_name", ""),
         ),
     )
 
     # The global batch-sizes are passed to the TPU estimator, and it will pass
     # along the local batch size in the model_fn's `params` argument dict.
     estimator = tf.contrib.tpu.TPUEstimator(
-        model_fn=get_self_supervision_model(FLAGS["task"]),
+        model_fn=get_self_supervision_model(FLAGS["task"], model_kwargs=model_kwargs),
         model_dir=model_dir,
         config=config,
         use_tpu=use_tpu,
-        train_batch_size=FLAGS["batch_size"],
-        eval_batch_size=FLAGS.get("eval_batch_size", FLAGS["batch_size"]),
+        train_batch_size=batch_size,
+        eval_batch_size=eval_batch_size,
     )
 
-    if FLAGS["run_eval"]:
-        return evaluate(FLAGS, estimator, model_dir)
+    if FLAGS.get("run_eval", False):
+        eval_mapped = evaluate
+        optional_flags = ["val_split", "use_tpu"]
+        for flag in optional_flags:
+            if FLAGS.get(flag, None):
+                eval_mapped = functools.partial(eval_mapped, **{flag: FLAGS[flag]})
+        return eval_mapped(
+            estimator,
+            model_dir,
+            dataset,
+            preprocessing,
+            dataset_dir,
+            eval_batch_size=eval_batch_size,
+            FLAGS=FLAGS,
+        )
 
-    elif FLAGS["train_eval"]:
-        train_and_continous_evaluation(FLAGS, estimator)
+    elif FLAGS.get("train_eval", False):
+        tace_mapped = train_and_continous_evaluation
+        optional_flags = [
+            "train_split",
+            "val_split",
+            "serving_input_shape",
+            "serving_input_key",
+            "throttle_after",
+        ]
+        for flag in optional_flags:
+            if FLAGS.get(flag, None):
+                tace_mapped = functools.partial(tace_mapped, **{flag: FLAGS[flag]})
+        tace_mapped(
+            estimator,
+            dataset,
+            preprocessing,
+            dataset_dir,
+            epochs,
+            batch_size,
+            use_tpu=use_tpu,
+            FLAGS=FLAGS,
+        )
 
+    # TRAIN
     else:
-        train(FLAGS, estimator)
+        train_mapped = train
+        optional_flags = ["train_split"]
+        for flag in optional_flags:
+            if FLAGS.get(flag, None):
+                train_mapped = functools.partial(train_mapped, **{flag: FLAGS[flag]})
+        return train_mapped(
+            estimator,
+            dataset,
+            preprocessing,
+            dataset_dir,
+            epochs,
+            batch_size,
+            FLAGS=FLAGS,
+        )
 
 
 def train_and_continous_evaluation(
@@ -92,6 +148,7 @@ def train_and_continous_evaluation(
         serving_input_shape="None,None,None,3",
         serving_input_key="image",
         throttle_after=90,
+        FLAGS={},
 ):
     """I train an estimator and evaluate it along the way.
 
@@ -115,7 +172,7 @@ def train_and_continous_evaluation(
     """
     tf.logging.info("entered training + continuous evaluation branch.")
     train_input_fn = functools.partial(
-        datasets.get_data,
+        get_data,
         dataset=dataset,
         preprocessing=preprocessing,
         dataset_dir=dataset_dir,
@@ -123,9 +180,10 @@ def train_and_continous_evaluation(
         is_training=True,
         num_epochs=epochs,
         drop_remainder=True,
+        dataset_parameter=FLAGS,
     )
     eval_input_fn = functools.partial(
-        datasets.get_data,
+        get_data,
         dataset=dataset,
         preprocessing=preprocessing,
         dataset_dir=dataset_dir,
@@ -134,12 +192,13 @@ def train_and_continous_evaluation(
         shuffle=False,
         num_epochs=1,
         drop_remainder=use_tpu,
+        dataset_parameter=FLAGS,
     )
-    num_train_samples = datasets.get_count(dataset, train_split)
+    num_train_samples = get_count(dataset, train_split)
     updates_per_epoch = num_train_samples // batch_size
     num_train_steps = int(epochs * updates_per_epoch)
     estimator._export_to_tpu = False
-    best_exporter = utils.BestCheckpointCopier(
+    best_exporter = BestCheckpointCopier(
         name="best",
         checkpoints_to_keep=2,
         score_metric="loss",
@@ -172,6 +231,7 @@ def evaluate(
         eval_batch_size: int = None,
         val_split="val",
         use_tpu=False,
+        FLAGS={},
 ):
     """I evaluate the performance of a given estimator on a dataset.
 
@@ -191,7 +251,7 @@ def evaluate(
     """
     tf.logging.info("entered run eval branch.")
     data_fn = functools.partial(
-        datasets.get_data,
+        get_data,
         dataset=dataset,
         preprocessing=preprocessing,
         dataset_dir=dataset_dir,
@@ -200,12 +260,13 @@ def evaluate(
         shuffle=False,
         num_epochs=1,
         drop_remainder=use_tpu,
+        dataset_parameter=FLAGS,
     )
     # Contrary to what the documentation claims, the `train` and the
     # `evaluate` functions NEED to have `max_steps` and/or `steps` set and
     # cannot make use of the iterator's end-of-input exception, so we need
     # to do some math for that here.
-    num_samples = datasets.get_count(dataset, val_split)
+    num_samples = get_count(dataset, val_split)
     num_steps = num_samples // eval_batch_size
     tf.logging.info("val_steps: %d", num_steps)
     for checkpoint in tf.contrib.training.checkpoints_iterator(
@@ -233,6 +294,7 @@ def train(
         epochs: int,
         batch_size: int,
         train_split="train",
+        FLAGS={},
 ):
     """I train a tensorflow estimator on the given dataset.
 
@@ -251,7 +313,7 @@ def train(
     """
     tf.logging.info("entered training branch.")
     train_data_fn = functools.partial(
-        datasets.get_data,
+        get_data,
         dataset=dataset,
         preprocessing=preprocessing,
         dataset_dir=dataset_dir,
@@ -259,29 +321,58 @@ def train(
         is_training=True,
         num_epochs=int(math.ceil(epochs)),
         drop_remainder=True,
+        dataset_parameter=FLAGS,
     )
     # We compute the number of steps and make use of Estimator's max_steps
     # arguments instead of relying on the Dataset's iterator to run out after
     # a number of epochs so that we can use 'fractional' epochs, which are
     # used by regression tests. (And because TPUEstimator needs it anyways.)
-    num_samples = datasets.get_count(dataset, train_split)
+    num_samples = get_count(dataset, train_split)
     # Depending on whether we drop the last batch each epoch or only at the
     # ver end, this should be ordered differently for rounding.
     updates_per_epoch = num_samples // batch_size
     num_steps = int(math.ceil(epochs * updates_per_epoch))
     tf.logging.info("train_steps: %d", num_steps)
+
+    with tf.Session() as sess:
+        writer = tf.summary.FileWriter("logs", sess.graph)
+
     return estimator.train(train_data_fn, steps=num_steps)
 
 
 def serving_input_fn(serving_input_shape, serving_input_key):
     """A serving input fn."""
-    input_shape = utils.str2intlist(serving_input_shape)
+    input_shape = str2intlist(serving_input_shape)
     image_features = {
         serving_input_key: tf.placeholder(dtype=tf.float32, shape=input_shape)
     }
     return tf.estimator.export.ServingInputReceiver(
         features=image_features, receiver_tensors=image_features
     )
+
+
+def get_dependend_flags():
+    with open("self_supervised_3d_tasks/dependend_flags.json", "r") as f:
+        return json.load(f)
+
+
+def check_task_dependend_flags(flags):
+    dependend_flags = get_dependend_flags()
+    # TODO: rotate3d, crop_patches3d are possible preprocessing step
+
+    # test dependend flags on task (e.g. jigsaw)
+    task = flags["task"]
+    for flag in dependend_flags["dependend_flags_of_tasks"][task]["required"]:
+        if not flags[flag]:
+            raise MissingFlagsError(task, flag)
+
+    # test dependent flags on architecture (e.g. resnet50)
+    architecture = flags["architecture"]
+    for flag in dependend_flags["dependend_flags_of_architectures"][architecture][
+        "required"
+    ]:
+        if not flags[flag]:
+            raise MissingFlagsError(architecture, flag)
 
 
 def main():
@@ -519,11 +610,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--last_relu",
         type=bool,
+        default=True,
         help="Whether to include (default) the final "
         "ReLU layer in ResNet/RevNet models or not.",
     )
 
-    parser.add_argument("--mode", type=str, help="Which ResNet to use, `v1` or `v2`.")
+    parser.add_argument(
+        "--resnet_mode", type=str, default="v2", help="Which ResNet to use, `v1` or `v2`."
+    )
 
     # Flags about the optimization process.
     parser.add_argument(
@@ -538,7 +632,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--epochs", type=int, help="Number of epochs to run training.", required=True
+        "--epochs", type=int, help="Number of epochs to run training.", default=5
     )
 
     parser.add_argument(
@@ -582,7 +676,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--weight_decay",
         type=float,
-        help="Strength of weight-decay. " "Defaults to 1e-4, and may be set to 0.",
+        help="Strength of weight-decay. Defaults to 1e-4, and may be set to 0.",
     )
 
     # Flags about pre-processing/data augmentation.
@@ -605,8 +699,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--preprocessing",
         type=lambda s: [item for item in s.split(",")],
-        help="A comma-separated list of "
-        "pre-processing steps to perform, see preprocess.py.",
+        help="A comma-separated list of pre-processing steps to perform, see preprocess.py.",
     )
     # flags.mark_flag_as_required("preprocessing")  # TODO: necessary?
 
@@ -638,5 +731,7 @@ if __name__ == "__main__":
 
     flags = parser.parse_args()
     logging.info(flags)
+
+    check_task_dependend_flags(vars(flags))
     train_and_eval(vars(flags))
     logging.info("I'm done with my work, ciao!")

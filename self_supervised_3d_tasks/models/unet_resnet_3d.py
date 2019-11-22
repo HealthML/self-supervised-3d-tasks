@@ -29,7 +29,6 @@ def deconv3d(inputs, filters, kernel_size, strides, kernel_regularizer=None, use
 
 def conv3d(inputs, filters, kernel_size, strides, kernel_regularizer=None, use_bias=True):
     """Performs 3D convolution without bias and activation function."""
-
     return tf.layers.conv3d(
         inputs=inputs,
         filters=filters,

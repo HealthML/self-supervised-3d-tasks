@@ -5,13 +5,21 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import functools
+
 import tensorflow as tf
 
-from self_supervised_3d_tasks.algorithms import exemplar, supervised_classification, jigsaw, rotation
-from self_supervised_3d_tasks.algorithms import relative_patch_location, supervised_segmentation
+from ..dependend_flags.flag_utils import (
+    check_for_missing_arguments,
+    collect_model_kwargs,
+)
+from . import exemplar, supervised_classification, jigsaw, rotation
+from . import relative_patch_location, supervised_segmentation
+
+from ..errors import MissingFlagsError
 
 
-def get_self_supervision_model(self_supervision, kwargs):
+def get_self_supervision_model(self_supervision, model_kwargs={}):
     """Gets self_supervised supervised training data and labels."""
 
     mapping = {
@@ -45,6 +53,18 @@ def get_self_supervision_model(self_supervision, kwargs):
         del labels, params  # unused
         tf.logging.info("Calling model_fn in mode %s with data:", mode)
         tf.logging.info(features)
-        return model_fn(features, mode, **kwargs)
+        tf.logging.info("Parameters: ", **model_kwargs)
+
+        model_fn_mapped = functools.partial(
+            model_fn,
+            data=features,
+            mode=mode,
+            net_params=model_kwargs)
+
+        missing_flags = check_for_missing_arguments(model_fn_mapped, model_kwargs)
+        if missing_flags:
+            raise MissingFlagsError(self_supervision, missing_flags)
+
+        return model_fn_mapped(**collect_model_kwargs(model_fn, model_kwargs))
 
     return _model_fn

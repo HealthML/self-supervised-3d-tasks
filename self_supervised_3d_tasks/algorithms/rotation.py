@@ -7,11 +7,12 @@ from __future__ import division
 from __future__ import print_function
 
 import functools
+
 import tensorflow as tf
 import tensorflow_hub as hub
 
-from models.utils import get_net
-from self_supervised_3d_tasks import trainer, utils
+from .. import trainer, utils
+from ..models.utils import get_net
 
 
 # FLAGS = tf.flags.FLAGS
@@ -21,13 +22,18 @@ def apply_model(
         image_fn,  # pylint: disable=missing-docstring
         is_training,
         num_outputs,
+        architecture,
         make_signature=False,
+        net_params={},
 ):
     # Image tensor needs to be created lazily in order to satisfy tf-hub
     # restriction: all tensors should be created inside tf-hub helper function.
     images = image_fn()
 
-    net = get_net(num_classes=num_outputs)
+    # TODO: resolve quick fix
+    del net_params["task"]
+    del net_params["architecture"]
+    net = get_net(architecture, num_classes=num_outputs, task="rotation", **net_params)
 
     output, end_points = net(images, is_training)
 
@@ -39,7 +45,14 @@ def apply_model(
     return output
 
 
-def model_fn(data, mode, rotate3d=False, serving_input_shape="None,None,None,3"):
+def model_fn(
+        data,
+        mode,
+        architecture,
+        rotate3d=False,
+        serving_input_shape="None,None,None,3",
+        net_params={}
+):
     """Produces a loss for the rotation task.
 
     Args:
@@ -67,7 +80,9 @@ def model_fn(data, mode, rotate3d=False, serving_input_shape="None,None,None,3")
                 image_fn=image_fn,
                 is_training=(mode == tf.estimator.ModeKeys.TRAIN),
                 num_outputs=num_angles,
+                architecture=architecture,
                 make_signature=False,
+                net_params=net_params,
             )
     else:
         input_shape = utils.str2intlist(serving_input_shape)
@@ -75,7 +90,12 @@ def model_fn(data, mode, rotate3d=False, serving_input_shape="None,None,None,3")
             shape=input_shape, dtype=tf.float32  # pylint: disable=g-long-lambda
         )
         apply_model_function = functools.partial(
-            apply_model, image_fn=image_fn, num_outputs=num_angles, make_signature=True
+            apply_model,
+            image_fn=image_fn,
+            num_outputs=num_angles,
+            make_signature=True,
+            architecture=architecture,
+            net_params=net_params,
         )
         tf_hub_module_spec = hub.create_module_spec(
             apply_model_function,
@@ -88,7 +108,7 @@ def model_fn(data, mode, rotate3d=False, serving_input_shape="None,None,None,3")
         hub.register_module_for_export(tf_hub_module, export_name="module")
         logits = tf_hub_module(images)
 
-        return trainer.make_estimator(mode, predictions=logits)
+        return trainer.make_estimator(mode, predictions=logits, estimator_params=net_params)
 
     labels = tf.reshape(data["label"], [-1])
 
@@ -107,4 +127,4 @@ def model_fn(data, mode, rotate3d=False, serving_input_shape="None,None,None,3")
 
     logging_hook = tf.train.LoggingTensorHook({"loss": loss}, every_n_iter=10)
 
-    return trainer.make_estimator(mode, loss, eval_metrics, logits, logging_hook)
+    return trainer.make_estimator(mode, loss, eval_metrics, logits, logging_hook, estimator_params=net_params)

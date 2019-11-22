@@ -3,7 +3,7 @@
 
 python train_and_eval.py \
   --workdir ~/workspace/self-supervised-transfer-learning/ \
-  --dataset_dir /mnt/30T/ukbiobank/derived/imaging/brain_mri/tf_records/ \
+  --dataset_dir /mnt/mpws2019cl1/brain_mri/tf_records/ \
   --task exemplar \
   --dataset ukb3d \
   --train_split train \
