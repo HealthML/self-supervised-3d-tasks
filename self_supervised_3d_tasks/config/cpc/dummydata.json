@@ -1,6 +1,6 @@
 {
   "workdir": "~/workspace/cpc/",
-  "dataset_dir": "",
+  "dataset_dir": "~/self-supervised-3d-taks/self_supervised_3d_tasks/data_util/tf_records",
   "task": "cpc",
   "dataset": "cpc_test",
   "train_split": "train",

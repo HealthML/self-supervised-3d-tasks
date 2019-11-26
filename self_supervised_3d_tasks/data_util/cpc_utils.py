@@ -394,7 +394,7 @@ def _convert_to_example(image_buffer, image_buffer_predictions, labels, terms, p
         'image/pred_terms': _int64_feature(predict_terms),
         'image/encoded': _float_feature(image_buffer),
         'image/encoded_pred': _float_feature(image_buffer_predictions),
-        'image/labels': _int64_feature(labels)}))
+        'image/labels': _float_feature(labels)}))
     return example
 
 
@@ -429,7 +429,8 @@ if __name__ == "__main__":
             for i in range(SHARD_SIZE):
                 X = np.asarray(img_all[0][i])
                 Y = np.asarray(img_all[1][i])
-                label = int(label_all[i])
+                label = np.zeros(shape=(1,))
+                label[0] = float(label_all[i])
 
                 # image_buffer, labels, terms, predict_terms, channels, height, width, depth
                 example = _convert_to_example(X.flatten(), Y.flatten(), label, terms, predict_terms, 3, image_size,

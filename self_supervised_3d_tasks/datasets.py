@@ -180,7 +180,7 @@ class DatasetCpcMnist(AbstractDataset):
         HEIGHT_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
         WIDTH_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
         CHANNELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
-        LABELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
+        LABELS_KEY: tf.FixedLenFeature(shape=[1], dtype=tf.float32),
     }
 
     def __init__(
@@ -197,9 +197,9 @@ class DatasetCpcMnist(AbstractDataset):
         # TODO: look one line up
 
         filenames = {
-            "train": generate_sharded_filenames(files % ("train.tfrecord", 12))[:-2],
-            "val": generate_sharded_filenames(files % ("train.tfrecord", 12))[-2:],
-            "trainval": generate_sharded_filenames(files % ("train.tfrecord", 22)),
+            "train": generate_sharded_filenames(files % ("train.tfrecord", 12))[:2],
+            "val": generate_sharded_filenames(files % ("train.tfrecord", 12))[2:4],
+            "trainval": generate_sharded_filenames(files % ("train.tfrecord", 12)[:4]),
             "test": generate_sharded_filenames(files % ("valid.tfrecord", 2)),
         }
 
@@ -736,7 +736,7 @@ def get_data(
     preprocessing,
     dataset_dir,
     random_seed=None,
-    shuffle=True,
+    shuffle=False,
     num_epochs=None,
     drop_remainder=False,
     dataset_parameter={}

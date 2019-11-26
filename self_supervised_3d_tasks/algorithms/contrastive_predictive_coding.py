@@ -10,8 +10,6 @@ import tensorflow as tf
 import tensorflow_hub as hub
 import tensorflow.keras as keras
 
-import trainer
-
 from self_supervised_3d_tasks import utils
 from self_supervised_3d_tasks.models.utils import get_net
 from self_supervised_3d_tasks.trainer import make_estimator
@@ -83,7 +81,7 @@ def apply_model(image_fn,  # pylint: disable=missing-docstring
     input = keras.Input(encoded.shape[2:])
 
     encoder_model = get_net("cpc_encoder", task="cpc", num_classes=2, **net_params)
-    encoder_model = encoder_model(input, is_training)
+    encoder_model = encoder_model(input, is_training, code_size=code_size, **net_params)
     encoder_model = keras.models.Model(input, encoder_model, name='encoder')
     encoder_model.summary()
 
@@ -134,7 +132,7 @@ def apply_model(image_fn,  # pylint: disable=missing-docstring
 
 
 # TODO: is this really the right shape?
-def model_fn(data, mode, code_size=126, serving_input_shape="None,None,None,None,3", net_params={}):
+def model_fn(data, mode, code_size=128, serving_input_shape="None,None,None,None,3", net_params={}):
     """Produces a loss for the exemplar task supervision.
 
     Args:
@@ -183,7 +181,7 @@ def model_fn(data, mode, code_size=126, serving_input_shape="None,None,None,None
         tf_hub_module = hub.Module(tf_hub_module_spec, trainable=False, tags=set())
         hub.register_module_for_export(tf_hub_module, export_name="module")
         dot_product_probs = tf_hub_module([data['encoded'], data['pred']])
-        return make_estimator(mode, predictions=dot_product_probs)
+        return make_estimator(mode, predictions=dot_product_probs, estimator_params=net_params)
 
     eval_metrics = (
         lambda lab, prod: {  # TODO: check if this is correct
@@ -196,4 +194,5 @@ def model_fn(data, mode, code_size=126, serving_input_shape="None,None,None,None
 
     loss = keras.losses.binary_crossentropy(dot_product_probs, labels)
     logging_hook = tf.train.LoggingTensorHook({"loss": loss}, every_n_iter=10)
-    return trainer.make_estimator(mode=mode, loss=loss, eval_metrics=eval_metrics, common_hooks=logging_hook)
+    return make_estimator(mode=mode, loss=loss, eval_metrics=eval_metrics, common_hooks=logging_hook,
+                          estimator_params=net_params)
