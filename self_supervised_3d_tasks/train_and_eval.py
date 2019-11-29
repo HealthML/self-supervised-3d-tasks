@@ -24,7 +24,6 @@ from .datasets import get_count, get_data
 from .utils import BestCheckpointCopier, str2intlist
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 # Number of iterations (=training steps) per TPU training loop. Use >100 for
@@ -34,6 +33,9 @@ TPU_ITERATIONS_PER_LOOP = 500
 
 def train_and_eval(FLAGS):
     """Trains a network on (self_supervised) supervised data."""
+    if FLAGS["GPU_Config"]:
+        os.environ["CUDA_VISIBLE_DEVICES"] = FLAGS["GPU_Config"]["CUDA_VISIBLE_DEVICES"]
+        gpu_fraction = FLAGS["GPU_Config"].get("GPU_FRACTION", 0.9)
     model_dir = Path(FLAGS["workdir"]).expanduser().resolve()
     use_tpu = FLAGS["use_tpu"]
     batch_size = FLAGS["batch_size"]
@@ -51,7 +53,7 @@ def train_and_eval(FLAGS):
     configp = tf.ConfigProto()
     configp.gpu_options.allow_growth = True
     configp.allow_soft_placement = True
-    configp.gpu_options.per_process_gpu_memory_fraction = 0.9
+    configp.gpu_options.per_process_gpu_memory_fraction = gpu_fraction
 
     config = tf.contrib.tpu.RunConfig(
         model_dir=model_dir,
