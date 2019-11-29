@@ -24,5 +24,9 @@
   "use_tpu": false,
   "last_relu": true,
   "resnet_mode": "v1",
-  "rotate3d": true
+  "rotate3d": true,
+  "GPU_Config": {
+    "CUDA_VISIBLE_DEVICES": "0",
+    "GPU_FRACTION": 0.4
+  }
 }

@@ -24,5 +24,9 @@
   "throttle_secs": 400.0,
   "keep_checkpoint_every_n_hours": 48.0,
   "use_tpu": false,
-  "crop_patches3d": true
+  "crop_patches3d": true,
+  "GPU_Config": {
+    "CUDA_VISIBLE_DEVICES": "0",
+    "GPU_FRACTION": 0.4
+  }
 }
