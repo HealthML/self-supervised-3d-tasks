@@ -1,5 +1,5 @@
 {
-  "workdir": "~/workspace/self-supervised-transfer-learning/",
+  "workdir": "~/workspace/self-supervised-transfer-learning/rotation",
   "dataset_dir": "/mnt/mpws2019cl1/brain_mri/tf_records/",
   "task": "rotation",
   "dataset": "ukb3d",

@@ -24,7 +24,7 @@ from .datasets import get_count, get_data
 from .utils import BestCheckpointCopier, str2intlist
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 
 # Number of iterations (=training steps) per TPU training loop. Use >100 for
