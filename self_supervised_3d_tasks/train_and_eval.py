@@ -32,6 +32,8 @@ TPU_ITERATIONS_PER_LOOP = 500
 
 
 def train_and_eval(FLAGS):
+    tf.logging.set_verbosity(tf.logging.INFO)
+
     """Trains a network on (self_supervised) supervised data."""
     if "GPU_Config" in FLAGS:
         os.environ["CUDA_VISIBLE_DEVICES"] = FLAGS["GPU_Config"]["CUDA_VISIBLE_DEVICES"]

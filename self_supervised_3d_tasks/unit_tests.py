@@ -4,9 +4,10 @@ import absl.flags as flags
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from algorithms.patch_model_preprocess import get_crop_patches_fn
-from datasets import get_data
-from preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
+
+from .algorithms.patch_model_preprocess import get_crop_patches_fn
+from .datasets import get_data
+from .preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
     get_pad
 
 
