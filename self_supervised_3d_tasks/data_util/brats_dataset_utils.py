@@ -473,33 +473,33 @@ def np_to_tfrecords_with_labels(X, Y, file_path_prefix, verbose=True, multimodal
     if verbose:
         print("Writing {} done!".format(result_tf_file))
 
+if __name__ == "__main__":
+    #################################
+    ##      Test and Use Cases     ##
+    #################################
+    brats_path = "/mnt/30T/brats/MICCAI_BraTS_2018_Data_Training/**/"
+    file_prefix = 'train_3D_with_labels'
+    with_masks = True
 
-#################################
-##      Test and Use Cases     ##
-#################################
-brats_path = "/mnt/30T/brats/MICCAI_BraTS_2018_Data_Training/**/"
-file_prefix = 'train_3D_with_labels'
-with_masks = True
+    # brats_path = "/mnt/30T/brats/MICCAI_BraTS_2018_Data_Validation/**/"
+    # file_prefix = 'validation_3D_two_modal'
+    # with_masks = False
 
-# brats_path = "/mnt/30T/brats/MICCAI_BraTS_2018_Data_Validation/**/"
-# file_prefix = 'validation_3D_two_modal'
-# with_masks = False
+    is3D = True
+    multimodal = False  # True: use 4 modalities, False: use only 2 (t1ce + t2flair)
+    if with_masks:
+        if is3D:
+            brats_X, brats_Y = parallel_load_brats_3D_with_labels(brats_path, multimodal)
+        else:
+            brats_X, brats_Y = parallel_load_brats_with_labels(brats_path, multimodal)
+        print(brats_X.shape, brats_Y.shape)
 
-is3D = True
-multimodal = False  # True: use 4 modalities, False: use only 2 (t1ce + t2flair)
-if with_masks:
-    if is3D:
-        brats_X, brats_Y = parallel_load_brats_3D_with_labels(brats_path, multimodal)
+        np_to_tfrecords_with_labels(brats_X, brats_Y, file_prefix, verbose=True, multimodal=multimodal)
     else:
-        brats_X, brats_Y = parallel_load_brats_with_labels(brats_path, multimodal)
-    print(brats_X.shape, brats_Y.shape)
+        if is3D:
+            brats_data = parallel_load_brats_3D_no_labels(brats_path, multimodal)
+        else:
+            brats_data = parallel_load_brats_no_labels(brats_path, multimodal)
+        print(brats_data.shape)
 
-    np_to_tfrecords_with_labels(brats_X, brats_Y, file_prefix, verbose=True, multimodal=multimodal)
-else:
-    if is3D:
-        brats_data = parallel_load_brats_3D_no_labels(brats_path, multimodal)
-    else:
-        brats_data = parallel_load_brats_no_labels(brats_path, multimodal)
-    print(brats_data.shape)
-
-    np_to_tfrecords_no_labels(brats_data, file_prefix, verbose=True, multimodal=multimodal)
+        np_to_tfrecords_no_labels(brats_data, file_prefix, verbose=True, multimodal=multimodal)
