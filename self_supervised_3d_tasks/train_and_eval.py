@@ -386,7 +386,7 @@ def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename="train_and_eval.log", level=logging.INFO)
+    # logging.basicConfig(filename="train_and_eval.log", level=logging.INFO)
     logging.info("Started the script.")
     parser = argparse.ArgumentParser(description="Train and Evaluation Pipeline")
 

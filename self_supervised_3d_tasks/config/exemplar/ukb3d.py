@@ -1,7 +1,21 @@
-import self_supervised_3d_tasks.train_and_eval as train_and_eval
+from contextlib import redirect_stdout, redirect_stderr
+from pathlib import Path
+
+from self_supervised_3d_tasks.train_and_eval import train_and_eval
+import json
+
+from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs
+
+c_stdout, c_stderr = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
+
 
 def main():
-
-    with open("self_supervised_3d_tasks/config/exemplar/ukb3d.json", 'r') as f:
+    with open(Path(__file__).parent / "ukb3d.json", "r") as f:
         args = json.load(f)
-    train_and_eval(args)
+    with redirect_stdout(c_stdout):  # needed to actually capture stdout
+        with redirect_stderr(c_stderr):  # needed to actually capture stderr
+            train_and_eval(args)
+
+
+if __name__ == "__main__":
+    main()
