@@ -757,6 +757,7 @@ def get_data(
     """
     dataset = DATASET_MAP[dataset]
     preprocess_fn = get_preprocess_fn(preprocessing, is_training, **dataset_parameter)
+    print("got preprocess fn")
 
     return dataset(
         split_name=split_name,

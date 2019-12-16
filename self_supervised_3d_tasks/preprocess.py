@@ -7,7 +7,9 @@ from __future__ import division
 from __future__ import print_function
 
 import functools
+import math
 import random
+from math import sqrt
 
 import tensorflow as tf
 
@@ -404,20 +406,21 @@ def distort_color3d(scan):
 
 
 def get_drop_all_channels_but_one_preprocess():
-    def _drop_all_channels_but_one(idx):
+    def _drop_all_channels_but_one(idx, channels):
         # KEEP THE CHANNEL POSITION
         # x = np.zeros((56,56,3))
         # x[:,:,idx] = 1
         # mask = tf.constant(x,dtype=tf.float32)
         # return lambda image: tf.multiply(image, mask)
 
-        return lambda image: tf.tile(image[:, :, idx : idx + 1], [1, 1, 3])
+        return lambda image: tf.tile(image[:, :, idx : idx + 1], [1, 1, channels])
 
     def _drop_all_channels_but_one_pp(data):
+        channels = data["image"].get_shape().as_list()[-1]
         data["image"] = utils.tf_apply_to_image_or_images(
             lambda img: utils.tf_apply_many_with_probability(
-                [1.0 / 3.0] * 3,
-                [(_drop_all_channels_but_one(a)) for a in range(3)],
+                [1.0 / channels] * channels,
+                [(_drop_all_channels_but_one(a, channels)) for a in range(channels)],
                 img,
             ),
             data["image"],
@@ -443,6 +446,35 @@ def get_to_gray_preprocess(grayscale_probability):
 
     return _to_gray_pp
 
+def get_cpc_preprocess_grid():
+    def _cpc_preprocess_grid(data):
+        patches_enc = []
+        patches_pred = []
+        labels = []
+        image = data["image"]
+        shape = image.get_shape().as_list()
+        patch_size = int(sqrt(shape[1]))
+        batch_size = shape[0]
+
+        for batch_index in range(batch_size):
+            for row_index in range(patch_size):
+                end_patch_index = int(row_index * patch_size + math.ceil(patch_size / 2))
+                patch_enc = image[batch_index, row_index * patch_size: end_patch_index]
+                patches_enc.append(patch_enc)
+                patches_pred.append(image[batch_index, end_patch_index + 1: (row_index + 1) * patch_size])
+                labels.append(1)
+
+                patches_enc.append(patch_enc)
+                batch_index_alt = (batch_index + 1) % batch_size
+                patches_pred.append(image[batch_index_alt, end_patch_index + 1: (row_index + 1) * patch_size])
+                labels.append(0)
+
+        data["patches_enc"] = tf.convert_to_tensor(patches_enc, tf.float32)
+        data["patches_pred"] = tf.convert_to_tensor(patches_pred, tf.float32)
+        data["labels"] = tf.convert_to_tensor(labels, tf.int32)
+        return data
+    return _cpc_preprocess_grid
+
 
 def get_preprocess_fn(fn_names, is_training, **dependend_params):
     """Returns preprocessing function.
@@ -456,7 +488,6 @@ def get_preprocess_fn(fn_names, is_training, **dependend_params):
     Raises:
       ValueError: if preprocessing function name is unknown
     """
-
     def _fn(data):
         def expand(fn_name):
             if fn_name == "plain_preprocess":
