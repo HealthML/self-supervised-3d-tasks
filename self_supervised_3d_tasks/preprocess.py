@@ -65,6 +65,7 @@ def get_crop(is_training, crop_size):
         crop_fn = functools.partial(
             pp_lib.crop, is_training=is_training, crop_size=crop_size
         )
+        print("CROP", data["image"])
         data["image"] = utils.tf_apply_to_image_or_images(crop_fn, data["image"])
 
         return data

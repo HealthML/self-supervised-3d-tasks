@@ -11,7 +11,8 @@ from self_supervised_3d_tasks.algorithms.contrastive_predictive_coding import ne
 from self_supervised_3d_tasks.algorithms.patch_model_preprocess import get_crop_patches_fn
 from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
     get_pad, get_cpc_preprocess_grid
-from self_supervised_3d_tasks.datasets import get_data
+from self_supervised_3d_tasks.datasets import get_data, DatasetUKB
+
 
 def chain(f, g):
     return lambda x: g(f(x))
@@ -23,27 +24,18 @@ class PatchMatcher(object):
         self.is_training = is_training
 
 
-        data = get_data(
-            params={'batch_size': 8},
-            split_name='train',
-            is_training=self.is_training,
-            num_epochs=1,
-            shuffle=False,
-            drop_remainder=True,
-            dataset_parameter={'batch_size': 8},
-            dataset='ukb',
-            dataset_dir="/mnt/mpws2019cl1/brain_mri/tf_records/",
-            preprocessing=[],
-        )
-
-        self.iterator = data.make_one_shot_iterator()
-        self.sess = tf.Session()
-
-        el = self.iterator.get_next()
-        batch = self.sess.run(el)
-
-        tfbatch = tf.convert_to_tensor(batch["image"])
-
+        # data = get_data(
+        #     params={'batch_size': 8},
+        #     split_name='train',
+        #     is_training=self.is_training,
+        #     num_epochs=1,
+        #     shuffle=False,
+        #     drop_remainder=True,
+        #     dataset_parameter={'batch_size': 8},
+        #     dataset='ukb',
+        #     dataset_dir="/mnt/mpws2019cl1/brain_mri/tf_records/",
+        #     preprocessing=[],
+        # )
 
         crop_size = 128
         split_per_side = 7
@@ -51,7 +43,7 @@ class PatchMatcher(object):
         patch_crop_size = int((crop_size - patch_jitter * (split_per_side - 1)) / split_per_side * 7 / 8)
         padding = int((-2 * patch_jitter - patch_crop_size) / 2)
 
-        f = lambda batch: { "image":  tfbatch}
+        f = lambda batch: {"image": batch}
         f = chain(f, get_crop(is_training=self.is_training, crop_size=(crop_size, crop_size)))
         # f = chain(f, get_random_flip_ud(is_training=True)) also for new version?
         f = chain(f, get_crop_patches_fn(is_training=self.is_training, split_per_side=split_per_side,
@@ -62,6 +54,27 @@ class PatchMatcher(object):
         f = chain(f, get_pad([[padding, padding], [padding, padding], [0, 0]], "REFLECT"))
         f = chain(f, get_cpc_preprocess_grid())
         self.f = f
+
+        data = DatasetUKB(
+            split_name="train",
+            preprocess_fn=f,
+            num_epochs=1,
+            shuffle=False,
+            dataset_dir="/mnt/mpws2019cl1/brain_mri/tf_records/",
+            random_seed=True,
+            drop_remainder=True,
+        ).input_fn({'batch_size': 8})
+
+        self.iterator = data.make_one_shot_iterator()
+        self.sess = tf.Session()
+
+        el = self.iterator.get_next()
+
+        self.tfbatch = tf.convert_to_tensor(el["image"])
+        #batch = self.sess.run(self.tfbatch)
+
+
+
 
     def __iter__(self):
         return self
@@ -74,10 +87,10 @@ class PatchMatcher(object):
 
     def next(self):
 
-        el = self.iterator.get_next()
-        batch = self.sess.run(el)
+        # el = self.iterator.get_next()
+        # batch = self.sess.run(el)
 
-        patches = self.sess.run(self.f(batch))
+        patches = self.sess.run(self.f(self.tfbatch))
 
         X = (patches["patches_enc"], patches["patches_pred"])
         Y = patches["labels"]
