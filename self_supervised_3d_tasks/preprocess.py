@@ -65,7 +65,7 @@ def get_crop(is_training, crop_size):
         crop_fn = functools.partial(
             pp_lib.crop, is_training=is_training, crop_size=crop_size
         )
-        print("CROP", data["image"])
+        print("CROP", data)
         data["image"] = utils.tf_apply_to_image_or_images(crop_fn, data["image"])
 
         return data
@@ -448,19 +448,20 @@ def get_to_gray_preprocess(grayscale_probability):
     return _to_gray_pp
 
 def get_cpc_preprocess_grid():
+    # TODO does not work ==> implement in tensorflow
     def _cpc_preprocess_grid(data):
         patches_enc = []
         patches_pred = []
         labels = []
         image = data["image"]
-        shape = image.get_shape().as_list()
+        shape = image.shape
         patch_size = int(sqrt(shape[1]))
         batch_size = shape[0]
 
         for batch_index in range(batch_size):
             for row_index in range(patch_size):
-                end_patch_index = int(row_index * patch_size + math.ceil(patch_size / 2))
-                patch_enc = image[batch_index, row_index * patch_size: end_patch_index]
+                end_patch_index = int(row_index * patch_size + int(patch_size / 2))
+                patch_enc = image[batch_index, row_index * patch_size: end_patch_index, :, :]
                 patches_enc.append(patch_enc)
                 patches_pred.append(image[batch_index, end_patch_index + 1: (row_index + 1) * patch_size])
                 labels.append(1)
@@ -470,9 +471,9 @@ def get_cpc_preprocess_grid():
                 patches_pred.append(image[batch_index_alt, end_patch_index + 1: (row_index + 1) * patch_size])
                 labels.append(0)
 
-        data["patches_enc"] = tf.convert_to_tensor(patches_enc, tf.float32)
-        data["patches_pred"] = tf.convert_to_tensor(patches_pred, tf.float32)
-        data["labels"] = tf.convert_to_tensor(labels, tf.int32)
+        data["patches_enc"] = patches_enc
+        data["patches_pred"] = patches_pred
+        data["labels"] = labels
         return data
     return _cpc_preprocess_grid
 

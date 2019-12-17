@@ -246,6 +246,7 @@ def tf_apply_to_image_or_images(fn, image_or_images):
     Raises:
       ValueError: if the input is not of rank 3 or 4.
     """
+    print("GET_SHAPE", image_or_images)
     static_rank = len(image_or_images.get_shape().as_list())
     if static_rank == 3:  # A single image: HWC
         return fn(image_or_images)

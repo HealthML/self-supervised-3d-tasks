@@ -2,7 +2,7 @@ import keras
 from os.path import join
 from os import makedirs
 from pathlib import Path
-
+import numpy as np
 import tensorflow as tf
 
 from self_supervised_3d_tasks.data_util.cpc_utils import SortedNumberGenerator
@@ -43,7 +43,7 @@ class PatchMatcher(object):
         patch_crop_size = int((crop_size - patch_jitter * (split_per_side - 1)) / split_per_side * 7 / 8)
         padding = int((-2 * patch_jitter - patch_crop_size) / 2)
 
-        f = lambda batch: {"image": batch}
+        f = lambda batch: batch
         f = chain(f, get_crop(is_training=self.is_training, crop_size=(crop_size, crop_size)))
         # f = chain(f, get_random_flip_ud(is_training=True)) also for new version?
         f = chain(f, get_crop_patches_fn(is_training=self.is_training, split_per_side=split_per_side,
@@ -52,7 +52,8 @@ class PatchMatcher(object):
         f = chain(f, get_crop(is_training=self.is_training, crop_size=(patch_crop_size, patch_crop_size)))
         f = chain(f, get_drop_all_channels_but_one_preprocess())
         f = chain(f, get_pad([[padding, padding], [padding, padding], [0, 0]], "REFLECT"))
-        f = chain(f, get_cpc_preprocess_grid())
+        # TODO put in when properly implemented
+        # f = chain(f, get_cpc_preprocess_grid())
         self.f = f
 
         data = DatasetUKB(
@@ -68,9 +69,9 @@ class PatchMatcher(object):
         self.iterator = data.make_one_shot_iterator()
         self.sess = tf.Session()
 
-        el = self.iterator.get_next()
+        #el = self.iterator.get_next()
 
-        self.tfbatch = tf.convert_to_tensor(el["image"])
+        ## self.tfbatch = tf.convert_to_tensor(el["image"]) # { "image": tf.convert_to_tensor(el["image"]) }
         #batch = self.sess.run(self.tfbatch)
 
 
@@ -87,13 +88,16 @@ class PatchMatcher(object):
 
     def next(self):
 
-        # el = self.iterator.get_next()
-        # batch = self.sess.run(el)
+        el = self.iterator.get_next()
+        batch = self.sess.run(el)
+        batch = get_cpc_preprocess_grid()(batch)
 
-        patches = self.sess.run(self.f(self.tfbatch))
+        # print("TFBATCH", self.tfbatch)
+        # patches = self.sess.run(self.tfbatch) #self.f(self.tfbatch))
 
-        X = (patches["patches_enc"], patches["patches_pred"])
-        Y = patches["labels"]
+        X = [np.array(batch["patches_enc"]), np.array(batch["patches_pred"])]
+        Y = np.array(batch["labels"])
+        print("XY", X[0].shape, X[1].shape, Y.shape)
         return (X, Y)
 
 
@@ -103,7 +107,7 @@ def train_model(epochs, batch_size, output_dir, code_size, lr=1e-4, terms=4, pre
     validation_data = PatchMatcher(is_training=False)
 
     # Prepares the model
-    model = network_cpc(image_shape=(image_size, image_size, 3), terms=terms, predict_terms=predict_terms,
+    model = network_cpc(image_shape=(image_size, image_size, 2), terms=terms, predict_terms=predict_terms,
                         code_size=code_size, learning_rate=lr)
 
     # Callbacks
@@ -142,8 +146,8 @@ if __name__ == "__main__":
         output_dir='models/64x64',
         code_size=128,
         lr=1e-3,
-        terms=4,
-        predict_terms=4,
-        image_size=64,
+        terms=3,
+        predict_terms=3,
+        image_size=32,
         color=True
     )
