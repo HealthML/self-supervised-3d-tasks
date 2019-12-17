@@ -1,4 +1,5 @@
 import keras
+import keras.backend as k
 from os.path import join
 from os import makedirs
 from pathlib import Path
@@ -66,13 +67,8 @@ class PatchMatcher(object):
             drop_remainder=True,
         ).input_fn({'batch_size': 8})
 
-        self.iterator = data.make_one_shot_iterator()
-        self.sess = tf.Session()
-
-        #el = self.iterator.get_next()
-
-        ## self.tfbatch = tf.convert_to_tensor(el["image"]) # { "image": tf.convert_to_tensor(el["image"]) }
-        #batch = self.sess.run(self.tfbatch)
+        #self.iterator = data.make_one_shot_iterator()
+        #self.sess = tf.Session()
 
 
 
@@ -87,7 +83,7 @@ class PatchMatcher(object):
         return 1000
 
     def next(self):
-
+        return ([np.zeros((8, 3, 32, 32, 2)), np.zeros((8, 3, 32, 32, 2))], np.zeros((8, 1)))
         el = self.iterator.get_next()
         batch = self.sess.run(el)
         batch = get_cpc_preprocess_grid()(batch)
@@ -111,6 +107,7 @@ def train_model(epochs, batch_size, output_dir, code_size, lr=1e-4, terms=4, pre
                         code_size=code_size, learning_rate=lr)
 
     # Callbacks
+    k.set_session(tf.Session())
     callbacks = [keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=1/3, patience=2, min_lr=1e-4)]
 
 
