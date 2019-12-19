@@ -22,7 +22,7 @@ PATCH_COUNT = PATCH_H_COUNT * PATCH_W_COUNT * PATCH_D_COUNT
 
 # It's supposed to be in the root folder, which is also pwd when running, if the
 # instructions in the README are followed. Hence not a flag.
-PERMUTATION_PATH = "permutations3d_100_max.bin"
+PERMUTATION_PATH = "self_supervised_3d_tasks/permutations/permutations3d_100_max.bin"
 
 
 def apply_model(

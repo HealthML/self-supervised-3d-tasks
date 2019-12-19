@@ -23,7 +23,7 @@ PATCH_COUNT = PATCH_H_COUNT * PATCH_W_COUNT
 
 # It's supposed to be in the root folder, which is also pwd when running, if the
 # instructions in the README are followed. Hence not a flag.
-PERMUTATION_PATH = "permutations_100_max.bin"
+PERMUTATION_PATH = "self_supervised_3d_tasks/permutations/permutations_100_max.bin"
 
 
 def apply_model(
@@ -59,6 +59,10 @@ def apply_model(
       ValueError: An error occurred when the architecture is unknown.
     """
     images = image_fn()
+
+    # TODO: resolve quick fix
+    del net_params["task"]
+    del net_params["architecture"]
 
     net = get_net(
         architecture,

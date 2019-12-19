@@ -51,7 +51,7 @@ def model_fn(
         tf.logging.info("subsample %s" % perms)
 
     labels = tf.tile(labels, tf.shape(images)[:1])
-
+    architecture = net_params.get("architecture", None)
     if crop_patches3d:
         return patch3d_utils.create_estimator_model(
             images,
@@ -60,6 +60,7 @@ def model_fn(
             num_classes,
             mode,
             batch_size,
+            architecture=architecture,
             task="jigsaw",
             serving_input_shape=serving_input_shape,
             net_params=net_params,
@@ -72,6 +73,7 @@ def model_fn(
             num_classes,
             mode,
             batch_size,
+            architecture=architecture,
             task="jigsaw",
             serving_input_shape=serving_input_shape,
             net_params=net_params,
