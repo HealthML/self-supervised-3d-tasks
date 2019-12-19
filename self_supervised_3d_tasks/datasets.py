@@ -684,6 +684,7 @@ class DatasetUKB3D(AbstractDataset):
         sharded_filenames = generate_sharded_filenames(
             files % ("train_3D.tfrecord", self.NUM_SHARDS)
         )
+        sharded_filenames = sharded_filenames[:9] + sharded_filenames[10:]
         filenames = {
             "train": sharded_filenames[: -self.VAL_SHARDS],
             "val": sharded_filenames[-self.VAL_SHARDS :],
