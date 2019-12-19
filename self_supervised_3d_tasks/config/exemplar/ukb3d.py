@@ -5,7 +5,9 @@ from self_supervised_3d_tasks.train_and_eval import train_and_eval
 import json
 
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs
+from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 
+aquire_free_gpus(1)
 c_stdout, c_stderr = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
 
 

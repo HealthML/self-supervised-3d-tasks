@@ -24,7 +24,7 @@
   "throttle_secs": 400.0,
   "keep_checkpoint_every_n_hours": 48.0,
   "GPU_Config": {
-    "CUDA_VISIBLE_DEVICES": "0",
+    "CUDA_VISIBLE_DEVICES": "1",
     "GPU_FRACTION": 0.4
   }
 }

@@ -36,7 +36,7 @@ def train_and_eval(FLAGS):
 
     """Trains a network on (self_supervised) supervised data."""
     if "GPU_Config" in FLAGS:
-        os.environ["CUDA_VISIBLE_DEVICES"] = FLAGS["GPU_Config"]["CUDA_VISIBLE_DEVICES"]
+        # os.environ["CUDA_VISIBLE_DEVICES"] = FLAGS["GPU_Config"]["CUDA_VISIBLE_DEVICES"]
         gpu_fraction = FLAGS["GPU_Config"].get("GPU_FRACTION", 1.0)
     else:
         gpu_fraction = 1.0
