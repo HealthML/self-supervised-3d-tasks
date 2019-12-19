@@ -757,6 +757,7 @@ class DatasetUKB3D(AbstractDataset):
         sharded_filenames = generate_sharded_filenames(
             files % ("train_3D.tfrecord", self.NUM_SHARDS)
         )
+        sharded_filenames = sharded_filenames[:9] + sharded_filenames[10:]
         filenames = {
             "train": sharded_filenames[: -self.VAL_SHARDS],
             "val": sharded_filenames[-self.VAL_SHARDS :],
@@ -784,6 +785,7 @@ class DatasetUKB3D(AbstractDataset):
         Returns:
           Returns a tuple of (image, label) from the TFExample.
         """
+
         example = tf.parse_single_example(value, self.FEATURE_MAP)
         image = example[self.IMAGE_KEY]
         tf.logging.info(image)

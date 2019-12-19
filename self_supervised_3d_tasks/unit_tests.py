@@ -1,4 +1,5 @@
 import functools
+import glob
 from os.path import expanduser
 
 import absl.flags as flags
@@ -45,7 +46,7 @@ def get_lena():
 
 def test_brain():
     params = {
-        'dataset': 'ukb',
+        'dataset': 'ukb3d',
         'preprocessing': [],
         'dataset_dir': "/mnt/mpws2019cl1/brain_mri/tf_records",
     }
@@ -61,13 +62,65 @@ def test_brain():
 
     result = f({'batch_size': 1})
     iterator = result.make_one_shot_iterator()
+    i = 0
 
     with tf.Session() as sess:
+        tf.logging.set_verbosity(tf.logging.INFO)
+
         while True:
             el = iterator.get_next()
-            batch = sess.run(el)
-            print(batch["image"].shape)
+            i += 1
 
+            batch = sess.run(el)
+            print("{} iteration, shape: {}".format(i, batch["image"].shape))
+
+def count_rec():
+    tf.enable_eager_execution()
+    files = glob.glob("/mnt/mpws2019cl1/brain_mri/tf_records/*.tfrecord*")
+
+    for f in files:
+        print(f+str(sum(1 for _ in tf.data.TFRecordDataset(f))))
+
+def test_records():
+    tf.enable_eager_execution()
+
+    print("starting")
+    files = glob.glob("/mnt/mpws2019cl1/brain_mri/tf_records/*.tfrecord*")
+
+    print(files)
+
+    filesSize = len(files)
+    cnt = 0
+
+    raw_dataset = tf.data.TFRecordDataset(files)
+
+    for raw_record in raw_dataset.take(10):
+        print(repr(raw_record))
+
+    # Create a description of the features.
+
+    IMAGE_KEY = "image/encoded"
+    HEIGHT_KEY = "image/height"
+    WIDTH_KEY = "image/width"
+    DEPTH_KEY = "image/depth"
+    CHANNELS_KEY = "image/channels"
+
+    FEATURE_MAP = {
+        IMAGE_KEY: tf.FixedLenFeature(shape=[128, 128, 128, 2], dtype=tf.float32),
+        HEIGHT_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
+        WIDTH_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
+        DEPTH_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
+        CHANNELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
+    }
+
+    def _parse_function(example_proto):
+        # Parse the input `tf.Example` proto using the dictionary above.
+        return tf.io.parse_single_example(example_proto, FEATURE_MAP)
+
+    parsed_dataset = raw_dataset.map(_parse_function)
+    for i in parsed_dataset:
+        print(i)
+    print("done")
 
 def test_retina():
     params = {
