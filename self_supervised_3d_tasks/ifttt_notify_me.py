@@ -13,6 +13,13 @@ class Tee(object):
         self.dest1 = dest1
         self.dest2 = dest2
 
+    def __del__(self):
+        pass
+
+    def flush(self):
+        self.dest1.flush()
+        self.dest2.flush()
+
     def write(self, message):
         self.dest1.write(message)
         self.dest2.write(message)
