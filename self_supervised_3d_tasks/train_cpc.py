@@ -17,6 +17,12 @@ from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, ge
     get_pad, get_cpc_preprocess_grid
 from self_supervised_3d_tasks.datasets import get_data, DatasetUKB
 
+from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs
+from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
+from contextlib import redirect_stdout, redirect_stderr
+
+aquire_free_gpus(1)
+c_stdout, c_stderr = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
 
 def chain(f, g):
     return lambda x: g(f(x))
@@ -121,23 +127,24 @@ def train_model(epochs, batch_size, output_dir, code_size, lr=1e-4, terms=4, pre
 
 
 if __name__ == "__main__":
-    os.environ["CUDA_VISIBLE_DEVICES"] = "4"
-
     gpu_options = tf.GPUOptions()
     config = tf.ConfigProto(
         device_count={'GPU': 0}
     )
 
-    with tf.Session(config=config) as sess:
-        train_model(
-            epochs=10,
-            batch_size=32,
-            output_dir='models/64x64',
-            code_size=128,
-            lr=1e-3,
-            terms=3,
-            predict_terms=3,
-            image_size=32,
-            session=sess,
-            color=True
-        )
+
+    with redirect_stdout(c_stdout):  # needed to actually capture stdout
+        with redirect_stderr(c_stderr):  # needed to actually capture stderr
+            with tf.Session(config=config) as sess:
+                train_model(
+                    epochs=10,
+                    batch_size=32,
+                    output_dir='models/64x64',
+                    code_size=128,
+                    lr=1e-3,
+                    terms=3,
+                    predict_terms=3,
+                    image_size=32,
+                    session=sess,
+                    color=True
+                )

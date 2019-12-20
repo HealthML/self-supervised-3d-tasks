@@ -43,6 +43,10 @@ def apply_model(
     # restriction: all tensors should be created inside tf-hub helper function.
     images = image_fn()
 
+    #TODO Quickfix
+    del net_params["architecture"]
+    del net_params["task"]
+
     net = get_net(architecture, task="exemplar", num_classes=num_outputs, weight_decay=weight_decay, **net_params)
     out, end_points = net(images, is_training)
 
@@ -72,6 +76,7 @@ def model_fn(
         architecture,
         crop_inception_preprocess_patches3d=False,
         serving_input_shape="None,None,None,3",
+        net_params={},
 ):
     """Produces a loss for the exemplar task supervision.
 
@@ -105,7 +110,8 @@ def model_fn(
                 is_training=(mode == tf.estimator.ModeKeys.TRAIN),
                 num_outputs=embed_dim,
                 make_signature=False,
-                net_architecture=architecture,
+                architecture=architecture,
+                net_params=net_params,
             )
     else:
         input_shape = utils.str2intlist(serving_input_shape)
@@ -127,7 +133,7 @@ def model_fn(
         tf_hub_module = hub.Module(tf_hub_module_spec, trainable=False, tags=set())
         hub.register_module_for_export(tf_hub_module, export_name="module")
         logits = tf_hub_module(images)
-        return make_estimator(mode, predictions=logits)
+        return make_estimator(mode, predictions=logits, estimator_params=net_params)
 
     labels = repeat(tf.range(batch_size), patch_count)
     norm_logits = tf.nn.l2_normalize(logits, axis=0)
@@ -137,4 +143,4 @@ def model_fn(
 
     logging_hook = tf.train.LoggingTensorHook({"loss": loss}, every_n_iter=10)
 
-    return make_estimator(mode, loss, predictions=logits, common_hooks=logging_hook)
+    return make_estimator(mode, loss, predictions=logits, common_hooks=logging_hook, estimator_params=net_params)

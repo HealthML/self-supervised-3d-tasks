@@ -165,63 +165,63 @@ def _convert_to_example(image_buffer, height, width, depth=None):
             'image/encoded': _float_feature(image_buffer)}))
         return example
 
+if __name__ == "__main__":
+    #################################
+    ##      Test and Use Cases     ##
+    #################################
+    ukb_path = "/mnt/30T/ukbiobank/derived/imaging/brain_mri/"
+    output_tf_records_path = "/mnt/30T/ukbiobank/derived/imaging/brain_mri/tf_records/"
 
-#################################
-##      Test and Use Cases     ##
-#################################
-ukb_path = "/mnt/30T/ukbiobank/derived/imaging/brain_mri/"
-output_tf_records_path = "/mnt/30T/ukbiobank/derived/imaging/brain_mri/tf_records/"
+    t1_files = np.array(sorted(glob.glob(ukb_path + "/T1/**/*.npy", recursive=True)))
+    t2_flair_files = np.array(sorted(glob.glob(ukb_path + "/T2_FLAIR/**/*.npy", recursive=True)))
+    num_files = t2_flair_files.shape[0]
 
-t1_files = np.array(sorted(glob.glob(ukb_path + "/T1/**/*.npy", recursive=True)))
-t2_flair_files = np.array(sorted(glob.glob(ukb_path + "/T2_FLAIR/**/*.npy", recursive=True)))
-num_files = t2_flair_files.shape[0]
+    is3D = True
 
-is3D = True
-
-file_path_prefix = 'train'  # can be "validation"
-if is3D:
-    file_path_prefix += '_3D'
-verbose = True
-
-# Generate tfrecord writer
-result_tf_file = output_tf_records_path + file_path_prefix + '.tfrecord'
-
-if verbose:
-    print("Serializing {:d} examples into {}".format(num_files, result_tf_file))
-
-# iterate over each sample, and serialize it as ProtoBuf.
-num_shards = int(num_files / SHARD_SIZE)
-print('Total number of shards is ' + str(num_shards))
-print('Expected number of files: ' + str(num_shards * SHARD_SIZE))
-
-
-def process_one_shard(shard):
-    print("processing shard number %d *****" % shard)
+    file_path_prefix = 'train'  # can be "validation"
     if is3D:
-        X = parallel_load_ukb_3D_multimodal(t1_files[(shard * SHARD_SIZE):((shard + 1) * SHARD_SIZE)],
-                                            t2_flair_files[(shard * SHARD_SIZE):((shard + 1) * SHARD_SIZE)])
-    else:
-        X = parallel_load_ukb_multimodal(t1_files[(shard * SHARD_SIZE):((shard + 1) * SHARD_SIZE)],
-                                         t2_flair_files[(shard * SHARD_SIZE):((shard + 1) * SHARD_SIZE)])
-        np.random.shuffle(X)  # shuffling input dataset by rows
+        file_path_prefix += '_3D'
+    verbose = True
 
-    print(X.shape)
-    output_filename = '%s-%.5d-of-%.5d' % (result_tf_file, shard, num_shards)
-    writer = tf.python_io.TFRecordWriter(output_filename)
-    for idx in range(X.shape[0]):
-        x = X[idx]
-        height, width = x.shape[0], x.shape[1]
-        depth = None
-        if is3D:
-            depth = x.shape[2]
-        x_reshaped = x.flatten()
-        example = _convert_to_example(x_reshaped, height, width, depth)
-        serialized = example.SerializeToString()
-        writer.write(serialized)
-    del X
+    # Generate tfrecord writer
+    result_tf_file = output_tf_records_path + file_path_prefix + '.tfrecord'
+
     if verbose:
-        print("Writing {} done!".format(output_filename))
+        print("Serializing {:d} examples into {}".format(num_files, result_tf_file))
+
+    # iterate over each sample, and serialize it as ProtoBuf.
+    num_shards = int(num_files / SHARD_SIZE)
+    print('Total number of shards is ' + str(num_shards))
+    print('Expected number of files: ' + str(num_shards * SHARD_SIZE))
 
 
-for shard in range(num_shards - 1):
-    process_one_shard(shard)
+    def process_one_shard(shard):
+        print("processing shard number %d *****" % shard)
+        if is3D:
+            X = parallel_load_ukb_3D_multimodal(t1_files[(shard * SHARD_SIZE):((shard + 1) * SHARD_SIZE)],
+                                                t2_flair_files[(shard * SHARD_SIZE):((shard + 1) * SHARD_SIZE)])
+        else:
+            X = parallel_load_ukb_multimodal(t1_files[(shard * SHARD_SIZE):((shard + 1) * SHARD_SIZE)],
+                                             t2_flair_files[(shard * SHARD_SIZE):((shard + 1) * SHARD_SIZE)])
+            np.random.shuffle(X)  # shuffling input dataset by rows
+
+        print(X.shape)
+        output_filename = '%s-%.5d-of-%.5d' % (result_tf_file, shard, num_shards)
+        writer = tf.python_io.TFRecordWriter(output_filename)
+        for idx in range(X.shape[0]):
+            x = X[idx]
+            height, width = x.shape[0], x.shape[1]
+            depth = None
+            if is3D:
+                depth = x.shape[2]
+            x_reshaped = x.flatten()
+            example = _convert_to_example(x_reshaped, height, width, depth)
+            serialized = example.SerializeToString()
+            writer.write(serialized)
+        del X
+        if verbose:
+            print("Writing {} done!".format(output_filename))
+
+
+    for shard in range(num_shards - 1):
+        process_one_shard(shard)

@@ -6,6 +6,7 @@ from __future__ import print_function
 
 import functools
 import struct
+from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
@@ -22,7 +23,7 @@ PATCH_COUNT = PATCH_H_COUNT * PATCH_W_COUNT * PATCH_D_COUNT
 
 # It's supposed to be in the root folder, which is also pwd when running, if the
 # instructions in the README are followed. Hence not a flag.
-PERMUTATION_PATH = "permutations3d_100_max.bin"
+PERMUTATION_PATH = str(Path(__file__).parent.parent / "permutations" / "permutations3d_100_max.bin")
 
 
 def apply_model(
