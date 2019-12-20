@@ -274,23 +274,39 @@ def get_rotate3d_preprocess():
 
     # TODO: Change back to normal
     def _rotate_pp(data):
+        data["label"], data["image"] = utils.tf_apply_many_with_probability(
+            [1 / 10.0] * 10,
+            [
+                lambda x: (0, x),
+                lambda x: (1, tf.transpose(tf.reverse_v2(x, [1]), [1, 0, 2, 3])),
+                lambda x: (2, tf.reverse_v2(x, [0, 1])),  # 180 degrees on z axis
+                lambda x: (3, tf.reverse_v2(tf.transpose(x, [1, 0, 2, 3]), [1])),
+                lambda x: (4, tf.transpose(tf.reverse_v2(x, [1]), [0, 2, 1, 3])),
+                lambda x: (5, tf.reverse_v2(x, [1, 2])),  # 180 degrees on x axis
+                lambda x: (6, tf.reverse_v2(tf.transpose(x, [0, 2, 1, 3]), [1])),
+                lambda x: (7, tf.transpose(tf.reverse_v2(x, [0]), [2, 1, 0, 3])),
+                lambda x: (8, tf.reverse_v2(x, [0, 2])),  # 180 degrees on y axis
+                lambda x: (9, tf.reverse_v2(tf.transpose(x, [2, 1, 0, 3]), [0])),
+            ],
+            data["image"],
+        )
         # data["label"] = tf.constant([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
         # data["label"] = tf.constant([0, 1, 2, 3, 4, 5, 6])
-
-        data["label"] = tf.constant([0])
-
-        data["image"] = tf.stack([
-            data["image"]
-            # tf.transpose(tf.reverse_v2(data["image"], [1]), [1, 0, 2, 3]),
-            # # tf.reverse_v2(data["image"], [0, 1]), # 180 degrees on z axis
-            # tf.reverse_v2(tf.transpose(data["image"], [1, 0, 2, 3]), [1]),
-            # tf.transpose(tf.reverse_v2(data["image"], [1]), [0, 2, 1, 3]),
-            # # tf.reverse_v2(data["image"], [1, 2]), # 180 degrees on x axis
-            # tf.reverse_v2(tf.transpose(data["image"], [0, 2, 1, 3]), [1]),
-            # tf.transpose(tf.reverse_v2(data["image"], [0]), [2, 1, 0, 3]),
-            # # tf.reverse_v2(data["image"], [0, 2]), # 180 degrees on y axis
-            # tf.reverse_v2(tf.transpose(data["image"], [2, 1, 0, 3]), [0])
-        ])
+        # data["label"] = tf.constant([0])
+        # data["image"] = tf.stack(
+        #     [
+        #         data["image"],
+        #         tf.transpose(tf.reverse_v2(data["image"], [1]), [1, 0, 2, 3]),
+        #         # tf.reverse_v2(data["image"], [0, 1]), # 180 degrees on z axis
+        #         tf.reverse_v2(tf.transpose(data["image"], [1, 0, 2, 3]), [1]),
+        #         tf.transpose(tf.reverse_v2(data["image"], [1]), [0, 2, 1, 3]),
+        #         # tf.reverse_v2(data["image"], [1, 2]), # 180 degrees on x axis
+        #         tf.reverse_v2(tf.transpose(data["image"], [0, 2, 1, 3]), [1]),
+        #         tf.transpose(tf.reverse_v2(data["image"], [0]), [2, 1, 0, 3]),
+        #         # tf.reverse_v2(data["image"], [0, 2]), # 180 degrees on y axis
+        #         tf.reverse_v2(tf.transpose(data["image"], [2, 1, 0, 3]), [0]),
+        #     ]
+        # )
         return data
 
     return _rotate_pp
@@ -525,7 +541,9 @@ def get_preprocess_fn(fn_names, is_training, **dependend_params):
             elif fn_name == "inception_crop":
                 yield get_inception_crop(is_training)
             elif fn_name == "pad":
-                yield get_pad(dependend_params["padding"], dependend_params["padding_mode"])
+                yield get_pad(
+                    dependend_params["padding"], dependend_params["padding_mode"]
+                )
             elif fn_name == "flip_lr":
                 yield get_random_flip_lr(is_training)
             elif fn_name == "flip_ud":

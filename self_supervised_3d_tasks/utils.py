@@ -11,6 +11,7 @@ import glob
 import os
 import re
 import shutil
+import math
 
 import numpy as np
 import tensorflow as tf
@@ -300,20 +301,17 @@ def tf_apply_with_probability(p, fn, x):
 
 def tf_apply_many_with_probability(ps, functions, x):
     """"Apply function `fn[i]` to input `x` randomly `p[i]` percent of the time."""
+    assert (math.isclose(sum(ps), 1, rel_tol=1e-7), "Your probabilities should sum to 1")
     if len(ps) != len(functions):
         raise Exception('lengths do not match')
-
-    print(ps, functions, x)
-    print(sum(ps[:0]))
-    print(sum(ps[:1]))
 
     rand = tf.random_uniform([], minval=0, maxval=1, dtype=tf.float32)
 
     def _test_i(i):
         return tf.cond(
-            tf.less(rand, sum(ps[:i+1])),
+            tf.less_equal(rand, sum(ps[:i + 1])),
             lambda: functions[i](x),
-            lambda: _test_i(i + 1) if (i + 1) < len(ps) else x)
+            lambda: _test_i(i + 1) if (i + 1) < len(ps) else functions[0](x))
 
     return _test_i(0)
 
