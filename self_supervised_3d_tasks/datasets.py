@@ -626,7 +626,7 @@ class DatasetUKB(AbstractDataset):
     VAL_SHARDS = 2
     NUM_SHARDS = 19
     # actual number of files (not necessarily a multitude of 1024)
-    COUNTS = {"train": 2443240, "val": 287440, "trainval": 2730680}
+    COUNTS = {"train": 2299520, "val": 287440, "trainval": 2586960} # TODO: change back to 2443240, 287440, 2730680
 
     IMAGE_KEY = "image/encoded"
     HEIGHT_KEY = "image/height"
@@ -669,6 +669,8 @@ class DatasetUKB(AbstractDataset):
         sharded_filenames = generate_sharded_filenames(
             files % ("train.tfrecord", self.NUM_SHARDS)
         )
+        # TODO: FIX this file
+        sharded_filenames = sharded_filenames[:9] + sharded_filenames[10:]
         filenames = {
             "train": sharded_filenames[: -self.VAL_SHARDS],
             "val": sharded_filenames[-self.VAL_SHARDS :],
@@ -712,7 +714,7 @@ class DatasetUKB3D(AbstractDataset):
     VAL_SHARDS = 4
     NUM_SHARDS = 19
     # actual number of files (not necessarily a multitude of 1024)
-    COUNTS = {"train": 15360, "val": 4096, "trainval": 19456}
+    COUNTS = {"train": 14336, "val": 4096, "trainval": 18432} # TODO: change back to 15360, 4096, 19456
 
     IMAGE_KEY = "image/encoded"
     HEIGHT_KEY = "image/height"
@@ -757,6 +759,7 @@ class DatasetUKB3D(AbstractDataset):
         sharded_filenames = generate_sharded_filenames(
             files % ("train_3D.tfrecord", self.NUM_SHARDS)
         )
+        # TODO: FIX this file
         sharded_filenames = sharded_filenames[:9] + sharded_filenames[10:]
         filenames = {
             "train": sharded_filenames[: -self.VAL_SHARDS],

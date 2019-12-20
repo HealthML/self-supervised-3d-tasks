@@ -3,7 +3,7 @@ import os
 
 import keras
 import keras.backend as k
-from os.path import join
+from os.path import join, expanduser
 from os import makedirs
 from pathlib import Path
 import numpy as np
@@ -24,16 +24,18 @@ from contextlib import redirect_stdout, redirect_stderr
 aquire_free_gpus(1)
 c_stdout, c_stderr = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
 
+
 def chain(f, g):
     return lambda x: g(f(x))
+
 
 class PatchMatcher(object):
     ''' Data generator providing lists of sorted numbers '''
 
-    def __init__(self, is_training, session):
+    def __init__(self, is_training, session, batch_size):
         # return
         self.is_training = is_training
-        self.batch_size = 8
+        self.batch_size = batch_size
 
         crop_size = 128
         split_per_side = 7
@@ -87,20 +89,34 @@ class PatchMatcher(object):
         return (X, Y)
 
 
-def train_model(epochs, batch_size, output_dir, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28,
-                session=None, color=False):
+def train_model(epochs, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, batch_size=8,
+                session=None):
+    working_dir = expanduser("~/workspace/self-supervised-transfer-learning/cpc")
+
     # Callbacks
     k.set_session(tf.Session(config=tf.ConfigProto(allow_soft_placement=True)))
 
     # Prepare data
-    train_data = PatchMatcher(is_training=True, session=session)
-    validation_data = PatchMatcher(is_training=False, session=session)
+    train_data = PatchMatcher(is_training=True, session=session, batch_size=batch_size)
+    validation_data = PatchMatcher(is_training=False, session=session, batch_size=batch_size)
 
     # Prepares the model
     model = network_cpc(image_shape=(image_size, image_size, 2), terms=terms, predict_terms=predict_terms,
                         code_size=code_size, learning_rate=lr)
 
-    callbacks = [keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=1/3, patience=2, min_lr=1e-4)]
+    tb_callback = keras.callbacks.TensorBoard(log_dir=working_dir, histogram_freq=0,
+                                              batch_size=batch_size,
+                                              write_graph=True, write_grads=False, write_images=False,
+                                              embeddings_freq=0,
+                                              embeddings_layer_names=None, embeddings_metadata=None,
+                                              embeddings_data=None, update_freq='epoch')
+
+    mc_callback = keras.callbacks.ModelCheckpoint(working_dir, monitor='val_loss', verbose=0,
+                                                  save_best_only=False,
+                                                  save_weights_only=False, mode='auto', period=1)
+
+    callbacks = [keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=1 / 3, patience=2, min_lr=1e-4),
+                 tb_callback, mc_callback]
 
     # Trains the model
     model.fit_generator(
@@ -113,17 +129,17 @@ def train_model(epochs, batch_size, output_dir, code_size, lr=1e-4, terms=4, pre
         callbacks=callbacks
     )
 
-    # Saves the model
-    # Remember to add custom_objects={'CPCLayer': CPCLayer} to load_model when loading from disk
-    path = Path(__file__).parent / output_dir
-    if not path.exists():
-        makedirs(path)
-
-    model.save(path / 'cpc.h5')
-
-    # Saves the encoder alone
-    encoder = model.layers[1].layer
-    encoder.save(path / 'encoder.h5')
+    # # Saves the model
+    # # Remember to add custom_objects={'CPCLayer': CPCLayer} to load_model when loading from disk
+    # path = Path(__file__).parent / output_dir
+    # if not path.exists():
+    #     makedirs(path)
+    #
+    # model.save(path / 'cpc.h5')
+    #
+    # # Saves the encoder alone
+    # encoder = model.layers[1].layer
+    # encoder.save(path / 'encoder.h5')
 
 
 if __name__ == "__main__":
@@ -132,19 +148,16 @@ if __name__ == "__main__":
         device_count={'GPU': 0}
     )
 
-
-    with redirect_stdout(c_stdout):  # needed to actually capture stdout
-        with redirect_stderr(c_stderr):  # needed to actually capture stderr
-            with tf.Session(config=config) as sess:
-                train_model(
-                    epochs=10,
-                    batch_size=32,
-                    output_dir='models/64x64',
-                    code_size=128,
-                    lr=1e-3,
-                    terms=3,
-                    predict_terms=3,
-                    image_size=32,
-                    session=sess,
-                    color=True
-                )
+    # with redirect_stdout(c_stdout):  # needed to actually capture stdout
+    #    with redirect_stderr(c_stderr):  # needed to actually capture stderr
+    with tf.Session(config=config) as sess:
+        train_model(
+            epochs=10,
+            code_size=128,
+            lr=1e-3,
+            terms=3,
+            predict_terms=3,
+            image_size=32,
+            session=sess,
+            batch_size=8
+        )
