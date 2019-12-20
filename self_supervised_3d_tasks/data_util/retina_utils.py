@@ -28,12 +28,19 @@ def _float_feature(value):
     return tf.train.Feature(float_list=tf.train.FloatList(value=value))
 
 
-def _convert_to_example(image_buffer, height, width, channels):
+def _string_feature(value):
+    """Wrapper for inserting float features into Example proto."""
+    encbytes = value.encode('utf-8')
+    return tf.train.Feature(bytes_list=tf.train.BytesList(value=[encbytes]))
+
+
+def _convert_to_example(image_buffer, fname, height, width, channels):
     example = tf.train.Example(features=tf.train.Features(feature={
         'image/height': _int64_feature(height),
         'image/width': _int64_feature(width),
         'image/channels': _int64_feature(channels),
-        'image/data': _float_feature(image_buffer)}))
+        'image/data': _float_feature(image_buffer),
+        'image/filename': _string_feature(fname)}))
     return example
 
 
@@ -43,11 +50,15 @@ def process_one_shard(n_shards, current_shard_id, current_shard, result_tf_file)
     writer = tf.python_io.TFRecordWriter(output_filename)
 
     for i in range(len(current_shard)):
-        example = _convert_to_example(current_shard[i].flatten(), *current_shard[i].shape)
+        img = current_shard[i][0]
+        filename = current_shard[i][1]
+
+        example = _convert_to_example(img.flatten(), filename, *img.shape)
 
         serialized = example.SerializeToString()
         writer.write(serialized)
     print("Writing {} done!".format(output_filename))
+
 
 if __name__ == "__main__":
     # generate TF Records, we have train / valid / test
@@ -84,7 +95,7 @@ if __name__ == "__main__":
         img = np.asarray(im_frame, dtype="float32")
         img /= 255
 
-        current_shard.append(img)
+        current_shard.append((img, filename))
 
         if len(current_shard) == SHARD_SIZE:
             process_one_shard(n_shards, current_shard_id, current_shard, result_tf_file)
