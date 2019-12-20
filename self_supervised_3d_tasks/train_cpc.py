@@ -1,3 +1,6 @@
+import math
+import os
+
 import keras
 import keras.backend as k
 from os.path import join
@@ -21,22 +24,10 @@ def chain(f, g):
 class PatchMatcher(object):
     ''' Data generator providing lists of sorted numbers '''
 
-    def __init__(self, is_training):
+    def __init__(self, is_training, session):
+        # return
         self.is_training = is_training
-
-
-        # data = get_data(
-        #     params={'batch_size': 8},
-        #     split_name='train',
-        #     is_training=self.is_training,
-        #     num_epochs=1,
-        #     shuffle=False,
-        #     drop_remainder=True,
-        #     dataset_parameter={'batch_size': 8},
-        #     dataset='ukb',
-        #     dataset_dir="/mnt/mpws2019cl1/brain_mri/tf_records/",
-        #     preprocessing=[],
-        # )
+        self.batch_size = 8
 
         crop_size = 128
         split_per_side = 7
@@ -53,9 +44,9 @@ class PatchMatcher(object):
         f = chain(f, get_crop(is_training=self.is_training, crop_size=(patch_crop_size, patch_crop_size)))
         f = chain(f, get_drop_all_channels_but_one_preprocess())
         f = chain(f, get_pad([[padding, padding], [padding, padding], [0, 0]], "REFLECT"))
+
         # TODO put in when properly implemented
         # f = chain(f, get_cpc_preprocess_grid())
-        self.f = f
 
         data = DatasetUKB(
             split_name="train",
@@ -65,13 +56,10 @@ class PatchMatcher(object):
             dataset_dir="/mnt/mpws2019cl1/brain_mri/tf_records/",
             random_seed=True,
             drop_remainder=True,
-        ).input_fn({'batch_size': 8})
+        ).input_fn({'batch_size': self.batch_size})
 
-        #self.iterator = data.make_one_shot_iterator()
-        #self.sess = tf.Session()
-
-
-
+        self.iterator = data.make_one_shot_iterator()
+        self.sess = session
 
     def __iter__(self):
         return self
@@ -80,16 +68,12 @@ class PatchMatcher(object):
         return self.next()
 
     def __len__(self):
-        return 1000
+        return math.ceil(DatasetUKB.COUNTS["train" if self.is_training else "val"] / self.batch_size)
 
     def next(self):
-        return ([np.zeros((8, 3, 32, 32, 2)), np.zeros((8, 3, 32, 32, 2))], np.zeros((8, 1)))
         el = self.iterator.get_next()
         batch = self.sess.run(el)
         batch = get_cpc_preprocess_grid()(batch)
-
-        # print("TFBATCH", self.tfbatch)
-        # patches = self.sess.run(self.tfbatch) #self.f(self.tfbatch))
 
         X = [np.array(batch["patches_enc"]), np.array(batch["patches_pred"])]
         Y = np.array(batch["labels"])
@@ -97,20 +81,20 @@ class PatchMatcher(object):
         return (X, Y)
 
 
-def train_model(epochs, batch_size, output_dir, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, color=False):
+def train_model(epochs, batch_size, output_dir, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28,
+                session=None, color=False):
+    # Callbacks
+    k.set_session(tf.Session(config=tf.ConfigProto(allow_soft_placement=True)))
+
     # Prepare data
-    train_data = PatchMatcher(is_training=True)
-    validation_data = PatchMatcher(is_training=False)
+    train_data = PatchMatcher(is_training=True, session=session)
+    validation_data = PatchMatcher(is_training=False, session=session)
 
     # Prepares the model
     model = network_cpc(image_shape=(image_size, image_size, 2), terms=terms, predict_terms=predict_terms,
                         code_size=code_size, learning_rate=lr)
 
-    # Callbacks
-    k.set_session(tf.Session())
     callbacks = [keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=1/3, patience=2, min_lr=1e-4)]
-
-
 
     # Trains the model
     model.fit_generator(
@@ -137,14 +121,23 @@ def train_model(epochs, batch_size, output_dir, code_size, lr=1e-4, terms=4, pre
 
 
 if __name__ == "__main__":
-    train_model(
-        epochs=10,
-        batch_size=32,
-        output_dir='models/64x64',
-        code_size=128,
-        lr=1e-3,
-        terms=3,
-        predict_terms=3,
-        image_size=32,
-        color=True
+    os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+
+    gpu_options = tf.GPUOptions()
+    config = tf.ConfigProto(
+        device_count={'GPU': 0}
     )
+
+    with tf.Session(config=config) as sess:
+        train_model(
+            epochs=10,
+            batch_size=32,
+            output_dir='models/64x64',
+            code_size=128,
+            lr=1e-3,
+            terms=3,
+            predict_terms=3,
+            image_size=32,
+            session=sess,
+            color=True
+        )
