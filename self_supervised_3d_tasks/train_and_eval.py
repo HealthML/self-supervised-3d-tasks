@@ -41,7 +41,7 @@ def train_and_eval(FLAGS):
     else:
         gpu_fraction = 1.0
     model_dir = Path(FLAGS["workdir"]).expanduser().resolve()
-    use_tpu = FLAGS["use_tpu"]
+    use_tpu = FLAGS.get("use_tpu", False)
     batch_size = FLAGS["batch_size"]
     eval_batch_size = FLAGS.get("eval_batch_size", batch_size)
     dataset = FLAGS["dataset"]
