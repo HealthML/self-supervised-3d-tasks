@@ -224,6 +224,79 @@ class DatasetRetina(AbstractDataset):
         return self.preprocess_fn({"example": example, "image": data, "channels": channels, "width": width,
                                    "height": height})
 
+class DatasetKaggleRetina(AbstractDataset):
+    """Retina Data"""
+
+    N_SHARDS = 1
+    #SPLIT_SHARDS_TRAIN = int(N_SHARDS * 0.6)
+    #SPLIT_SHARDS_VAL = int(N_SHARDS * 0.8)
+
+    COUNTS = {
+        "train": 11,
+        "val": 0,
+        "trainval": 0,
+        "test": 0,
+    }
+
+    HEIGHT_KEY = "image/height"
+    WIDTH_KEY = "image/width"
+    CHANNELS_KEY = "image/channels"
+    DATA_KEY = "image/data"
+    LABEL_KEY = "image/label"
+    FILENAME_KEY = "image/filename"
+
+    # TODO: have variable terms & sizes here
+    FEATURE_MAP = {
+        HEIGHT_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
+        WIDTH_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
+        CHANNELS_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
+        LABEL_KEY: tf.FixedLenFeature(shape=[], dtype=tf.int64),
+        DATA_KEY: tf.FixedLenFeature(shape=[128, 128, 3], dtype=tf.float32)
+    }
+
+    def __init__(
+        self,
+            dataset_dir,
+            split_name,
+            preprocess_fn,
+            num_epochs,
+            shuffle,
+            random_seed=None,
+            drop_remainder=True,
+    ):
+        files = os.path.join(os.path.expanduser(dataset_dir), "%s@%i")
+        # TODO: look one line up
+
+        filenames = {
+            "train": generate_sharded_filenames(files % ("train.tfrecord", self.N_SHARDS))
+        }
+
+        tf.logging.info(filenames[split_name])
+
+        super(DatasetKaggleRetina, self).__init__(
+            filenames=filenames[split_name],
+            reader=tf.data.TFRecordDataset,
+            num_epochs=num_epochs,
+            shuffle=shuffle,
+            random_seed=random_seed,
+            drop_remainder=drop_remainder,
+        )
+
+        self.split_name = split_name
+        self.preprocess_fn = preprocess_fn
+
+    def _parse_fn(self, value):
+        example = tf.parse_single_example(value, self.FEATURE_MAP)
+
+        data = example[self.DATA_KEY]
+        channels = example[self.CHANNELS_KEY]
+        width = example[self.WIDTH_KEY]
+        height = example[self.HEIGHT_KEY]
+        label = example[self.LABEL_KEY]
+
+        return self.preprocess_fn({"example": example, "image": data, "channels": channels, "width": width,
+                                   "height": height, "label": label})
+
 
 class DatasetCpcMnist(AbstractDataset):
     """CPC Test data, MNIST"""
@@ -801,6 +874,7 @@ DATASET_MAP = {
     "ukb3d": DatasetUKB3D,
     "cpc_test": DatasetCpcMnist,
     "retina": DatasetRetina,
+    "kaggle_retina": DatasetKaggleRetina,
 }
 
 

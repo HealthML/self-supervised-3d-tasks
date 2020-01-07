@@ -112,7 +112,7 @@ def train_and_eval(FLAGS):
         for flag in optional_flags:
             if FLAGS.get(flag, None):
                 tace_mapped = functools.partial(tace_mapped, **{flag: FLAGS[flag]})
-        tace_mapped(
+        return tace_mapped(
             estimator,
             dataset,
             preprocessing,
@@ -123,6 +123,20 @@ def train_and_eval(FLAGS):
             FLAGS=FLAGS,
         )
 
+    elif FLAGS.get("predict", False):
+        predict_mapped = predict
+        optional_flags = ["val_split", "use_tpu"]
+        for flag in optional_flags:
+            if FLAGS.get(flag, None):
+                predict_mapped = functools.partial(predict, **{flag: FLAGS[flag]})
+        return predict_mapped(
+            estimator,
+            model_dir,
+            dataset,
+            preprocessing,
+            dataset_dir,
+            FLAGS=FLAGS,
+        )
     # TRAIN
     else:
         train_mapped = train
@@ -344,6 +358,50 @@ def train(
         writer = tf.summary.FileWriter("logs", sess.graph)
 
     return estimator.train(train_data_fn, steps=num_steps)
+
+
+def predict(
+        estimator,
+        dataset,
+        preprocessing,
+        dataset_dir,
+        epochs: int,
+        test_split="train",
+        FLAGS={},
+):
+    """I predict something using a stored estimator.
+
+    Args:
+        estimator: a tensorflow.estimator.Estimator object
+        dataset: the name of the dataset
+        preprocessing: a list of preprocessing steps identified via the function name
+        dataset_dir: a valid Path to dataset
+        epochs: number of epochs to be trained
+        batch_size: number of samples per batch
+        train_split: on which split to train (one of: "train" / "trainval")
+
+    Returns:
+        estimator (after training for chaining)
+
+    """
+    tf.logging.info("now predicting.")
+    train_data_fn = functools.partial(
+        get_data,
+        dataset=dataset,
+        preprocessing=preprocessing,
+        dataset_dir=dataset_dir,
+        split_name=test_split,
+        is_training=False,
+        num_epochs=int(math.ceil(epochs)),
+        drop_remainder=True,
+        dataset_parameter=FLAGS,
+    )
+
+    with tf.Session() as sess:
+        writer = tf.summary.FileWriter("logs", sess.graph)
+
+    return estimator.predict(train_data_fn)
+
 
 
 def serving_input_fn(serving_input_shape, serving_input_key):

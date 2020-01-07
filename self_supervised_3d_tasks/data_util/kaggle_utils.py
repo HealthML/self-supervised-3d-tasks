@@ -2,6 +2,7 @@ import math
 import os
 from os.path import expanduser
 
+import pandas
 import tensorflow as tf
 import numpy as np
 from PIL import Image
@@ -39,13 +40,13 @@ def _string_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[encbytes]))
 
 
-def _convert_to_example(image_buffer, fname, height, width, channels):
+def _convert_to_example(image_buffer, fname, height, width, channels, lbl):
     example = tf.train.Example(features=tf.train.Features(feature={
         'image/height': _int64_feature(height),
         'image/width': _int64_feature(width),
         'image/channels': _int64_feature(channels),
-        'image/data': _float_feature(image_buffer),
-        'image/filename': _string_feature(fname)}))
+        'image/label': _int64_feature(lbl),
+        'image/data': _float_feature(image_buffer)}))
     return example
 
 
@@ -57,8 +58,11 @@ def process_one_shard(n_shards, current_shard_id, current_shard, result_tf_file)
     for i in range(len(current_shard)):
         img = current_shard[i][0]
         filename = current_shard[i][1]
+        label = current_shard[i][2]
 
-        example = _convert_to_example(img.flatten(), filename, *img.shape)
+        print(img.shape)
+
+        example = _convert_to_example(img.flatten(), filename, *img.shape, label)
 
         serialized = example.SerializeToString()
         writer.write(serialized)
@@ -66,42 +70,46 @@ def process_one_shard(n_shards, current_shard_id, current_shard, result_tf_file)
 
 
 if __name__ == "__main__":
-    # generate TF Records, we have train / valid / test
-    output_tf_records_path = "/mnt/mpws2019cl1/retinal_fundus/retina_tf_records/max_256/"
-    directory = expanduser("~/retinal_fundus/left/max_256/")
+    output_tf_records_path = "/mnt/mpws2019cl1/kaggle_retina/tf_records/"
+    directory = expanduser("~/kaggle_sample/")
+
+    labels_file_name = directory + 'labels/trainLabels.csv'
 
     corrupted_images = []
     n_images = len(os.listdir(directory))
-    print("n images: "+str(n_images))
+    print("n images: " + str(n_images))
     n_shards = math.ceil(float(n_images) / float(SHARD_SIZE))
-    print("n shards: "+str(n_shards))
+    print("n shards: " + str(n_shards))
 
     if not os.path.exists(output_tf_records_path):
         os.mkdir(output_tf_records_path)
 
-    result_tf_file = output_tf_records_path + '.tfrecord'
+    result_tf_file = output_tf_records_path + "train.tfrecord"
 
     current_shard = []
     current_shard_id = 1
 
-    for filename in os.listdir(directory):
+    df = pandas.read_csv(labels_file_name, sep=r'\s*,\s*')
+
+    for filename in [f for f in os.listdir(directory) if os.path.isfile(os.path.join(directory, f))]:
         try:
             im_frame = Image.open("{}/{}".format(directory, filename))
             print("loading: " + filename)
 
             im_frame.load()
+            if resize:
+                im_frame = im_frame.resize((resize_w, resize_l))
         except:
+            print()
             corrupted_images.append(filename)
             print("LOADING FAILED FOR: {}".format(filename))
             continue
 
-        img = np.asarray(im_frame, dtype="float32")
+        img = np.asarray(im_frame, dtype=np.float32)
         img /= 255
 
-        if resize:
-            img = resize(img, (resize_w, resize_l))
-
-        current_shard.append((img, filename))
+        label = df[df["image"] == filename[:-5]]["level"].values[0]
+        current_shard.append((img, filename, label))
 
         if len(current_shard) == SHARD_SIZE:
             process_one_shard(n_shards, current_shard_id, current_shard, result_tf_file)
@@ -112,5 +120,5 @@ if __name__ == "__main__":
         process_one_shard(n_shards, current_shard_id, current_shard, result_tf_file)
 
     print("could not load following {} images: {}".format(len(corrupted_images), corrupted_images))
-    print("final count: {}".format(n_images-len(corrupted_images)))
+    print("final count: {}".format(n_images - len(corrupted_images)))
     print("Done")
