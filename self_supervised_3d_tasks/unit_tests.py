@@ -218,5 +218,5 @@ def test_preprocessing():
         print(patches["image"].shape)
         show_batch(patches["image"])
 
-
-test_brain()
+if __name__ == "__main__":
+    test_brain()

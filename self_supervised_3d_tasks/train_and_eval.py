@@ -36,12 +36,12 @@ def train_and_eval(FLAGS):
 
     """Trains a network on (self_supervised) supervised data."""
     if "GPU_Config" in FLAGS:
-        os.environ["CUDA_VISIBLE_DEVICES"] = FLAGS["GPU_Config"]["CUDA_VISIBLE_DEVICES"]
+        # os.environ["CUDA_VISIBLE_DEVICES"] = FLAGS["GPU_Config"]["CUDA_VISIBLE_DEVICES"]
         gpu_fraction = FLAGS["GPU_Config"].get("GPU_FRACTION", 1.0)
     else:
         gpu_fraction = 1.0
     model_dir = Path(FLAGS["workdir"]).expanduser().resolve()
-    use_tpu = FLAGS["use_tpu"]
+    use_tpu = FLAGS.get("use_tpu", False)
     batch_size = FLAGS["batch_size"]
     eval_batch_size = FLAGS.get("eval_batch_size", batch_size)
     dataset = FLAGS["dataset"]

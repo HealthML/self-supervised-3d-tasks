@@ -8,6 +8,23 @@ from functools import wraps
 import logging
 
 
+class Tee(object):
+    def __init__(self, dest1, dest2):
+        self.dest1 = dest1
+        self.dest2 = dest2
+
+    def __del__(self):
+        pass
+
+    def flush(self):
+        self.dest1.flush()
+        self.dest2.flush()
+
+    def write(self, message):
+        self.dest1.write(message)
+        self.dest2.write(message)
+
+
 def shim_outputs():
     logger = logging.getLogger("tensorflow")
     c_stdout = StringIO()

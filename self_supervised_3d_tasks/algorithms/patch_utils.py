@@ -14,7 +14,7 @@ import tensorflow_hub as hub
 from .. import preprocess, utils
 from ..models.utils import get_net
 from ..trainer import make_estimator
-
+from pathlib import Path
 # FLAGS = tf.flags.FLAGS
 
 PATCH_H_COUNT = 3
@@ -23,7 +23,7 @@ PATCH_COUNT = PATCH_H_COUNT * PATCH_W_COUNT
 
 # It's supposed to be in the root folder, which is also pwd when running, if the
 # instructions in the README are followed. Hence not a flag.
-PERMUTATION_PATH = "permutations_100_max.bin"
+PERMUTATION_PATH = str(Path(__file__).parent.parent / "permutations" / "permutations_100_max.bin")
 
 
 def apply_model(
@@ -59,6 +59,10 @@ def apply_model(
       ValueError: An error occurred when the architecture is unknown.
     """
     images = image_fn()
+
+    # TODO: resolve quick fix
+    del net_params["task"]
+    del net_params["architecture"]
 
     net = get_net(
         architecture,
