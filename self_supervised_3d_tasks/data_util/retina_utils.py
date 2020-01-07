@@ -8,7 +8,12 @@ from PIL import Image
 
 SHARD_SIZE = 1024
 
+resize = True
+resize_w = 128
+resize_l = 128
+
 import matplotlib.pyplot as plt
+from skimage.transform import resize
 
 
 def _int64_feature(value):
@@ -80,12 +85,10 @@ if __name__ == "__main__":
     current_shard_id = 1
 
     for filename in os.listdir(directory):
-        im_frame = Image.open("{}/{}".format(directory, filename))
-        # 2979306_21015_1_0.png
-
-        print("loading: " + filename)
-
         try:
+            im_frame = Image.open("{}/{}".format(directory, filename))
+            print("loading: " + filename)
+
             im_frame.load()
         except:
             corrupted_images.append(filename)
@@ -94,6 +97,9 @@ if __name__ == "__main__":
 
         img = np.asarray(im_frame, dtype="float32")
         img /= 255
+
+        if resize:
+            img = resize(img, (resize_w, resize_l))
 
         current_shard.append((img, filename))
 
