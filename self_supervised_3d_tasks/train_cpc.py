@@ -1,5 +1,6 @@
 import math
 import os
+import sys
 
 import keras
 import keras.backend as k
@@ -17,7 +18,7 @@ from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, ge
     get_pad, get_cpc_preprocess_grid
 from self_supervised_3d_tasks.datasets import get_data, DatasetUKB
 
-from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs
+from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from contextlib import redirect_stdout, redirect_stderr
 
@@ -148,16 +149,16 @@ if __name__ == "__main__":
         device_count={'GPU': 0}
     )
 
-    # with redirect_stdout(c_stdout):  # needed to actually capture stdout
-    #    with redirect_stderr(c_stderr):  # needed to actually capture stderr
-    with tf.Session(config=config) as sess:
-        train_model(
-            epochs=10,
-            code_size=128,
-            lr=1e-3,
-            terms=3,
-            predict_terms=3,
-            image_size=32,
-            session=sess,
-            batch_size=8
-        )
+    with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout
+        with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
+            with tf.Session(config=config) as sess:
+                train_model(
+                    epochs=10,
+                    code_size=128,
+                    lr=1e-3,
+                    terms=3,
+                    predict_terms=3,
+                    image_size=32,
+                    session=sess,
+                    batch_size=8
+                )
