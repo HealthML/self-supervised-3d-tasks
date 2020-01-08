@@ -98,7 +98,7 @@ if __name__ == "__main__":
 
             im_frame.load()
             if resize:
-                im_frame = im_frame.resize((resize_w, resize_l))
+                im_frame = im_frame.resize((resize_w, resize_l), resample=Image.LANCZOS)
         except:
             print()
             corrupted_images.append(filename)
