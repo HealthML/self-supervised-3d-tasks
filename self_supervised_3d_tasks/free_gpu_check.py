@@ -17,6 +17,7 @@ def aquire_free_gpus(amount=1):
     gpu_df = gpu_df.sort_values(by=["memory.free"], ascending=False)
     print(gpu_df)
     output = []
+
     if len(gpu_df) < amount:
         raise ValueError("The requested amount of GPUs is not existing.")
     for i in range(amount):
@@ -25,6 +26,10 @@ def aquire_free_gpus(amount=1):
             raise ValueError(
                 "The requested amount of GPUs are not available currently."
             )
+
+        # TODO: Fix this
+        max_gpu = 4
+
         output.append(max_gpu)
         gpu_df.drop(max_gpu, inplace=True)
     os.environ["CUDA_VISIBLE_DEVICES"] = str(output).strip("[").strip("]")

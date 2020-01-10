@@ -1,6 +1,6 @@
 import numpy as np
 from PIL import Image
-from tensorflow import keras
+import keras
 import os
 
 
@@ -53,7 +53,7 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
         # Generate data
         X, Y = self.__data_generation(list_IDs_temp)
 
-        return X, Y
+        return (X, Y)
 
     def on_epoch_end(self):
         'Updates indexes after each epoch'
@@ -64,21 +64,23 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
     def __data_generation(self, list_IDs_temp):
         'Generates data containing batch_size samples'  # X : (n_samples, *dim, n_channels)
         # Initialization
-        data_x = []
-        data_y = [0 * self.batch_size]
+        data_x = np.empty((self.batch_size, *self.dim, self.n_channels))
+        data_y = np.empty(self.batch_size, dtype=int)
         # Generate data
         for i, ID in enumerate(list_IDs_temp):
             # Store sample
             path_to_image = "{}/{}".format(self.path_to_data, ID)
 
             im_frame = Image.open(path_to_image)
-            im_frame.resize(self.dim)
+            im_frame = im_frame.resize(self.dim)
             img = np.asarray(im_frame, dtype="float32")
             img /= 255
-            if self.func:
-                img, data_y[i] = self.func(img, data_y[i])
-            data_x.append(img)
-        return data_x, data_y
+            data_x[i] = img
+
+        if self.func:
+            data_x, data_y = self.func(data_x, data_y)
+
+        return data_x, np.array(data_y)
 
 
 def get_data_generators(data_path, train_split=.6, val_split=None, shuffle_files=True, train_data_generator_args={},

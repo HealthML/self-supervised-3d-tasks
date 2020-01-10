@@ -10,6 +10,8 @@ from pathlib import Path
 import numpy as np
 import tensorflow as tf
 
+from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess, preprocess_grid
+from self_supervised_3d_tasks.data.data_generator import get_data_generators
 from self_supervised_3d_tasks.data_util.cpc_utils import SortedNumberGenerator
 from self_supervised_3d_tasks.algorithms.contrastive_predictive_coding import network_cpc
 
@@ -89,19 +91,33 @@ class PatchMatcher(object):
         return (X, Y)
 
 
-def train_model(epochs, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, batch_size=8,
-                session=None):
-    working_dir = expanduser("~/workspace/self-supervised-transfer-learning/cpc")
+def train_model(epochs, code_size, lr=1e-4, terms=4, predict_terms=4, image_size=28, batch_size=8):
+    working_dir = expanduser("~/workspace/self-supervised-transfer-learning/cpc_retina")
+    data_dir = "/mnt/mpws2019cl1/retinal_fundus/left/max_256/"
 
-    # Callbacks
-    k.set_session(tf.Session(config=tf.ConfigProto(allow_soft_placement=True)))
+    crop_size = 186
+    split_per_side = 7
+    n_channels = 3
+
+    f_train = lambda x, y: preprocess_grid(preprocess(x, crop_size, split_per_side))
+    f_val = lambda x, y: preprocess_grid(preprocess(x, crop_size, split_per_side, is_training=False))
+
+    train_data, validation_data = get_data_generators(data_dir, train_split=0.7,
+                                                      train_data_generator_args={"batch_size": batch_size, "dim": (192,192),
+                                                                           "n_channels": n_channels,
+                                                                           "func": f_train},
+                                                      test_data_generator_args={"batch_size": batch_size,
+                                                                                 "dim": (192, 192),
+                                                                                 "n_channels": n_channels,
+                                                                                 "func": f_val}
+                                                      )
 
     # Prepare data
-    train_data = PatchMatcher(is_training=True, session=session, batch_size=batch_size)
-    validation_data = PatchMatcher(is_training=False, session=session, batch_size=batch_size)
+    # train_data = PatchMatcher(is_training=True, session=session, batch_size=batch_size)
+    # validation_data = PatchMatcher(is_training=False, session=session, batch_size=batch_size)
 
     # Prepares the model
-    model = network_cpc(image_shape=(image_size, image_size, 2), terms=terms, predict_terms=predict_terms,
+    model = network_cpc(image_shape=(image_size, image_size, n_channels), terms=terms, predict_terms=predict_terms,
                         code_size=code_size, learning_rate=lr)
 
     tb_callback = keras.callbacks.TensorBoard(log_dir=working_dir, histogram_freq=0,
@@ -109,7 +125,7 @@ def train_model(epochs, code_size, lr=1e-4, terms=4, predict_terms=4, image_size
                                               write_graph=True, write_grads=False, write_images=False,
                                               embeddings_freq=0,
                                               embeddings_layer_names=None, embeddings_metadata=None,
-                                              embeddings_data=None, update_freq='epoch')
+                                              embeddings_data=None, update_freq='batch')
 
     mc_callback = keras.callbacks.ModelCheckpoint(working_dir, monitor='val_loss', verbose=0,
                                                   save_best_only=False,
@@ -130,23 +146,21 @@ def train_model(epochs, code_size, lr=1e-4, terms=4, predict_terms=4, image_size
     )
 
 
-
 if __name__ == "__main__":
-    gpu_options = tf.GPUOptions()
-    config = tf.ConfigProto(
-        device_count={'GPU': 0}
-    )
+    # gpu_options = tf.GPUOptions()
+    # config = tf.ConfigProto(
+    #     device_count={'GPU': 0}
+    # )
 
     with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout
         with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
-            with tf.Session(config=config) as sess:
-                train_model(
-                    epochs=10,
-                    code_size=128,
-                    lr=1e-3,
-                    terms=3,
-                    predict_terms=3,
-                    image_size=32,
-                    session=sess,
-                    batch_size=8
-                )
+            # with tf.Session(config=config) as sess:
+            train_model(
+                epochs=10,
+                code_size=128,
+                lr=1e-3,
+                terms=3,
+                predict_terms=3,
+                image_size=46,
+                batch_size=8
+            )
