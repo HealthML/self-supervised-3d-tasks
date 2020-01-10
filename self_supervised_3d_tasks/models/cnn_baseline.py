@@ -119,10 +119,10 @@ class F1Metric(Callback):
 
 def make_vgg(in_shape, name, output_layer=-1):
     vgg = VGG19(include_top=False, input_shape=in_shape, weights="imagenet")
-    vgg.trainable = False
+    # vgg.trainable = False
     outputs = vgg.layers[output_layer].output
     model = Model(vgg.input, outputs, name=f"VGG19_{name}")
-    model.trainable = False
+    # model.trainable = False
     return model
 
 
