@@ -34,7 +34,6 @@ class PatchMatcher(object):
     ''' Data generator providing lists of sorted numbers '''
 
     def __init__(self, is_training, session, batch_size):
-        # return
         self.is_training = is_training
         self.batch_size = batch_size
 
@@ -130,17 +129,6 @@ def train_model(epochs, code_size, lr=1e-4, terms=4, predict_terms=4, image_size
         callbacks=callbacks
     )
 
-    # # Saves the model
-    # # Remember to add custom_objects={'CPCLayer': CPCLayer} to load_model when loading from disk
-    # path = Path(__file__).parent / output_dir
-    # if not path.exists():
-    #     makedirs(path)
-    #
-    # model.save(path / 'cpc.h5')
-    #
-    # # Saves the encoder alone
-    # encoder = model.layers[1].layer
-    # encoder.save(path / 'encoder.h5')
 
 
 if __name__ == "__main__":

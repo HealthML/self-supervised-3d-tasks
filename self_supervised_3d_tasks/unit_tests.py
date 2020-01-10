@@ -6,9 +6,11 @@ import absl.flags as flags
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+from PIL import Image
 
 from self_supervised_3d_tasks.algorithms.patch_model_preprocess import get_crop_patches_fn
 from self_supervised_3d_tasks.datasets import get_data
+from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess
 from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
     get_pad
 
@@ -34,6 +36,17 @@ def plot_sequences(x, y, labels=None, output_path=None):
     else:
         plt.show()
 
+
+def get_lena_numpy():
+    im_frame = Image.open('data_util/resources/lena.jpg')
+
+    im_frame.load()
+    im_frame = im_frame.resize((300,300))
+
+    img = np.asarray(im_frame, dtype="float32")
+    img /= 255
+
+    return img
 
 def get_lena():
     img = img = tf.io.read_file('data_util/resources/lena.jpg')
@@ -192,6 +205,23 @@ def show_batch(image_batch):
     plt.show()
 
 
+def show_batch_numpy(image_batch):
+    length = image_batch.shape[0]
+
+    plt.figure(figsize=(10, 10))
+    dim = int(np.sqrt(length))
+
+    if dim * dim < length:
+        dim += 1
+
+    for n in range(length):
+        ax = plt.subplot(dim, dim, n + 1)
+        plt.imshow(image_batch[n,:,:,:])
+        plt.axis('off')
+
+    plt.show()
+
+
 def show_img(img):
     print(img.shape)
 
@@ -204,11 +234,20 @@ def chain(f, g):
     return lambda x: g(f(x))
 
 
+def test_preprocessing_cpc():
+    lena = get_lena_numpy()
+    patches = preprocess(lena, 256, 7)
+    print(patches.shape)
+    show_batch(patches)
+
+
 def test_preprocessing():
     with tf.Session() as sess:
         f = get_crop(is_training=True, crop_size=(256, 256))
         # f = chain(f, get_random_flip_ud(is_training=True)) also for new version?
+        # f = get_crop_patches_fn(is_training=True, split_per_side=7, patch_jitter=-32)
         f = chain(f, get_crop_patches_fn(is_training=True, split_per_side=7, patch_jitter=-32))
+
         f = chain(f, get_random_flip_ud(is_training=True))
         f = chain(f, get_crop(is_training=True, crop_size=(56, 56)))
         f = chain(f, get_drop_all_channels_but_one_preprocess())
@@ -218,5 +257,6 @@ def test_preprocessing():
         print(patches["image"].shape)
         show_batch(patches["image"])
 
+
 if __name__ == "__main__":
-    test_brain()
+    test_preprocessing_cpc()
