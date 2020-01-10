@@ -158,30 +158,43 @@ def create_estimator_model(
         image_fn = lambda: tf.placeholder(  # pylint: disable=g-long-lambda
             shape=input_shape, dtype=tf.float32
         )
+        #
+        # apply_model_function = functools.partial(
+        #     apply_model,
+        #     image_fn=image_fn,
+        #     num_outputs=num_classes,
+        #     batch_size=batch_size,
+        #     task=task,
+        #     architecture=architecture,
+        #     perms=perms,
+        #     make_signature=True,
+        #     net_params=net_params,
+        # )
 
-        apply_model_function = functools.partial(
-            apply_model,
-            image_fn=image_fn,
-            num_outputs=num_classes,
-            batch_size=batch_size,
-            task=task,
-            architecture=architecture,
-            perms=perms,
-            make_signature=True,
-            net_params=net_params,
-        )
+        #tf_hub_module_spec = hub.create_module_spec(
+        #    apply_model_function,
+        #    [
+        #        (utils.TAGS_IS_TRAINING, {"is_training": True}),
+        #        (set(), {"is_training": False}),
+        #    ],
+        #    drop_collections=["summaries"],
+        #)
+        #tf_hub_module = hub.Module(tf_hub_module_spec, trainable=False, tags=set())
+        #hub.register_module_for_export(tf_hub_module, export_name="module")
 
-        tf_hub_module_spec = hub.create_module_spec(
-            apply_model_function,
-            [
-                (utils.TAGS_IS_TRAINING, {"is_training": True}),
-                (set(), {"is_training": False}),
-            ],
-            drop_collections=["summaries"],
-        )
-        tf_hub_module = hub.Module(tf_hub_module_spec, trainable=False, tags=set())
-        hub.register_module_for_export(tf_hub_module, export_name="module")
-        logits = tf_hub_module(images)
+        with tf.variable_scope("module"):
+            logits = apply_model(
+                    image_fn=image_fn,
+                    is_training=(mode == tf.estimator.ModeKeys.TRAIN),
+                    batch_size=batch_size,
+                    num_outputs=num_classes,
+                    perms=perms,
+                    task=task,
+                    architecture=architecture,
+                    make_signature=False,
+                    net_params=net_params,
+                )
+
         return make_estimator(mode, predictions=logits)
 
     # build loss and accuracy
