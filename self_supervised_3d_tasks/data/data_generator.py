@@ -14,7 +14,7 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
                  dim=(32, 32, 32),
                  n_channels=1,
                  shuffle=True,
-                 preprocessing_functions=[]):
+                 func=None):
         '''
             :param data_path: path to directory with images
             :param file_list: list of files in directory for this data generator
@@ -31,7 +31,7 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
         self.n_channels = n_channels
         self.shuffle = shuffle
         self.path_to_data = data_path
-        self.preprocessing_functions = preprocessing_functions
+        self.func = func
         self.on_epoch_end()
 
     def __len__(self):
@@ -64,7 +64,7 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
     def __data_generation(self, list_IDs_temp):
         'Generates data containing batch_size samples'  # X : (n_samples, *dim, n_channels)
         # Initialization
-        data_x = np.empty((self.batch_size, *self.dim, self.n_channels))
+        data_x = []
         data_y = [0 * self.batch_size]
         # Generate data
         for i, ID in enumerate(list_IDs_temp):
@@ -75,20 +75,23 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
             im_frame.resize(self.dim)
             img = np.asarray(im_frame, dtype="float32")
             img /= 255
-            for func in self.preprocessing_functions:
-                img = func(img)
-            data_x[i,] = img
+            if self.func:
+                img, data_y[i] = self.func(img, data_y[i])
+            data_x.append(img)
         return data_x, data_y
 
 
-def get_data_generators(data_path, train_split=.6, val_split=None, shuffle_files=True, data_generator_args={}):
+def get_data_generators(data_path, train_split=.6, val_split=None, shuffle_files=True, train_data_generator_args={},
+                        test_data_generator_args={}, val_data_generator_args={}):
     '''
     This function generates the data generator for training, testing and optional validation.
     :param data_path: path to files
     :param train_split: between 0 and 1, percentage of images used for training
     :param val_split: between 0 and 1, percentage of images used for test, None for no validation set
     :param shuffle_files:
-    :param data_generator_args: Optional arguments for data generator
+    :param train_data_generator_args: Optional arguments for data generator
+    :param test_data_generator_args: Optional arguments for data generator
+    :param val_data_generator_args: Optional arguments for data generator
     :return: returns data generators
     '''
 
@@ -111,10 +114,10 @@ def get_data_generators(data_path, train_split=.6, val_split=None, shuffle_files
         val = files[train_split:train_split + val_split]
         test = files[train_split + val_split:]
 
-
-        train_data_generator = DataGeneratorUnlabeled(data_path, train, **data_generator_args)
-        test_data_generator = DataGeneratorUnlabeled(data_path, test, **data_generator_args)
-        val_data_generator = DataGeneratorUnlabeled(data_path, val, **data_generator_args)
+        # create generators
+        train_data_generator = DataGeneratorUnlabeled(data_path, train, **train_data_generator_args)
+        test_data_generator = DataGeneratorUnlabeled(data_path, test, **test_data_generator_args)
+        val_data_generator = DataGeneratorUnlabeled(data_path, val, **val_data_generator_args)
         # Return generators
         return train_data_generator, test_data_generator, val_data_generator
     else:
