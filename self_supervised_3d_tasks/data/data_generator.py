@@ -131,8 +131,8 @@ def get_data_generators(data_path, train_split=.6, val_split=None, shuffle_files
         test = files[train_split:]
 
         # Create data generators
-        train_data_generator = DataGeneratorUnlabeled(data_path, train, **data_generator_args)
-        test_data_generator = DataGeneratorUnlabeled(data_path, test, **data_generator_args)
+        train_data_generator = DataGeneratorUnlabeled(data_path, train, **train_data_generator_args)
+        test_data_generator = DataGeneratorUnlabeled(data_path, test, **test_data_generator_args)
 
         # Return generators
         return train_data_generator, test_data_generator
