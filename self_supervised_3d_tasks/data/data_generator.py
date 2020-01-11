@@ -14,7 +14,7 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
                  dim=(32, 32, 32),
                  n_channels=1,
                  shuffle=True,
-                 func=None):
+                 pre_proc_func=None):
         '''
             :param data_path: path to directory with images
             :param file_list: list of files in directory for this data generator
@@ -31,7 +31,7 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
         self.n_channels = n_channels
         self.shuffle = shuffle
         self.path_to_data = data_path
-        self.func = func
+        self.pre_proc_func = pre_proc_func
         self.on_epoch_end()
 
     def __len__(self):
@@ -61,31 +61,38 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
         if self.shuffle:
             np.random.shuffle(self.indexes)
 
-    def __data_generation(self, list_IDs_temp):
+    def __data_generation(self, list_files_temp):
+        """
+        :param list_files_temp:
+        :return: X, Y
+        """
         'Generates data containing batch_size samples'  # X : (n_samples, *dim, n_channels)
         # Initialization
         data_x = np.empty((self.batch_size, *self.dim, self.n_channels))
         data_y = np.empty(self.batch_size, dtype=int)
         # Generate data
-        for i, ID in enumerate(list_IDs_temp):
+        for i, file_name in enumerate(list_files_temp):
             # Store sample
-            path_to_image = "{}/{}".format(self.path_to_data, ID)
+            path_to_image = "{}/{}".format(self.path_to_data, file_name)
+            try:
+                im_frame = Image.open(path_to_image)
+                im_frame = im_frame.resize(self.dim)
+                img = np.asarray(im_frame, dtype="float32")
+                img /= 255
+                data_x[i] = img
+            except:
+                print("Error while loading image {}.".format(path_to_image))
+                continue
 
-            im_frame = Image.open(path_to_image)
-            im_frame = im_frame.resize(self.dim)
-            img = np.asarray(im_frame, dtype="float32")
-            img /= 255
-            data_x[i] = img
-
-        if self.func:
-            data_x, data_y = self.func(data_x, data_y)
+        if self.pre_proc_func:
+            data_x, data_y = self.pre_proc_func(data_x, data_y)
 
         return data_x, np.array(data_y)
 
 
 def get_data_generators(data_path, train_split=.6, val_split=None, shuffle_files=True, train_data_generator_args={},
                         test_data_generator_args={}, val_data_generator_args={}):
-    '''
+    """
     This function generates the data generator for training, testing and optional validation.
     :param data_path: path to files
     :param train_split: between 0 and 1, percentage of images used for training
@@ -95,14 +102,14 @@ def get_data_generators(data_path, train_split=.6, val_split=None, shuffle_files
     :param test_data_generator_args: Optional arguments for data generator
     :param val_data_generator_args: Optional arguments for data generator
     :return: returns data generators
-    '''
+    """
 
     # List images in directory
     files = os.listdir(data_path)
-
     # Shuffle files
     if shuffle_files:
-        np.random.shuffle(files)
+        random = np.random.RandomState(seed=1)
+        random.shuffle(files)
 
     # Validation set is needed
     if val_split:
