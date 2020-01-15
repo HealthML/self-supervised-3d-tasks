@@ -14,14 +14,16 @@ def aquire_free_gpus(amount=1):
     print("GPU usage:\n{}".format(gpu_df))
     gpu_df["memory.free"] = gpu_df["memory.free"].map(lambda x: int(x.rstrip(" [MiB]")))
     gpu_df["memory.used"] = gpu_df["memory.used"].map(lambda x: int(x.rstrip(" [MiB]")))
-    gpu_df = gpu_df.sort_values(by=["memory.free"], ascending=False)
-    print(gpu_df)
+    gpu_df = gpu_df.sort_values(
+        by=["memory.free", "memory.used"], ascending=[False, True]
+    )
+    gpu_df.drop(0, inplace=True)
     output = []
 
     if len(gpu_df) < amount:
         raise ValueError("The requested amount of GPUs is not existing.")
     for i in range(amount):
-        max_gpu = gpu_df["memory.free"].idxmax()
+        max_gpu = gpu_df.index[0]
         if gpu_df.loc[max_gpu]["memory.used"] != 0:
             raise ValueError(
                 "The requested amount of GPUs are not available currently."
@@ -39,4 +41,3 @@ def aquire_free_gpus(amount=1):
 
 if __name__ == "__main__":
     free_gpu_id = aquire_free_gpus()
-    print(free_gpu_id)
