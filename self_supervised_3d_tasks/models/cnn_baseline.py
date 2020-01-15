@@ -33,7 +33,11 @@ class KaggleGenerator(Sequence):
             num_classes=5,
             split=False,
             shuffle=False,
+            pre_proc_func_train=None,
+            pre_proc_func_val=None
     ):
+        self.pre_proc_func_train = pre_proc_func_train
+        self.pre_proc_func_val = pre_proc_func_val
         self.dataset = pd.read_csv(csvDescriptor)
         if shuffle:
             self.dataset = self.dataset.sample(frac=1)
@@ -77,9 +81,16 @@ class KaggleGenerator(Sequence):
         for c in range(self.offset, endpoint):  # todo: remove val set binding
             X_t.append(self.load_image(c))
             Y_t.append(self.dataset.iloc[c][self.label_column])
+
+        data_x = np.array(X_t)
+        data_y = to_categorical(np.array(Y_t), num_classes=self.num_classes)
+
+        if self.pre_proc_func_val:
+            data_x, data_y = self.pre_proc_func_val(data_x, data_y)
+
         return (
-            np.array(X_t),
-            to_categorical(np.array(Y_t), num_classes=self.num_classes),
+            data_x,
+            data_y,
         )
 
     def __getitem__(self, index):
@@ -88,9 +99,16 @@ class KaggleGenerator(Sequence):
         for c in range(index, min(index + self.batch_size, self.train_len)):
             X_t.append(self.load_image(c))
             Y_t.append(self.dataset.iloc[c][self.label_column])
+
+        data_x = np.array(X_t)
+        data_y = to_categorical(np.array(Y_t), num_classes=self.num_classes)
+
+        if self.pre_proc_func_train:
+            data_x, data_y = self.pre_proc_func_train(data_x, data_y)
+
         return (
-            np.array(X_t),
-            to_categorical(np.array(Y_t), num_classes=self.num_classes),
+            data_x,
+            data_y,
         )
 
 
