@@ -120,7 +120,7 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
     )
     cpc_model.summary()
 
-    return cpc_model
+    return cpc_model, encoder_model
 
 # def apply_model(is_training,
 #                 code_size,
