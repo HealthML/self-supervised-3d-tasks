@@ -18,10 +18,6 @@ from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 
-NGPUS = 3
-aquire_free_gpus(NGPUS)
-
-
 class KaggleGenerator(Sequence):
     def __init__(
             self,
@@ -173,6 +169,9 @@ def get_cnn_baseline_model(shape=(256, 256, 3,), multi_gpu=False):
 
 
 if __name__ == "__main__":
+    NGPUS = 3
+    aquire_free_gpus(NGPUS)
+
     output = (
         Path(f"~/workspace/cnn_baseline/run_{datetime.now()}/").expanduser().resolve()
     )

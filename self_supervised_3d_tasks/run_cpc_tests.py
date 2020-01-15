@@ -27,7 +27,7 @@ crop_size = 186
 split_per_side = 7
 img_shape = (image_size, image_size, n_channels)
 
-model, enc_model = network_cpc(image_shape=img_shape, terms=terms,
+model, enc_model = network_cpc(image_shape=(image_size, image_size, n_channels), terms=terms,
                                predict_terms=predict_terms, code_size=code_size, learning_rate=lr)
 
 model.load_weights('/home/Julius.Severin/workspace/self-supervised-transfer-learning/cpc_retina/'
