@@ -112,7 +112,7 @@ def train_and_eval(FLAGS):
         for flag in optional_flags:
             if FLAGS.get(flag, None):
                 tace_mapped = functools.partial(tace_mapped, **{flag: FLAGS[flag]})
-        tace_mapped(
+        return tace_mapped(
             estimator,
             dataset,
             preprocessing,
@@ -123,6 +123,10 @@ def train_and_eval(FLAGS):
             FLAGS=FLAGS,
         )
 
+    elif FLAGS.get("predict", False):
+        return predict(
+            estimator,
+            FLAGS.get("input_fn"))
     # TRAIN
     else:
         train_mapped = train
@@ -344,6 +348,34 @@ def train(
         writer = tf.summary.FileWriter("logs", sess.graph)
 
     return estimator.train(train_data_fn, steps=num_steps)
+
+
+def predict(
+        estimator,
+        input_fn
+):
+    """I predict something using a stored estimator.
+
+    Args:
+        estimator: a tensorflow.estimator.Estimator object
+        dataset: the name of the dataset
+        preprocessing: a list of preprocessing steps identified via the function name
+        dataset_dir: a valid Path to dataset
+        epochs: number of epochs to be trained
+        batch_size: number of samples per batch
+        train_split: on which split to train (one of: "train" / "trainval")
+
+    Returns:
+        estimator (after training for chaining)
+
+    """
+    tf.logging.info("now predicting.")
+
+    with tf.Session() as sess:
+        writer = tf.summary.FileWriter("logs", sess.graph)
+
+    return estimator.predict(input_fn)
+
 
 
 def serving_input_fn(serving_input_shape, serving_input_key):
