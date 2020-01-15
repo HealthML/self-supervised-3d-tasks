@@ -12,7 +12,6 @@ import tensorflow as tf
 
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess, preprocess_grid
 from self_supervised_3d_tasks.data.data_generator import get_data_generators
-from self_supervised_3d_tasks.data_util.cpc_utils import SortedNumberGenerator
 from self_supervised_3d_tasks.algorithms.contrastive_predictive_coding import network_cpc
 
 from self_supervised_3d_tasks.algorithms.patch_model_preprocess import get_crop_patches_fn
@@ -24,7 +23,7 @@ from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from contextlib import redirect_stdout, redirect_stderr
 
-aquire_free_gpus(2)
+aquire_free_gpus(1)
 c_stdout, c_stderr = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
 
 
@@ -87,7 +86,6 @@ class PatchMatcher(object):
 
         X = [np.array(batch["patches_enc"]), np.array(batch["patches_pred"])]
         Y = np.array(batch["labels"])
-        print("XY", X[0].shape, X[1].shape, Y.shape)
         return (X, Y)
 
 
@@ -121,6 +119,7 @@ def train_model(epochs, code_size, lr=1e-4, terms=4, predict_terms=4, image_size
     model = network_cpc(image_shape=(image_size, image_size, n_channels), terms=terms, predict_terms=predict_terms,
                         code_size=code_size, learning_rate=lr)
 
+    # Logs the progress
     tb_callback = keras.callbacks.TensorBoard(log_dir=working_dir, histogram_freq=0,
                                               batch_size=batch_size,
                                               write_graph=True, write_grads=False, write_images=False,
@@ -128,20 +127,22 @@ def train_model(epochs, code_size, lr=1e-4, terms=4, predict_terms=4, image_size
                                               embeddings_layer_names=None, embeddings_metadata=None,
                                               embeddings_data=None, update_freq='batch')
 
+    # Stores checkpoints every $period epochs
     mc_callback = keras.callbacks.ModelCheckpoint(
-        working_dir + "/weights-improvement-{epoch:02d}-{val_accuracy:.2f}.hdf5", monitor='val_loss', verbose=0,
+        working_dir + "/weights-improvement-{epoch:02d}-{val_loss:.2f}.hdf5", monitor='val_loss', verbose=0,
         save_best_only=False,
         save_weights_only=False, mode='auto', period=1)
 
+    # Reduces learning rate when a metric has stopped improving.
     callbacks = [keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=1 / 3, patience=2, min_lr=1e-4),
                  tb_callback, mc_callback]
 
     # Trains the model
     model.fit_generator(
         generator=train_data,
-        steps_per_epoch=len(train_data),
+        steps_per_epoch=int(len(train_data) / batch_size),
         validation_data=validation_data,
-        validation_steps=len(validation_data),
+        validation_steps=int(len(validation_data) / batch_size),
         epochs=epochs,
         verbose=1,
         callbacks=callbacks
@@ -158,7 +159,7 @@ if __name__ == "__main__":
         with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
             # with tf.Session(config=config) as sess:
             train_model(
-                epochs=10,
+                epochs=1000,
                 code_size=128,
                 lr=1e-3,
                 terms=3,
