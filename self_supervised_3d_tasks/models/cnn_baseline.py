@@ -17,8 +17,9 @@ from keras.callbacks import Callback, ModelCheckpoint, ReduceLROnPlateau
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
+from self_supervised_3d_tasks.algorithms.kappa_loss import quadratic_kappa
 
-NGPUS = 3
+NGPUS = 2
 aquire_free_gpus(NGPUS)
 
 
@@ -145,10 +146,10 @@ def get_cnn_baseline_model(shape=(256, 256, 3,), multi_gpu=False):
     x = Dense(5, activation="sigmoid")(x)
 
     model = Model(inputs=inputs, outputs=x)
-    if multi_gpu:
-        model = multi_gpu_model(model, gpus=NGPUS)
+    if multi_gpu >= 2:
+        model = multi_gpu_model(model, gpus=multi_gpu)
     model.compile(
-        optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"]
+        optimizer="adam", loss=quadratic_kappa, metrics=["accuracy"]
     )
     model.summary()
     return model
@@ -159,7 +160,7 @@ if __name__ == "__main__":
         Path(f"~/workspace/cnn_baseline/run_{datetime.now()}/").expanduser().resolve()
     )
     output.mkdir(parents=True, exist_ok=True)
-    output = output / f"model.hdf5"
+    output = output / f"kappa_loss_model.hdf5"
     gen = KaggleGenerator(batch_size=64, split=0.66, shuffle=False)
     checkp = ModelCheckpoint(
         str(output.with_name("intermediate_{epoch:04d}_{acc:.2f}_" + output.name)),
@@ -170,7 +171,7 @@ if __name__ == "__main__":
     reduce_lr = ReduceLROnPlateau(
         monitor="val_loss", factor=0.2, patience=10, min_lr=0.001
     )
-    model = get_cnn_baseline_model(multi_gpu=True)
+    model = get_cnn_baseline_model(multi_gpu=NGPUS)
     model.fit_generator(
         generator=gen,
         epochs=500,
