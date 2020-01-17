@@ -95,7 +95,6 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
     encoder_input = keras.layers.Input(image_shape)
     encoder_output = network_encoder(encoder_input, code_size)
     encoder_model = keras.models.Model(encoder_input, encoder_output, name='encoder')
-    encoder_model.summary()
 
     # Define rest of model
     x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))
@@ -118,7 +117,6 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
         loss='binary_crossentropy',
         metrics=['binary_accuracy']
     )
-    cpc_model.summary()
 
     return cpc_model, encoder_model
 

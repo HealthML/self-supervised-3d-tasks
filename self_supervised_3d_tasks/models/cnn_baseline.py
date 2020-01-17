@@ -74,7 +74,7 @@ class KaggleGenerator(Sequence):
         endpoint = self.dataset_len if not debug else self.offset + 200
         X_t = []
         Y_t = []
-        for c in range(self.offset, endpoint):  # todo: remove val set binding
+        for c in range(self.offset, endpoint):  # TODO: remove val set binding
             X_t.append(self.load_image(c))
             Y_t.append(self.dataset.iloc[c][self.label_column])
 

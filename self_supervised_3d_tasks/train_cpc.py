@@ -2,15 +2,16 @@ import sys
 from contextlib import redirect_stdout, redirect_stderr
 from os.path import expanduser
 
+import os
 import keras
 
 from self_supervised_3d_tasks.algorithms.contrastive_predictive_coding import network_cpc
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess, preprocess_grid
 from self_supervised_3d_tasks.data.data_generator import get_data_generators
-from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
 
-aquire_free_gpus(2)
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+
 c_stdout, c_stderr = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
 
 
