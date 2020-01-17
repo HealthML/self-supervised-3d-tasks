@@ -7,6 +7,7 @@ from PIL import Image
 import scipy
 import sys
 import tensorflow as tf
+from pathlib import Path
 
 
 class MnistHandler(object):
@@ -18,7 +19,8 @@ class MnistHandler(object):
         self.X_train, self.y_train, self.X_val, self.y_val, self.X_test, self.y_test = self.load_dataset()
 
         # Load Lena image to memory
-        self.lena = Image.open('resources/lena.jpg')
+        with (Path(__file__).parent / "resources/lena.jpg") as path:
+            self.lena = Image.open(path)
 
     def load_dataset(self):
         # Credit for this function: https://github.com/Lasagne/Lasagne/blob/master/examples/mnist.py
@@ -29,35 +31,37 @@ class MnistHandler(object):
         else:
             from urllib.request import urlretrieve
 
-        def download(filename, source='http://yann.lecun.com/exdb/mnist/'):
+        def download(filename, path, source='http://yann.lecun.com/exdb/mnist/'):
             print("Downloading %s" % filename)
-            urlretrieve(source + filename, "resources/" + filename)
+            urlretrieve(source + filename, path)
 
         # We then define functions for loading MNIST images and labels.
         # For convenience, they also download the requested files if needed.
         import gzip
 
         def load_mnist_images(filename):
-            if not os.path.exists("resources/" + filename):
-                download(filename)
-            # Read the inputs in Yann LeCun's binary format.
-            with gzip.open("resources/" + filename, 'rb') as f:
-                data = np.frombuffer(f.read(), np.uint8, offset=16)
-            # The inputs are vectors now, we reshape them to monochrome 2D images,
-            # following the shape convention: (examples, channels, rows, columns)
-            data = data.reshape(-1, 1, 28, 28)
-            # The inputs come as bytes, we convert them to float32 in range [0,1].
-            # (Actually to range [0, 255/256], for compatibility to the version
-            # provided at http://deeplearning.net/data/mnist/mnist.pkl.gz.)
+            with (Path(__file__).parent / "resources/" / filename) as path:
+                if not path.exists():
+                    download(filename, path)
+                # Read the inputs in Yann LeCun's binary format.
+                with gzip.open(path, 'rb') as f:
+                    data = np.frombuffer(f.read(), np.uint8, offset=16)
+                # The inputs are vectors now, we reshape them to monochrome 2D images,
+                # following the shape convention: (examples, channels, rows, columns)
+                data = data.reshape(-1, 1, 28, 28)
+                # The inputs come as bytes, we convert them to float32 in range [0,1].
+                # (Actually to range [0, 255/256], for compatibility to the version
+                # provided at http://deeplearning.net/data/mnist/mnist.pkl.gz.)
             return data / np.float32(256)
 
         def load_mnist_labels(filename):
-            if not os.path.exists("resources/" + filename):
-                download(filename)
-            # Read the labels in Yann LeCun's binary format.
-            with gzip.open("resources/" + filename, 'rb') as f:
-                data = np.frombuffer(f.read(), np.uint8, offset=8)
-            # The labels are vectors of integers now, that's exactly what we want.
+            with (Path(__file__).parent / "resources/" / filename) as path:
+                if not path.exists():
+                    download(filename, path)
+                # Read the labels in Yann LeCun's binary format.
+                with gzip.open(path, 'rb') as f:
+                    data = np.frombuffer(f.read(), np.uint8, offset=8)
+                # The labels are vectors of integers now, that's exactly what we want.
             return data
 
         # We can now download and read the training and test set images and labels.

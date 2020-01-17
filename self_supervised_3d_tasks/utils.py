@@ -247,17 +247,18 @@ def tf_apply_to_image_or_images(fn, image_or_images):
     Raises:
       ValueError: if the input is not of rank 3 or 4.
     """
+    print("GET_SHAPE", image_or_images)
     static_rank = len(image_or_images.get_shape().as_list())
     if static_rank == 3:  # A single image: HWC
         return fn(image_or_images)
     elif static_rank == 4:  # A batch of images: BHWC
         return tf.map_fn(fn, image_or_images)
     elif static_rank > 4:  # A batch of images: ...HWC
-        input_shape = tf.shape(image_or_images)
+        input_shape = image_or_images.get_shape().as_list()[0:-3]
         h, w, c = image_or_images.get_shape().as_list()[-3:]
         image_or_images = tf.reshape(image_or_images, [-1, h, w, c])
         image_or_images = tf.map_fn(fn, image_or_images)
-        return tf.reshape(image_or_images, input_shape)
+        return tf.reshape(image_or_images, input_shape + image_or_images.get_shape().as_list()[-3:])
     else:
         raise ValueError("Unsupported image rank: %d" % static_rank)
 
