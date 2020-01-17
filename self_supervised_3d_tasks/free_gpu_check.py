@@ -31,6 +31,7 @@ def aquire_free_gpus(amount=1):
             )
         output.append(max_gpu)
         gpu_df.drop(max_gpu, inplace=True)
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = str(output).strip("[").strip("]")
     print(os.environ["CUDA_VISIBLE_DEVICES"])
     return output
