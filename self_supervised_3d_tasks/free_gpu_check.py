@@ -19,6 +19,7 @@ def aquire_free_gpus(amount=1):
     )
     gpu_df.drop(0, inplace=True)
     output = []
+
     if len(gpu_df) < amount:
         raise ValueError("The requested amount of GPUs is not existing.")
     for i in range(amount):

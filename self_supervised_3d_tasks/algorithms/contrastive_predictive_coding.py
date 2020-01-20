@@ -9,6 +9,7 @@ import functools
 import tensorflow as tf
 import tensorflow_hub as hub
 import keras
+import keras.backend as K
 
 from self_supervised_3d_tasks import utils
 from self_supervised_3d_tasks.models.utils import get_net
@@ -49,14 +50,13 @@ class CPCLayer(keras.layers.Layer):
         super(CPCLayer, self).__init__(**kwargs)
 
     def call(self, inputs):
-
         # Compute dot product among vectors
         preds, y_encoded = inputs
-        dot_product = tf.math.reduce_mean(y_encoded * preds, axis=-1)
-        dot_product = tf.math.reduce_mean(dot_product, axis=-1, keepdims=True)  # average along the temporal dimension
+        dot_product = K.mean(y_encoded * preds, axis=-1)
+        dot_product = K.mean(dot_product, axis=-1, keepdims=True)  # average along the temporal dimension
 
         # Keras loss functions take probabilities
-        dot_product_probs = tf.math.sigmoid(dot_product)
+        dot_product_probs = K.sigmoid(dot_product)
 
         return dot_product_probs
 
