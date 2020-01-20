@@ -135,11 +135,11 @@ def test_records():
         print(i)
     print("done")
 
-def test_retina():
+def test_kaggle_retina():
     params = {
-        'dataset': 'retina',
+        'dataset': 'kaggle_retina',
         'preprocessing': [],
-        'dataset_dir': "/mnt/mpws2019cl1/retinal_fundus/retina_tf_records/max_256/",
+        'dataset_dir': "/mnt/mpws2019cl1/kaggle_retina/tf_records",
     }
 
     f = functools.partial(
@@ -154,11 +154,10 @@ def test_retina():
     result = f({'batch_size': 1})
     iterator = result.make_one_shot_iterator()
     el = iterator.get_next()
+
     with tf.Session() as sess:
         batch = sess.run(el)
         print(batch["data"].shape)
-
-        plot_sequences(batch["data"], batch["data"], output_path=expanduser("~/test_retina.png"))
 
 
 def test_mnist_data_generator():

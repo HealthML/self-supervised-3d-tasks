@@ -17,11 +17,6 @@ from keras.callbacks import Callback, ModelCheckpoint, ReduceLROnPlateau
 from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
-from self_supervised_3d_tasks.algorithms.kappa_loss import quadratic_weighted_kappa
-
-NGPUS = 2
-aquire_free_gpus(NGPUS)
-
 
 class KaggleGenerator(Sequence):
     def __init__(
@@ -34,7 +29,11 @@ class KaggleGenerator(Sequence):
             num_classes=5,
             split=False,
             shuffle=False,
+            pre_proc_func_train=None,
+            pre_proc_func_val=None
     ):
+        self.pre_proc_func_train = pre_proc_func_train
+        self.pre_proc_func_val = pre_proc_func_val
         self.dataset = pd.read_csv(csvDescriptor)
         if shuffle:
             self.dataset = self.dataset.sample(frac=1)
@@ -75,12 +74,19 @@ class KaggleGenerator(Sequence):
         endpoint = self.dataset_len if not debug else self.offset + 200
         X_t = []
         Y_t = []
-        for c in range(self.offset, endpoint):  # todo: remove val set binding
+        for c in range(self.offset, endpoint):  # TODO: remove val set binding
             X_t.append(self.load_image(c))
             Y_t.append(self.dataset.iloc[c][self.label_column])
+
+        data_x = np.array(X_t)
+        data_y = to_categorical(np.array(Y_t), num_classes=self.num_classes)
+
+        if self.pre_proc_func_val:
+            data_x, data_y = self.pre_proc_func_val(data_x, data_y)
+
         return (
-            np.array(X_t),
-            to_categorical(np.array(Y_t), num_classes=self.num_classes),
+            data_x,
+            data_y,
         )
 
     def __getitem__(self, index):
@@ -89,9 +95,16 @@ class KaggleGenerator(Sequence):
         for c in range(index, min(index + self.batch_size, self.train_len)):
             X_t.append(self.load_image(c))
             Y_t.append(self.dataset.iloc[c][self.label_column])
+
+        data_x = np.array(X_t)
+        data_y = to_categorical(np.array(Y_t), num_classes=self.num_classes)
+
+        if self.pre_proc_func_train:
+            data_x, data_y = self.pre_proc_func_train(data_x, data_y)
+
         return (
-            np.array(X_t),
-            to_categorical(np.array(Y_t), num_classes=self.num_classes),
+            data_x,
+            data_y,
         )
 
 
@@ -149,18 +162,21 @@ def get_cnn_baseline_model(shape=(256, 256, 3,), multi_gpu=False):
     if multi_gpu >= 2:
         model = multi_gpu_model(model, gpus=multi_gpu)
     model.compile(
-        optimizer="adam", loss=quadratic_weighted_kappa, metrics=["accuracy"]
+        optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"]
     )
     model.summary()
     return model
 
 
 if __name__ == "__main__":
+    NGPUS = 3
+    aquire_free_gpus(NGPUS)
+
     output = (
         Path(f"~/workspace/cnn_baseline/run_{datetime.now()}/").expanduser().resolve()
     )
     output.mkdir(parents=True, exist_ok=True)
-    output = output / f"kappa_loss_model.hdf5"
+    output = output / f"model.hdf5"
     gen = KaggleGenerator(batch_size=64, split=0.66, shuffle=False)
     checkp = ModelCheckpoint(
         str(output.with_name("intermediate_{epoch:04d}_{acc:.2f}_" + output.name)),

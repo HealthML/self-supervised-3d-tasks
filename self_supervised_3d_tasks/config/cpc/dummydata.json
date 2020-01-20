@@ -17,9 +17,8 @@
   "serving_input_shape": "None,64,64,3",
   "save_checkpoints_secs": 200.0,
   "throttle_secs": 400.0,
-  "keep_checkpoint_every_n_hours": 48.0,
+  "keep_checkpoint_every_n_hours": 8,
   "use_tpu": false,
-
   "splits_per_side": 3,
   "patch_jitter": 10,
   "perm_subset_size": 8,
