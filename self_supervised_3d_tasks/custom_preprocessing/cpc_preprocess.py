@@ -5,10 +5,6 @@ import numpy as np
 from self_supervised_3d_tasks.custom_preprocessing.crop import crop, crop_patches
 
 
-def reorder_cpc(batch):
-    return [x for x in np.moveaxis(batch, 1, 0)]
-
-
 def resize(batch, new_size):
     return np.array([ab.Resize(new_size, new_size)(image=image)["image"] for image in batch])
 
@@ -18,28 +14,30 @@ def preprocess_image(image, patch_jitter, patch_crop_size, split_per_side, paddi
     image = crop(image, is_training, (crop_size, crop_size))
 
     for image in crop_patches(image, is_training, split_per_side, patch_jitter):
-        image = ab.Flip()(image=image)["image"]
-        image = crop(image, is_training, (patch_crop_size, patch_crop_size))
-        image = ab.ChannelDropout(p=1.0)(image=image)["image"]
-        image = ab.ChannelDropout(p=1.0)(image=image)["image"]
-        image = ab.PadIfNeeded(patch_crop_size+2*padding, patch_crop_size+2*padding)(image=image)["image"]
+        if is_training:
+            image = ab.Flip()(image=image)["image"]
+            image = crop(image, is_training, (patch_crop_size, patch_crop_size))
+            image = ab.ChannelDropout(p=1.0)(image=image)["image"]
+            image = ab.ChannelDropout(p=1.0)(image=image)["image"]
+            image = ab.ToGray(p=1.0)(image=image)["image"]  # make use of all 3 channels again for training
+            image = ab.PadIfNeeded(patch_crop_size+2*padding, patch_crop_size+2*padding)(image=image)["image"]
+
+        else:
+            image = crop(image, is_training, (patch_crop_size, patch_crop_size))  # center crop here
+            image = ab.ToGray(p=1.0)(image=image)["image"]
+            image = ab.PadIfNeeded(patch_crop_size + 2 * padding, patch_crop_size + 2 * padding)(image=image)["image"]
 
         result.append(image)
 
     return np.asarray(result)
 
 
-def preprocess_patches_only(image, patch_jitter, patch_crop_size, split_per_side, padding, crop_size, is_training=True):
-    image = crop(image, is_training, (crop_size, crop_size))
-    return np.asarray(crop_patches(image, is_training, split_per_side, patch_jitter))
-
-
-def preprocess(batch, crop_size, split_per_side, is_training=True, f=preprocess_image):
+def preprocess(batch, crop_size, split_per_side, is_training=True):
     patch_jitter = int(- crop_size / (split_per_side + 1))
     patch_crop_size = int((crop_size - patch_jitter * (split_per_side - 1)) / split_per_side * 7 / 8)
     padding = int((-2 * patch_jitter - patch_crop_size) / 2)
 
-    return np.array([f(image, patch_jitter, patch_crop_size, split_per_side, padding, crop_size,
+    return np.array([preprocess_image(image, patch_jitter, patch_crop_size, split_per_side, padding, crop_size,
                                       is_training) for image in batch])
 
 
@@ -60,6 +58,7 @@ def preprocess_grid(image):
             patches_pred.append(image[batch_index, end_patch_index + 1: (row_index + 1) * patch_size])
             labels.append(1)
 
+            # TODO: make this a bit more random here
             patches_enc.append(patch_enc)
             batch_index_alt = (batch_index + 1) % batch_size
             patches_pred.append(image[batch_index_alt, end_patch_index + 1: (row_index + 1) * patch_size])

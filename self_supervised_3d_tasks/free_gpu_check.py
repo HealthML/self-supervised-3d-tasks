@@ -17,7 +17,7 @@ def aquire_free_gpus(amount=1):
     gpu_df = gpu_df.sort_values(
         by=["memory.free", "memory.used"], ascending=[False, True]
     )
-    gpu_df.drop(0, inplace=True)
+    # gpu_df.drop(0, inplace=True) # remove GPUs here if they dont work
     output = []
 
     if len(gpu_df) < amount:

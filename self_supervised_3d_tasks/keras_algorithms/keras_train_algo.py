@@ -5,11 +5,11 @@ from contextlib import redirect_stdout, redirect_stderr
 from os.path import expanduser
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
-from self_supervised_3d_tasks.keras_algorithms import cpc
-
+from self_supervised_3d_tasks.keras_algorithms import cpc, jigsaw
 
 keras_algorithm_list = {
-    "cpc": cpc
+    "cpc": cpc,
+    "jigsaw": jigsaw
 }
 
 
@@ -20,9 +20,9 @@ def train_model(algorithm, dataset_name, epochs=250, batch_size=8):
     train_data, validation_data = algorithm_def.get_training_generators(batch_size, dataset_name=dataset_name)
     model = algorithm_def.get_training_model()
 
-    # update after 500 samples, after 10 epochs we compute histograms
-    tb_c = keras.callbacks.TensorBoard(log_dir=working_dir, histogram_freq=10, batch_size=batch_size, update_freq=500)
-    mc_c = keras.callbacks.ModelCheckpoint(working_dir + "/weights-improvement-{epoch:02d}-{val_accuracy:.2f}.hdf5")
+    # update after 500 samples
+    tb_c = keras.callbacks.TensorBoard(log_dir=working_dir, batch_size=batch_size, update_freq=500)
+    mc_c = keras.callbacks.ModelCheckpoint(working_dir + "/weights-improvement-{epoch:03d}.hdf5")
     callbacks = [tb_c, mc_c]
 
     # Trains the model
@@ -42,4 +42,4 @@ if __name__ == "__main__":
 
     with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout
         with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
-            train_model("cpc", "ukb_retina", epochs=10)
+            train_model("jigsaw", "ukb_retina")

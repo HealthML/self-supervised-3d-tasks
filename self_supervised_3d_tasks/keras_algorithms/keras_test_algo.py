@@ -84,4 +84,4 @@ if __name__ == "__main__":
 
     with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout
         with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
-            run_complex_test("cpc", "kaggle_retina")
+            run_complex_test("jigsaw", "kaggle_retina")

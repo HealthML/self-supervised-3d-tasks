@@ -18,8 +18,7 @@ from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.algorithms.contrastive_predictive_coding import network_cpc
 
 from self_supervised_3d_tasks.models.cnn_baseline import KaggleGenerator
-from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess, resize, reorder_cpc, \
-    preprocess_patches_only
+from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess, resize
 
 
 def run_single_test(train_split, test_split, load_weights, freeze_weights, save_ckpt=False):
@@ -35,10 +34,8 @@ def run_single_test(train_split, test_split, load_weights, freeze_weights, save_
     split_per_side = 7
     img_shape = (image_size, image_size, n_channels)
 
-    f_train = lambda x, y: (preprocess(resize(x, 192), crop_size, split_per_side,
-                                       f=preprocess_patches_only), y)
-    f_val = lambda x, y: (preprocess(resize(x, 192), crop_size, split_per_side, is_training=False,
-                                     f=preprocess_patches_only), y)
+    f_train = lambda x, y: (preprocess(resize(x, 192), crop_size, split_per_side, is_training=False), y)
+    f_val = lambda x, y: (preprocess(resize(x, 192), crop_size, split_per_side, is_training=False), y)
 
     gen = KaggleGenerator(batch_size=batch_size, split=train_split, shuffle=False, pre_proc_func_train=f_train,
                           pre_proc_func_val=f_val)

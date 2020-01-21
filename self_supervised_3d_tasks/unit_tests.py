@@ -11,6 +11,7 @@ from PIL import Image
 from self_supervised_3d_tasks.algorithms.patch_model_preprocess import get_crop_patches_fn
 from self_supervised_3d_tasks.datasets import get_data
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess
+from self_supervised_3d_tasks.keras_algorithms.jigsaw import get_training_generators, get_finetuning_generators
 from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
     get_pad
 
@@ -240,6 +241,12 @@ def test_preprocessing_cpc():
     show_batch(patches)
 
 
+def test_preprocessing_jigsaw():
+    x, _1, _2 = get_finetuning_generators(1, "kaggle_retina", training_proportion=0.8)
+    print(x[0][0][0].shape)
+    print(x[0][1][0])
+    show_batch(x[1][0][0])
+
 def test_preprocessing():
     with tf.Session() as sess:
         f = get_crop(is_training=True, crop_size=(256, 256))
@@ -258,4 +265,4 @@ def test_preprocessing():
 
 
 if __name__ == "__main__":
-    test_preprocessing_cpc()
+    test_preprocessing_jigsaw()

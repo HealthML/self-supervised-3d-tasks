@@ -1,7 +1,6 @@
 from keras import Model, Input
 from keras.layers import Flatten, Dense, TimeDistributed
-from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess_grid, preprocess, resize, \
-    preprocess_patches_only
+from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess_grid, preprocess, resize
 from self_supervised_3d_tasks.data.data_generator import get_data_generators
 from self_supervised_3d_tasks.algorithms.contrastive_predictive_coding import network_cpc
 from self_supervised_3d_tasks.models.cnn_baseline import KaggleGenerator
@@ -22,12 +21,15 @@ image_size = 46  # this is important to be chosen like the final size of the pat
 test_split = 0.2
 img_shape = (image_size, image_size, n_channels)
 train_split = 0.7
+model_checkpoint = '/home/Julius.Severin/workspace/self-supervised-transfer-learning/cpc_retina/' \
+                   'weights-improvement-1000-0.48.hdf5'  # loading weights from Julius here, should be your home..
 
 
 def get_training_model():
     model, enc_model = network_cpc(image_shape=(image_size, image_size, n_channels), terms=terms,
                                    predict_terms=predict_terms,
                                    code_size=code_size, learning_rate=lr)
+    # we get a model that is already compiled
     return model
 
 
@@ -57,10 +59,11 @@ def get_training_generators(batch_size, dataset_name):
 def get_finetuning_generators(batch_size, dataset_name, training_proportion):
 
     def f_train(x, y):
-        return preprocess(resize(x, data_dim), crop_size, split_per_side, f=preprocess_patches_only), y
+        return preprocess(resize(x, data_dim), crop_size, split_per_side, is_training=False), y
+    # We are not training CPC here, so is_training = False
 
     def f_val(x, y):
-        return preprocess(resize(x, data_dim), crop_size, split_per_side, is_training=False, f=preprocess_patches_only), y
+        return preprocess(resize(x, data_dim), crop_size, split_per_side, is_training=False), y
 
     # TODO: move this switch to get_data_generators
     if dataset_name == "kaggle_retina":
@@ -75,14 +78,12 @@ def get_finetuning_generators(batch_size, dataset_name, training_proportion):
         raise ValueError("not implemented")
 
 
-def get_finetuning_model(load_weights, freeze_weights):
+def get_finetuning_model(load_weights, freeze_weights, num_classes=5):
     cpc_model, enc_model = network_cpc(image_shape=img_shape, terms=terms, predict_terms=predict_terms,
                                        code_size=code_size, learning_rate=lr)
 
     if load_weights:
-        # loading weights from Julius here, should be your home..
-        cpc_model.load_weights('/home/Julius.Severin/workspace/self-supervised-transfer-learning/cpc_retina/'
-                               'weights-improvement-1000-0.48.hdf5')
+        cpc_model.load_weights(model_checkpoint)
 
     if freeze_weights:
         # freeze the encoder weights
@@ -95,7 +96,7 @@ def get_finetuning_model(load_weights, freeze_weights):
     x = Dense(128, activation="relu")(x)
     x = Dense(64, activation="relu")(x)
     x = Dense(32, activation="relu")(x)
-    x = Dense(5, activation="sigmoid")(x)
+    x = Dense(num_classes, activation="softmax")(x)
 
     model = Model(inputs=layer_in, outputs=x)
     model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
