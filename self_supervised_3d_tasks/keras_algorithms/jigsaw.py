@@ -78,7 +78,8 @@ def get_finetuning_generators(batch_size, dataset_name, training_proportion):
     perms = [range(split_per_side*split_per_side)]
 
     def f_train(x, y):
-        return preprocess(x, split_per_side, patch_jitter, perms, is_training=True)[0], y
+        return preprocess(x, split_per_side, patch_jitter, perms, is_training=False)[0], y
+    # We are not training jigsaw here, so is_training = False
 
     def f_val(x, y):
         return preprocess(x, split_per_side, patch_jitter, perms, is_training=False)[0], y
