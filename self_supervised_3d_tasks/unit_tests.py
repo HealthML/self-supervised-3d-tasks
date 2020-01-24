@@ -204,7 +204,6 @@ def show_batch(image_batch):
 
     plt.show()
 
-
 def show_batch_numpy(image_batch):
     length = image_batch.shape[0]
 
@@ -241,11 +240,10 @@ def test_preprocessing_cpc():
     show_batch(patches)
 
 
-def test_preprocessing_jigsaw():
+def test_pil_fit():
     x, _1, _2 = get_finetuning_generators(1, "kaggle_retina", training_proportion=0.8)
-    print(x[0][0][0].shape)
-    print(x[0][1][0])
-    show_batch(x[1][0][0])
+    show_batch(x[0][0][0])
+
 
 def test_preprocessing():
     with tf.Session() as sess:
