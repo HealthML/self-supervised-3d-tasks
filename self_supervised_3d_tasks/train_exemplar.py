@@ -1,4 +1,5 @@
 import functools
+import os
 import sys
 
 import keras
@@ -12,11 +13,12 @@ from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from contextlib import redirect_stdout, redirect_stderr
 import numpy as np
 
+from self_supervised_3d_tasks.triplet_loss import triplet_loss_adapted_from_tf
+
 aquire_free_gpus(1)
 c_stdout, c_stderr = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
 
-
-def preprocessing_exemplar(x,y=None, num_cases = 1):
+def preprocessing_exemplar(x, y, batch_id, nb_images, num_cases=4):
     def _distort_color(scan):
         """
         This function is based on the distort_color function from the tf implementation.
@@ -25,7 +27,7 @@ def preprocessing_exemplar(x,y=None, num_cases = 1):
         """
         # TODO distort colors
         # adjust brightness
-        max_delta = 32.0/255.0
+        max_delta = 32.0 / 255.0
         delta = np.random.uniform(-max_delta, max_delta)
         scan += delta
 
@@ -34,9 +36,8 @@ def preprocessing_exemplar(x,y=None, num_cases = 1):
         upper = 1.5
         contrast_factor = np.random.uniform(lower, upper)
         scan_mean = np.mean(scan)
-        scan = (contrast_factor*(scan - scan_mean))+scan_mean
+        scan = (contrast_factor * (scan - scan_mean)) + scan_mean
         return scan
-
 
     """
     This function preprocess a batch for relative patch location in a 2 dimensional space.
@@ -46,13 +47,12 @@ def preprocessing_exemplar(x,y=None, num_cases = 1):
     """
     # get batch size
     batch_size = len(y)
-    # TODO double check array shapes
     # init np array for images
     x_processed = np.empty(shape=(batch_size, num_cases, x.shape[-3], x.shape[-2], x.shape[-1]))
     # init patch array
     patches = np.empty(shape=x.shape)
     # init np array with zeros
-    y = np.zeros((batch_size, 1))
+    y = np.zeros((nb_images, 1))
     # loop over all images with index and image
     for index, image in enumerate(x):
         # random transformation [0..1]
@@ -72,10 +72,10 @@ def preprocessing_exemplar(x,y=None, num_cases = 1):
 
         # TODO set label
         # set index
-        y[index] = 1
-        x_processed [index] = patches
+        y[batch_id*batch_size + index] = 1
+        x_processed[index] = patches
     # return images and rotation
-    return x,y
+    return x, y
 
 
 def train_model(epochs,
@@ -98,26 +98,33 @@ def train_model(epochs,
     :param num_cases: defines the number of cases for pre processing
     :return:
     """
+
+    num_classes = len(os.listdir(data_path))
+
     # init func
-    func = functools.partial(preprocessing_exemplar, num_cases=num_cases)
+    func = functools.partial(preprocessing_exemplar, num_cases=num_cases, nb_images=num_classes)
 
     # init data generator
     train_data, validation_data = get_data_generators(data_dir, train_split=0.7,
                                                       train_data_generator_args={"batch_size": batch_size,
                                                                                  "dim": dim,
                                                                                  "n_channels": n_channels,
-                                                                                 "pre_proc_func": func},
+                                                                                 "pre_proc_func": func,
+                                                                                 "exemplar": True},
                                                       test_data_generator_args={"batch_size": batch_size,
                                                                                 "dim": dim,
                                                                                 "n_channels": n_channels,
-                                                                                "pre_proc_func": func}
+                                                                                "pre_proc_func": func,
+                                                                                "exemplar": True}
                                                       )
 
     # compile model
-    model = get_res_net_2d(input_shape=[*dim, n_channels], classes=4, architecture="ResNet50", learning_rate=lr)
+    model = get_res_net_2d(input_shape=[*dim, n_channels], classes=num_classes, architecture="ResNet50", learning_rate=lr,
+                           loss=triplet_loss_adapted_from_tf)
 
     # Callbacks
-    tb_callback = keras.callbacks.TensorBoard(log_dir=work_dir, histogram_freq=0,
+    tb_callback = keras.callbacks.TensorBoard(log_dir=work_dir,
+                                              histogram_freq=0,
                                               batch_size=batch_size,
                                               write_graph=True, write_grads=False, write_images=False,
                                               embeddings_freq=0,
@@ -153,8 +160,8 @@ if __name__ == "__main__":
     with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout
         with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
             # with tf.Session(config=config) as sess:
-            working_dir = expanduser("~/workspace/self-supervised-transfer-learning/rotation_retina_192"),
-            data_path = "/mnt/mpws2019cl1/retinal_fundus/left/max_256/",
+            working_dir = expanduser("~/workspace/self-supervised-transfer-learning/rotation_retina_192")
+            data_path = "/mnt/mpws2019cl1/retinal_fundus/left/max_256/"
             number_channels = 3
             train_model(
                 epochs=100,
@@ -166,4 +173,3 @@ if __name__ == "__main__":
                 n_channels=number_channels,
                 num_cases=1
             )
-

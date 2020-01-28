@@ -17,7 +17,7 @@ def aquire_free_gpus(amount=1):
     gpu_df = gpu_df.sort_values(by=["memory.free"], ascending=False)
     gpu_df = gpu_df.sort_values(by=["memory.used"], ascending=True)
     # TODO: Fix this as soon as GPU is fixed
-    gpu_df.drop(0, inplace=True)
+    #gpu_df.drop(0, inplace=True)
     print(gpu_df)
     output = []
 

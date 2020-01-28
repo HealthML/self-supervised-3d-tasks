@@ -112,7 +112,7 @@ def convolutional_block(X, f, filters, stage, block, s=2):
     return X
 
 
-def ResNet50(input_shape, classes, learning_rate):
+def ResNet50(input_shape, classes, learning_rate, loss):
     """
     Implementation of the popular ResNet50 the following architecture:
     CONV2D -> BATCHNORM -> RELU -> MAXPOOL -> CONVBLOCK -> IDBLOCK*2 -> CONVBLOCK -> IDBLOCK*3
@@ -178,16 +178,16 @@ def ResNet50(input_shape, classes, learning_rate):
 
     model.compile(
         optimizer=Adam(lr=learning_rate),
-        loss='categorical_crossentropy',
+        loss = loss,
         metrics=['accuracy']
     )
 
     return model
 
 
-def get_res_net_2d(input_shape, classes, learning_rate, architecture="ResNet50"):
+def get_res_net_2d(input_shape, classes, learning_rate, architecture="ResNet50", loss='categorical_crossentropy'):
     if architecture == "ResNet50":
-        model = ResNet50(input_shape=input_shape, classes=classes, learning_rate=learning_rate)
+        model = ResNet50(input_shape=input_shape, classes=classes, learning_rate=learning_rate, loss=loss)
     else:
         raise NotImplementedError("Model not found.")
     return model
