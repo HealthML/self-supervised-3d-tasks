@@ -5,11 +5,12 @@ from contextlib import redirect_stdout, redirect_stderr
 from os.path import expanduser
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
-from self_supervised_3d_tasks.keras_algorithms import cpc, jigsaw
+from self_supervised_3d_tasks.keras_algorithms import cpc, jigsaw, relative_patch_location
 
 keras_algorithm_list = {
     "cpc": cpc,
-    "jigsaw": jigsaw
+    "jigsaw": jigsaw,
+    "rpl": relative_patch_location
 }
 
 
@@ -42,4 +43,4 @@ if __name__ == "__main__":
 
     with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout
         with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
-            train_model("jigsaw", "ukb_retina")
+            train_model("rpl", "ukb_retina")
