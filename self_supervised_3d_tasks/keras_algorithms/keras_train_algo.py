@@ -1,33 +1,62 @@
-import sys
 from os import path
+from os.path import expanduser
 
 import keras
-
-from contextlib import redirect_stdout, redirect_stderr
-from os.path import expanduser
-from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
-from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
+from self_supervised_3d_tasks.data.data_generator import get_data_generators
 from self_supervised_3d_tasks.keras_algorithms import cpc, jigsaw
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
 
 keras_algorithm_list = {
     "cpc": cpc,
     "jigsaw": jigsaw
 }
 
+dataset_dir_list = {
+    "kaggle_retina": "/mnt/mpws2019cl1/kaggle_retina/train/resized_384",
+    "ukb_retina": "/mnt/mpws2019cl1/retinal_fundus/left/max_256/"
+}
 
-def train_model(algorithm, dataset_name, epochs=250, batch_size=16):
+train_val_split = 0.9
+
+
+def get_dataset(dataset_name, batch_size, f_train, f_val):
+    if dataset_name not in dataset_dir_list:
+        raise ValueError("dataset not implemented")
+
+    data_dir = dataset_dir_list[dataset_name]
+
+    train_data, validation_data = get_data_generators(data_dir, train_split=train_val_split,
+                                                      train_data_generator_args={"batch_size": batch_size,
+                                                                                 "pre_proc_func": f_train},
+                                                      test_data_generator_args={"batch_size": batch_size,
+                                                                                "pre_proc_func": f_val})
+
+    return train_data, validation_data
+
+
+def get_writing_path(algorithm, dataset_name):
     working_dir = expanduser("~/workspace/self-supervised-transfer-learning/") + algorithm + "_" + dataset_name
 
     i = 0
     while path.exists(working_dir):
         if i > 0:
-            working_dir = working_dir[-len(str(i-1))]
+            working_dir = working_dir[-len(str(i - 1))]
+        else:
+            working_dir += "_"
+
         working_dir += str(i)
+        i += 1
 
     print("writing to: " + working_dir)
+    return working_dir
+
+
+def train_model(algorithm, dataset_name, epochs=250, batch_size=16):
+    working_dir = get_writing_path(algorithm, dataset_name)
     algorithm_def = keras_algorithm_list[algorithm]
 
-    train_data, validation_data = algorithm_def.get_training_generators(batch_size, dataset_name=dataset_name)
+    f_train, f_val = algorithm_def.get_training_preprocessing()
+    train_data, validation_data = get_dataset(dataset_name, batch_size, f_train, f_val)
     model = algorithm_def.get_training_model()
 
     # update after 500 samples
@@ -48,9 +77,4 @@ def train_model(algorithm, dataset_name, epochs=250, batch_size=16):
 
 
 if __name__ == "__main__":
-    aquire_free_gpus()
-    c_stdout, c_stderr = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
-
-    with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout
-        with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
-            train_model("jigsaw", "kaggle_retina")
+    init(train_model)

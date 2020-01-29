@@ -70,8 +70,8 @@ def get_cnn_baseline_model(shape=(384, 384, 3,), multi_gpu=False, lr=1e-3):
     Returns:
        keras Model() instance, compiled / ready to train
     """
-    dim1 = 1024
-    dim2 = 512
+    dim1 = 2048
+    dim2 = 1024
 
     inputs = Input(shape=shape)
     vgg_in_shape = tuple([int(el) for el in inputs.shape[1:]])
@@ -102,7 +102,7 @@ def train():
 
     gen = KaggleGenerator(batch_size=batch_size, sample_classes_uniform=True, shuffle=True,
                           categorical=False,
-                          pre_proc_func_train=apply_to_x, pre_proc_func_val=apply_to_x,
+                          # pre_proc_func_train=apply_to_x, pre_proc_func_val=apply_to_x,
                           discard_part_of_dataset_split=test_split, split=val_split)
     # csvDescriptor=csvDescriptor, base_path=base_path,
     # we have to discard some data BEFORE sampling because of testing

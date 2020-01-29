@@ -13,6 +13,7 @@ from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import appl
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.datasets import get_data
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess, preprocess_grid
+from self_supervised_3d_tasks.keras_algorithms import cpc
 from self_supervised_3d_tasks.keras_algorithms.jigsaw import get_training_generators, get_finetuning_generators
 from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
     get_pad
@@ -264,6 +265,16 @@ def test_preprocessing_cpc():
 
     show_batch(patches[0][0][4])
 
+def test_cpc_gen():
+    gen = cpc.get_training_generators(1, "kaggle_retina")
+    data = gen[0][0][0][1]
+
+    print(data.shape)
+    print(data[0].max())
+    print(data[0].min())
+
+    show_batch(data[0])
+
 def test_data_jigsaw():
     gen = get_training_generators(1, "kaggle_retina")
     data = gen[0][0][0]
@@ -298,4 +309,4 @@ def test_preprocessing():
 
 
 if __name__ == "__main__":
-    test_preprocessing_baseline()
+    test_cpc_gen()

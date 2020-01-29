@@ -8,6 +8,7 @@ import pandas
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
 from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_algorithm_list
 
 epochs = 3
@@ -79,9 +80,4 @@ def run_complex_test(algorithm, dataset_name):
 
 
 if __name__ == "__main__":
-    aquire_free_gpus()
-    c_stdout, c_stderr = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
-
-    with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout
-        with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
-            run_complex_test("jigsaw", "kaggle_retina")
+    init(run_complex_test)

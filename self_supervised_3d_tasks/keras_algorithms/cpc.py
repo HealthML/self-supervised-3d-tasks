@@ -5,19 +5,18 @@ from self_supervised_3d_tasks.data.data_generator import get_data_generators
 from self_supervised_3d_tasks.algorithms.contrastive_predictive_coding import network_cpc
 from self_supervised_3d_tasks.models.cnn_baseline import KaggleGenerator
 
-
 # optionally load this from a config file at some time
-data_dir = "/mnt/mpws2019cl1/retinal_fundus/left/max_256/"
-data_dim = 192
+data_dir = "/mnt/mpws2019cl1/kaggle_retina/train/resized_384"
+data_dim = 384  # original data dim
 data_shape = (data_dim, data_dim)
-crop_size = 186
+crop_size = 384
 split_per_side = 7
 n_channels = 3
 code_size = 128
 lr = 1e-3
-terms = 3
+terms = 9
 predict_terms = 3
-image_size = 46  # this is important to be chosen like the final size of the patches (could auto generate this later on)
+image_size = int((crop_size / (split_per_side + 1)) * 2)
 test_split = 0.2
 img_shape = (image_size, image_size, n_channels)
 train_split = 0.7
@@ -33,49 +32,33 @@ def get_training_model():
     return model
 
 
-def get_training_generators(batch_size, dataset_name):
+def get_training_preprocessing(batch_size):
     def f_train(x, y):  # not using y here, as it gets generated
         return preprocess_grid(preprocess(x, crop_size, split_per_side))
 
     def f_val(x, y):
         return preprocess_grid(preprocess(x, crop_size, split_per_side, is_training=False))
 
-    # TODO: move this switch to get_data_generators
-    if dataset_name == "ukb_retina":
-        train_data, validation_data = get_data_generators(data_dir, train_split=train_split,
-                                                          train_data_generator_args={"batch_size": batch_size,
-                                                                                     "dim": data_shape,
-                                                                                     "n_channels": n_channels,
-                                                                                     "pre_proc_func": f_train},
-                                                          test_data_generator_args={"batch_size": batch_size,
-                                                                                    "dim": data_shape,
-                                                                                    "n_channels": n_channels,
-                                                                                    "pre_proc_func": f_val})
-        return train_data, validation_data
-    else:
-        raise ValueError("not implemented")
+    return f_train, f_val
 
 
 def get_finetuning_generators(batch_size, dataset_name, training_proportion):
-
     def f_train(x, y):
         return preprocess(resize(x, data_dim), crop_size, split_per_side, is_training=False), y
+
     # We are not training CPC here, so is_training = False
 
     def f_val(x, y):
         return preprocess(resize(x, data_dim), crop_size, split_per_side, is_training=False), y
 
     # TODO: move this switch to get_data_generators
-    if dataset_name == "kaggle_retina":
-        gen = KaggleGenerator(batch_size=batch_size, split=training_proportion, shuffle=False,
-                              pre_proc_func_train=f_train, pre_proc_func_val=f_val)
-        gen_test = KaggleGenerator(batch_size=batch_size, split=1.0-test_split, shuffle=False,
-                                   pre_proc_func_train=f_train, pre_proc_func_val=f_val)
-        x_test, y_test = gen_test.get_val_data()
+    gen = KaggleGenerator(batch_size=batch_size, split=training_proportion, shuffle=False,
+                          pre_proc_func_train=f_train, pre_proc_func_val=f_val)
+    gen_test = KaggleGenerator(batch_size=batch_size, split=1.0 - test_split, shuffle=False,
+                               pre_proc_func_train=f_train, pre_proc_func_val=f_val)
+    x_test, y_test = gen_test.get_val_data()
 
-        return gen, x_test, y_test
-    else:
-        raise ValueError("not implemented")
+    return gen, x_test, y_test
 
 
 def get_finetuning_model(load_weights, freeze_weights, num_classes=5):

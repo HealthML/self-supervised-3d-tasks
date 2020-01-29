@@ -55,37 +55,27 @@ def get_training_model():
     return apply_model()[1]
 
 
-def get_training_generators(batch_size, dataset_name):
+def get_training_preprocessing():
     perms, _ = patch_utils.load_permutations()
 
     def f_train(x, y):  # not using y here, as it gets generated
-        return preprocess(apply_to_x(x,y)[0], split_per_side, patch_jitter, perms, is_training=True)
+        return preprocess(x, split_per_side, patch_jitter, perms, is_training=True)
 
     def f_val(x, y):
-        return preprocess(apply_to_x(x,y)[0], split_per_side, patch_jitter, perms, is_training=False)
+        return preprocess(x, split_per_side, patch_jitter, perms, is_training=False)
 
-    # TODO: switch dataset
-    train_data, validation_data = get_data_generators(data_dir, train_split=train_test_split,
-                                                      train_data_generator_args={"batch_size": batch_size,
-                                                                                 "dim": dim,
-                                                                                 "n_channels": n_channels,
-                                                                                 "pre_proc_func": f_train},
-                                                      test_data_generator_args={"batch_size": batch_size,
-                                                                                "dim": dim,
-                                                                                "n_channels": n_channels,
-                                                                                "pre_proc_func": f_val})
-    return train_data, validation_data
+    return f_train, f_val
 
 
 def get_finetuning_generators(batch_size, dataset_name, training_proportion):
     perms = [range(split_per_side*split_per_side)]
 
     def f_train(x, y):
-        return preprocess(apply_to_x(x,y)[0], split_per_side, patch_jitter, perms, is_training=False)[0], y
+        return preprocess(x, split_per_side, patch_jitter, perms, is_training=False)[0], y
     # We are not training jigsaw here, so is_training = False
 
     def f_val(x, y):
-        return preprocess(apply_to_x(x,y)[0], split_per_side, patch_jitter, perms, is_training=False)[0], y
+        return preprocess(x, split_per_side, patch_jitter, perms, is_training=False)[0], y
 
     # TODO: move this switch to get_data_generators
     if dataset_name == "kaggle_retina":
