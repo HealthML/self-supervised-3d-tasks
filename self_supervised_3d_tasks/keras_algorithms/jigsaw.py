@@ -2,27 +2,30 @@ from os.path import expanduser
 
 from keras import Input, Model
 from keras.layers import TimeDistributed, Flatten
+from keras.optimizers import Adam
+
+from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import apply_to_x
 from self_supervised_3d_tasks.data.data_generator import get_data_generators
 
 from self_supervised_3d_tasks.algorithms import patch_utils
 from self_supervised_3d_tasks.custom_preprocessing.jigsaw_preprocess import preprocess
+from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.keras_models.fully_connected import fully_connected
 
 from self_supervised_3d_tasks.keras_models.res_net_2d import get_res_net_2d
-from self_supervised_3d_tasks.models.cnn_baseline import KaggleGenerator
 
-h_w = 256
+h_w = 384
 split_per_side = 3
 dim = (h_w, h_w)
 patch_jitter = 10
 patch_dim = int((h_w / split_per_side) - patch_jitter)
 n_channels = 3
-lr = 1e-3
+lr = 0.00003  # choose a smaller learning rate
 embed_dim = 1000
 architecture = "ResNet50"
 # data_dir="/mnt/mpws2019cl1/retinal_fundus/left/max_256/"
-data_dir = "/mnt/mpws2019cl1/kaggle_retina/train/resized"
-train_test_split = 0.9
+data_dir = "/mnt/mpws2019cl1/kaggle_retina/train/resized_384"
+train_test_split = 0.95
 model_checkpoint = \
     expanduser('~/workspace/self-supervised-transfer-learning/jigsaw_ukb_retina/weights-improvement-01.hdf5')
 
@@ -33,14 +36,14 @@ def apply_model():
 
     enc_model = get_res_net_2d(input_shape=[patch_dim, patch_dim, n_channels], classes=embed_dim,
                                architecture=architecture,
-                               learning_rate=lr)
+                               learning_rate=lr, compile_model=False)
 
     x = TimeDistributed(enc_model)(input_x)
     x = Flatten()(x)
     out = fully_connected(x, num_classes=len(perms))
 
     model = Model(inputs=input_x, outputs=out)
-    model.compile(optimizer='adam',
+    model.compile(optimizer=Adam(lr=lr),
                   loss='categorical_crossentropy',
                   metrics=['accuracy'])
     model.summary()
@@ -56,10 +59,10 @@ def get_training_generators(batch_size, dataset_name):
     perms, _ = patch_utils.load_permutations()
 
     def f_train(x, y):  # not using y here, as it gets generated
-        return preprocess(x, split_per_side, patch_jitter, perms, is_training=True)
+        return preprocess(apply_to_x(x,y)[0], split_per_side, patch_jitter, perms, is_training=True)
 
     def f_val(x, y):
-        return preprocess(x, split_per_side, patch_jitter, perms, is_training=False)
+        return preprocess(apply_to_x(x,y)[0], split_per_side, patch_jitter, perms, is_training=False)
 
     # TODO: switch dataset
     train_data, validation_data = get_data_generators(data_dir, train_split=train_test_split,
@@ -78,11 +81,11 @@ def get_finetuning_generators(batch_size, dataset_name, training_proportion):
     perms = [range(split_per_side*split_per_side)]
 
     def f_train(x, y):
-        return preprocess(x, split_per_side, patch_jitter, perms, is_training=False)[0], y
+        return preprocess(apply_to_x(x,y)[0], split_per_side, patch_jitter, perms, is_training=False)[0], y
     # We are not training jigsaw here, so is_training = False
 
     def f_val(x, y):
-        return preprocess(x, split_per_side, patch_jitter, perms, is_training=False)[0], y
+        return preprocess(apply_to_x(x,y)[0], split_per_side, patch_jitter, perms, is_training=False)[0], y
 
     # TODO: move this switch to get_data_generators
     if dataset_name == "kaggle_retina":

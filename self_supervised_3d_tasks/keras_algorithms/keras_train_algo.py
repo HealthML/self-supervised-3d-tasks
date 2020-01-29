@@ -1,4 +1,6 @@
 import sys
+from os import path
+
 import keras
 
 from contextlib import redirect_stdout, redirect_stderr
@@ -13,8 +15,16 @@ keras_algorithm_list = {
 }
 
 
-def train_model(algorithm, dataset_name, epochs=250, batch_size=8):
+def train_model(algorithm, dataset_name, epochs=250, batch_size=16):
     working_dir = expanduser("~/workspace/self-supervised-transfer-learning/") + algorithm + "_" + dataset_name
+
+    i = 0
+    while path.exists(working_dir):
+        if i > 0:
+            working_dir = working_dir[-len(str(i-1))]
+        working_dir += str(i)
+
+    print("writing to: " + working_dir)
     algorithm_def = keras_algorithm_list[algorithm]
 
     train_data, validation_data = algorithm_def.get_training_generators(batch_size, dataset_name=dataset_name)
@@ -22,7 +32,8 @@ def train_model(algorithm, dataset_name, epochs=250, batch_size=8):
 
     # update after 500 samples
     tb_c = keras.callbacks.TensorBoard(log_dir=working_dir, batch_size=batch_size, update_freq=500)
-    mc_c = keras.callbacks.ModelCheckpoint(working_dir + "/weights-improvement-{epoch:03d}.hdf5")
+    mc_c = keras.callbacks.ModelCheckpoint(working_dir + "/weights-improvement-{epoch:03d}.hdf5", monitor="val_loss",
+                                           mode="min", save_best_only=True)  # reduce storage space
     callbacks = [tb_c, mc_c]
 
     # Trains the model
@@ -42,4 +53,4 @@ if __name__ == "__main__":
 
     with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout
         with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
-            train_model("jigsaw", "ukb_retina")
+            train_model("jigsaw", "kaggle_retina")
