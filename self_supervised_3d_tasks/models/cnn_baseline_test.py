@@ -14,8 +14,6 @@ from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 
 sns.set()
 
-# csvDescriptor = Path("/mnt/mpws2019cl1/kaggle_retina/train/trainLabels.csv")
-
 def test():
     NGPUS = 1
     batch_size=16
@@ -23,8 +21,7 @@ def test():
 
     aquire_free_gpus(NGPUS)
 
-    gen = KaggleGenerator(batch_size=batch_size, split=split, shuffle=False, categorical=False,
-                          pre_proc_func_val=apply_to_x)  # csvDescriptor=csvDescriptor
+    gen = KaggleGenerator(batch_size=batch_size, split=split, shuffle=False, categorical=False)
     model = load_model(expanduser("~/workspace/cnn_baseline/run_2020-01-28 09:50:52.769099/intermediate_0009_0.46_model.hdf5"))
 
     x,y = gen.get_val_data()

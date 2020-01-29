@@ -1,14 +1,14 @@
 import csv
-import sys
-from contextlib import redirect_stdout, redirect_stderr
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
+from keras import Model
+from keras.layers import Dense
+from sklearn.metrics import cohen_kappa_score, accuracy_score
 
-from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
-from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
+from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, apply_prediction_model
 from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_algorithm_list
 
 epochs = 3
@@ -16,19 +16,48 @@ repetitions = 5
 batch_size = 8
 exp_splits = [0.5, 1, 2, 5, 10, 25, 50, 80]  # different train splits to try in %
 
+test_split = 0.9
+val_split = 0.95
+NGPUS = 1
+lr = 0.00003
+
+
+def score(y, y_pred):
+    return "kappa score", cohen_kappa_score(y, y_pred, labels=[0, 1, 2, 3, 4], weights="quadratic")
+
+
+def get_dataset(dataset_name, batch_size, f_train, f_val, train_split):
+    if train_split > test_split:
+        raise ValueError("training data includes testing data")
+
+    if dataset_name == "kaggle_retina":
+        gen_train = KaggleGenerator(batch_size=batch_size, sample_classes_uniform=True, shuffle=True,
+                                    categorical=False, discard_part_of_dataset_split=train_split, split=val_split,
+                                    pre_proc_func_train=f_train, pre_proc_func_val=f_val)
+        gen_test = KaggleGenerator(batch_size=batch_size, split=test_split, shuffle=False, categorical=False,
+                                   pre_proc_func_train=f_train, pre_proc_func_val=f_val)
+        x_test, y_test = gen_test.get_val_data()
+    else:
+        raise ValueError("not implemented")  # we can only test with kaggle retina atm.
+
+    return gen_train, x_test, y_test
+
 
 def run_single_test(algorithm, dataset_name, train_split, load_weights, freeze_weights):
     algorithm_def = keras_algorithm_list[algorithm]
+    f_train, f_val = algorithm_def.get_finetuning_preprocessing()
+    gen, x_test, y_test = get_dataset(dataset_name, batch_size, f_train, f_val, train_split)
 
-    gen, x_test, y_test = algorithm_def.get_finetuning_generators(batch_size, dataset_name, train_split)
-    model = algorithm_def.get_finetuning_model(load_weights, freeze_weights)
-
+    layer_in, x = algorithm_def.get_finetuning_layers(load_weights, freeze_weights)
+    model = apply_prediction_model(layer_in, x, multi_gpu=NGPUS, lr=lr)
     model.fit_generator(generator=gen, epochs=epochs)
 
-    scores = model.evaluate(x_test, y_test)
-    print("model accuracy: {}".format(scores[1]))
+    y_pred = model.predict(x_test)
+    y_pred = np.rint(y_pred)
+    s_name, result = score(y_test, y_pred)
 
-    return scores[1]
+    print("{} score: {}".format(s_name, result))
+    return result
 
 
 def write_result(name, row):
@@ -38,6 +67,7 @@ def write_result(name, row):
 
 
 def draw_curve(name):
+    # TODO: load multiple algorithms here
     # helper function to plot results curve
     df = pandas.read_csv(name + '_results.csv')
 
@@ -74,10 +104,10 @@ def run_complex_test(algorithm, dataset_name):
             b_s.append(b)
             c_s.append(c)
 
-        data = [str(train_split)+"%", np.mean(np.array(a_s)), np.mean(np.array(b_s)), np.mean(np.array(c_s))]
+        data = [str(train_split) + "%", np.mean(np.array(a_s)), np.mean(np.array(b_s)), np.mean(np.array(c_s))]
         results.append(data)
         write_result(algorithm, data)
 
 
 if __name__ == "__main__":
-    init(run_complex_test)
+    init(run_complex_test, NGPUS)

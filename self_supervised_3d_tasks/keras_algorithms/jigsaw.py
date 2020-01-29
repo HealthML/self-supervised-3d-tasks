@@ -67,30 +67,19 @@ def get_training_preprocessing():
     return f_train, f_val
 
 
-def get_finetuning_generators(batch_size, dataset_name, training_proportion):
+def get_finetuning_preprocessing():
     perms = [range(split_per_side*split_per_side)]
 
     def f_train(x, y):
         return preprocess(x, split_per_side, patch_jitter, perms, is_training=False)[0], y
-    # We are not training jigsaw here, so is_training = False
 
     def f_val(x, y):
         return preprocess(x, split_per_side, patch_jitter, perms, is_training=False)[0], y
 
-    # TODO: move this switch to get_data_generators
-    if dataset_name == "kaggle_retina":
-        gen = KaggleGenerator(batch_size=batch_size, split=training_proportion, shuffle=False,
-                              pre_proc_func_train=f_train, pre_proc_func_val=f_val)
-        gen_test = KaggleGenerator(batch_size=batch_size, split=train_test_split, shuffle=False,
-                                   pre_proc_func_train=f_train, pre_proc_func_val=f_val)
-        x_test, y_test = gen_test.get_val_data()
-
-        return gen, x_test, y_test
-    else:
-        raise ValueError("not implemented")
+    return f_train, f_val
 
 
-def get_finetuning_model(load_weights, freeze_weights, num_classes=5):
+def get_finetuning_layers(load_weights, freeze_weights):
     enc_model, model_full = apply_model()
 
     if load_weights:
@@ -104,9 +93,4 @@ def get_finetuning_model(load_weights, freeze_weights, num_classes=5):
     layer_out = TimeDistributed(enc_model)(layer_in)
 
     x = Flatten()(layer_out)
-    out = fully_connected(x, num_classes=num_classes)
-
-    model = Model(inputs=layer_in, outputs=out)
-    model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
-
-    return model
+    return layer_in, x

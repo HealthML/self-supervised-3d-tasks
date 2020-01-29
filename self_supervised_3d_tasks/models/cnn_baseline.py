@@ -14,6 +14,7 @@ from sklearn.metrics import f1_score, precision_score, recall_score
 from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import blur_and_subtract, apply_to_x
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_prediction_model
 
 sns.set()
 
@@ -23,7 +24,7 @@ sns.set()
 
 NGPUS = 1
 batch_size=16
-test_split =0.9
+test_split =0.9  # MUST be same like split in cnn_baseline_test.py
 val_split =0.95
 lr = 0.00003  # choose a smaller learning rate
 
@@ -70,25 +71,11 @@ def get_cnn_baseline_model(shape=(384, 384, 3,), multi_gpu=False, lr=1e-3):
     Returns:
        keras Model() instance, compiled / ready to train
     """
-    dim1 = 2048
-    dim2 = 1024
-
     inputs = Input(shape=shape)
     vgg_in_shape = tuple([int(el) for el in inputs.shape[1:]])
-    x = make_vgg(in_shape=vgg_in_shape)(inputs) #, name="Baseline_Freezed"
-    # x = Flatten()(x)
-    x = Dense(dim1, activation="relu")(x)
-    x = Dense(dim2, activation="relu")(x)
-    x = Dense(1, activation="relu")(x)
+    x = make_vgg(in_shape=vgg_in_shape)(inputs)
 
-    model = Model(inputs=inputs, outputs=x)
-    if multi_gpu >= 2:
-        model = multi_gpu_model(model, gpus=multi_gpu)
-    model.compile(
-        optimizer=Adam(lr=lr), loss="mse", metrics=["mae"]
-    )
-    model.summary()
-    return model
+    return apply_prediction_model(inputs, x, multi_gpu=multi_gpu, lr=lr)
 
 
 def train():

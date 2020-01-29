@@ -42,26 +42,17 @@ def get_training_preprocessing(batch_size):
     return f_train, f_val
 
 
-def get_finetuning_generators(batch_size, dataset_name, training_proportion):
+def get_finetuning_preprocessing():
     def f_train(x, y):
         return preprocess(resize(x, data_dim), crop_size, split_per_side, is_training=False), y
-
-    # We are not training CPC here, so is_training = False
 
     def f_val(x, y):
         return preprocess(resize(x, data_dim), crop_size, split_per_side, is_training=False), y
 
-    # TODO: move this switch to get_data_generators
-    gen = KaggleGenerator(batch_size=batch_size, split=training_proportion, shuffle=False,
-                          pre_proc_func_train=f_train, pre_proc_func_val=f_val)
-    gen_test = KaggleGenerator(batch_size=batch_size, split=1.0 - test_split, shuffle=False,
-                               pre_proc_func_train=f_train, pre_proc_func_val=f_val)
-    x_test, y_test = gen_test.get_val_data()
-
-    return gen, x_test, y_test
+    return f_train, f_val
 
 
-def get_finetuning_model(load_weights, freeze_weights, num_classes=5):
+def get_finetuning_layers(load_weights, freeze_weights):
     cpc_model, enc_model = network_cpc(image_shape=img_shape, terms=terms, predict_terms=predict_terms,
                                        code_size=code_size, learning_rate=lr)
 
@@ -76,12 +67,4 @@ def get_finetuning_model(load_weights, freeze_weights, num_classes=5):
     layer_out = TimeDistributed(enc_model)(layer_in)
 
     x = Flatten()(layer_out)
-    x = Dense(128, activation="relu")(x)
-    x = Dense(64, activation="relu")(x)
-    x = Dense(32, activation="relu")(x)
-    x = Dense(num_classes, activation="softmax")(x)
-
-    model = Model(inputs=layer_in, outputs=x)
-    model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
-
-    return model
+    return layer_in, x
