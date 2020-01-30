@@ -24,27 +24,34 @@ def score(y, y_pred):
     return "kappa score", cohen_kappa_score(y, y_pred, labels=[0, 1, 2, 3, 4], weights="quadratic")
 
 
-def get_dataset(dataset_name, batch_size, f_train, f_val, train_split):
-    if train_split > test_split:
-        raise ValueError("training data includes testing data")
-
+def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split):
     if dataset_name == "kaggle_retina":
         gen_train = KaggleGenerator(batch_size=batch_size, sample_classes_uniform=True, shuffle=True,
                                     categorical=False, discard_part_of_dataset_split=train_split, split=val_split,
                                     pre_proc_func_train=f_train, pre_proc_func_val=f_val)
+    else:
+        raise ValueError("not implemented")  # we can only test with kaggle retina atm.
+
+    return gen_train
+
+
+def get_dataset_test(dataset_name, batch_size, f_train, f_val):
+    if dataset_name == "kaggle_retina":
         gen_test = KaggleGenerator(batch_size=batch_size, split=test_split, shuffle=False, categorical=False,
                                    pre_proc_func_train=f_train, pre_proc_func_val=f_val)
         x_test, y_test = gen_test.get_val_data()
     else:
         raise ValueError("not implemented")  # we can only test with kaggle retina atm.
 
-    return gen_train, x_test, y_test
+    return x_test, y_test
 
 
-def run_single_test(algorithm, dataset_name, train_split, load_weights, freeze_weights):
-    algorithm_def = keras_algorithm_list[algorithm]
+def run_single_test(algorithm_def, dataset_name, train_split, load_weights, freeze_weights, x_test, y_test):
+    if train_split > test_split:
+        raise ValueError("training data includes testing data")
+
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
-    gen, x_test, y_test = get_dataset(dataset_name, batch_size, f_train, f_val, train_split)
+    gen = get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split)
 
     layer_in, x = algorithm_def.get_finetuning_layers(load_weights, freeze_weights)
     model = apply_prediction_model(layer_in, x, multi_gpu=NGPUS, lr=lr)
@@ -81,7 +88,11 @@ def draw_curve(name):
 
 def run_complex_test(algorithm, dataset_name):
     results = []
+    algorithm_def = keras_algorithm_list[algorithm]
+
     write_result(algorithm, ["Train Split", "Weights freezed", "Weights initialized", "Weights random"])
+    f_train, f_val = algorithm_def.get_finetuning_preprocessing()
+    x_test, y_test = get_dataset_test(dataset_name, batch_size, f_train, f_val)
 
     for train_split in exp_splits:
         percentage = 0.01 * train_split
@@ -92,9 +103,14 @@ def run_complex_test(algorithm, dataset_name):
         c_s = []
 
         for i in range(repetitions):
-            a = run_single_test(algorithm, dataset_name, percentage, True, True)  # load and freeze weights
-            b = run_single_test(algorithm, dataset_name, percentage, True, False)  # load weights and train
-            c = run_single_test(algorithm, dataset_name, percentage, False, False)  # random initialization
+            # load and freeze weights
+            a = run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test)
+
+            # load weights and train
+            b = run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test)
+
+            # random initialization
+            c = run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test)
 
             print("train split:{} model accuracy freezed: {}, initialized: {}, random: {}".format(percentage, a, b, c))
 
