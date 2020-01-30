@@ -3,18 +3,16 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
-from keras import Model
-from keras.layers import Dense
-from sklearn.metrics import cohen_kappa_score, accuracy_score
+from sklearn.metrics import cohen_kappa_score
 
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, apply_prediction_model
 from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_algorithm_list
 
-epochs = 3
-repetitions = 5
-batch_size = 8
-exp_splits = [0.5, 1, 2, 5, 10, 25, 50, 80]  # different train splits to try in %
+epochs = 10
+repetitions = 3
+batch_size = 16
+exp_splits = [0.5, 1, 2, 5, 10, 25, 50, 80, 90]  # different train splits to try in %
 
 test_split = 0.9
 val_split = 0.95
@@ -110,4 +108,4 @@ def run_complex_test(algorithm, dataset_name):
 
 
 if __name__ == "__main__":
-    init(run_complex_test, NGPUS)
+    init(run_complex_test, "test", NGPUS)

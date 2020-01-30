@@ -27,7 +27,7 @@ architecture = "ResNet50"
 data_dir = "/mnt/mpws2019cl1/kaggle_retina/train/resized_384"
 train_test_split = 0.95
 model_checkpoint = \
-    expanduser('~/workspace/self-supervised-transfer-learning/jigsaw_ukb_retina/weights-improvement-01.hdf5')
+    expanduser('~/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina00/weights-improvement-018.hdf5')
 
 
 def apply_model():

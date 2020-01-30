@@ -1,3 +1,5 @@
+from os.path import expanduser
+
 from keras import Model, Input
 from keras.layers import Flatten, Dense, TimeDistributed
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess_grid, preprocess, resize
@@ -19,9 +21,8 @@ predict_terms = 3
 image_size = int((crop_size / (split_per_side + 1)) * 2)
 test_split = 0.2
 img_shape = (image_size, image_size, n_channels)
-train_split = 0.7
-model_checkpoint = '/home/Julius.Severin/workspace/self-supervised-transfer-learning/cpc_retina/' \
-                   'weights-improvement-1000-0.48.hdf5'  # loading weights from Julius here, should be your home..
+train_split = 0.95
+model_checkpoint = expanduser('~/workspace/self-supervised-transfer-learning/cpc_kaggle_retina/weights-improvement-005.hdf5')
 
 
 def get_training_model():
