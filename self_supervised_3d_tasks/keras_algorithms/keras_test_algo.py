@@ -1,5 +1,6 @@
 import csv
 import gc
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,14 +12,16 @@ from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, apply_prediction_model
 from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_algorithm_list
 
-epochs = 10
+epochs = 5
 repetitions = 2
 batch_size = 16
-exp_splits = [90, 45, 22.5, 11.25, 5.625]  # different train splits to try in %
+exp_splits = [100, 50, 25, 12.5, 6.25]  # different train splits to try in %
 
-test_split = 0.9
 NGPUS = 1
 lr = 0.00003
+
+csvDescriptor_train = Path("/mnt/mpws2019cl1/kaggle_retina/train/trainLabels_shuffled.csv")
+csvDescriptor_test = Path("/mnt/mpws2019cl1/kaggle_retina/train/trainLabels_shuffled.csv")
 
 
 def score(y, y_pred):
@@ -28,7 +31,7 @@ def score(y, y_pred):
 def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split):
     if dataset_name == "kaggle_retina":
         gen_train = KaggleGenerator(batch_size=batch_size, sample_classes_uniform=True, shuffle=True,
-                                    categorical=False, discard_part_of_dataset_split=train_split,
+                                    categorical=False, csvDescriptor=csvDescriptor_train, split=train_split,
                                     pre_proc_func_train=f_train, pre_proc_func_val=f_val)
     else:
         raise ValueError("not implemented")  # we can only test with kaggle retina atm.
@@ -38,8 +41,9 @@ def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split):
 
 def get_dataset_test(dataset_name, batch_size, f_train, f_val):
     if dataset_name == "kaggle_retina":
-        gen_test = KaggleGenerator(batch_size=batch_size, split=test_split, shuffle=False, categorical=False,
-                                   pre_proc_func_train=f_train, pre_proc_func_val=f_val)
+        gen_test = KaggleGenerator(batch_size=batch_size, split=-1, shuffle=False, categorical=False,
+                                   pre_proc_func_train=f_train, pre_proc_func_val=f_val,
+                                   csvDescriptor=csvDescriptor_test)
         x_test, y_test = gen_test.get_val_data()
     else:
         raise ValueError("not implemented")  # we can only test with kaggle retina atm.
@@ -48,9 +52,6 @@ def get_dataset_test(dataset_name, batch_size, f_train, f_val):
 
 
 def run_single_test(algorithm_def, dataset_name, train_split, load_weights, freeze_weights, x_test, y_test):
-    if train_split > test_split:
-        raise ValueError("training data includes testing data")
-
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     gen = get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split)
 
@@ -135,5 +136,5 @@ def run_complex_test(algorithm, dataset_name):
 
 
 if __name__ == "__main__":
-    draw_curve("jigsaw")
-    #init(run_complex_test, "test", NGPUS)
+    # draw_curve("jigsaw")
+    init(run_complex_test, "test", NGPUS)

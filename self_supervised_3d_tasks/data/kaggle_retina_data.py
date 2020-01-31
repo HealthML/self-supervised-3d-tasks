@@ -23,10 +23,10 @@ class KaggleGenerator(Sequence):
             pre_proc_func_val=None,
             categorical = True,
             sample_classes_uniform = False,
-            discard_part_of_dataset_split = False
+            # discard_part_of_dataset_split = False
     ):
-        if discard_part_of_dataset_split > 1 or discard_part_of_dataset_split < -1:
-            raise ValueError("cannot discard more than everything or less than nothing")
+        # if discard_part_of_dataset_split > 1 or discard_part_of_dataset_split < -1:
+        #     raise ValueError("cannot discard more than everything or less than nothing")
 
         if sample_classes_uniform and not shuffle:
             raise ValueError("shuffle and sample_classes_uniform have to be both active")
@@ -36,14 +36,14 @@ class KaggleGenerator(Sequence):
         self.pre_proc_func_val = pre_proc_func_val
         self.dataset = pd.read_csv(csvDescriptor)
 
-        if discard_part_of_dataset_split:
-            x_len = len(self.dataset)
-            slice = int(x_len*discard_part_of_dataset_split)
-
-            if slice < 0:
-                self.dataset = self.dataset[slice:]
-            else:
-                self.dataset = self.dataset[:slice]
+        # if discard_part_of_dataset_split:
+        #     x_len = len(self.dataset)
+        #     slice = int(x_len*discard_part_of_dataset_split)
+        #
+        #     if slice < 0:
+        #         self.dataset = self.dataset[slice:]
+        #     else:
+        #         self.dataset = self.dataset[:slice]
 
         if sample_classes_uniform:
             df_majority = self.dataset[self.dataset.level == 0]
@@ -61,7 +61,10 @@ class KaggleGenerator(Sequence):
         self.train_len = self.dataset_len
 
         self.split = split
-        if self.split:
+        if self.split == -1:
+            self.train_len = 0
+            self.offset = 0
+        elif self.split:
             splitpoint = math.floor(self.dataset_len * split)
             self.train_len = splitpoint
             self.offset = splitpoint
