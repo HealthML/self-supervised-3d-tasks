@@ -68,7 +68,7 @@ def get_training_preprocessing():
 
 
 def get_finetuning_preprocessing():
-    perms = [range(split_per_side*split_per_side)]
+    perms = [range(split_per_side*split_per_side)]  # this means simply keep the order as is
 
     def f_train(x, y):
         return preprocess(x, split_per_side, patch_jitter, perms, is_training=False)[0], y
@@ -93,4 +93,4 @@ def get_finetuning_layers(load_weights, freeze_weights):
     layer_out = TimeDistributed(enc_model)(layer_in)
 
     x = Flatten()(layer_out)
-    return layer_in, x
+    return layer_in, x, [enc_model, model_full]

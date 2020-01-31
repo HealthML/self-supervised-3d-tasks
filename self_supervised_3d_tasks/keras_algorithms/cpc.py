@@ -68,4 +68,4 @@ def get_finetuning_layers(load_weights, freeze_weights):
     layer_out = TimeDistributed(enc_model)(layer_in)
 
     x = Flatten()(layer_out)
-    return layer_in, x
+    return layer_in, x, [enc_model, cpc_model]

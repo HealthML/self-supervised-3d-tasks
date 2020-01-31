@@ -22,7 +22,7 @@ def test():
     aquire_free_gpus(NGPUS)
 
     gen = KaggleGenerator(batch_size=batch_size, split=split, shuffle=False, categorical=False)
-    model = load_model(expanduser("~/workspace/cnn_baseline/run_2020-01-28 09:50:52.769099/intermediate_0009_0.46_model.hdf5"))
+    model = load_model(expanduser("~/workspace/cnn_baseline/run_2020-01-29 10:15:28.366338/intermediate_0002_0.45_model.hdf5"))
 
     x,y = gen.get_val_data()
     y_pred = model.predict(x)

@@ -33,7 +33,7 @@ def init(f,name="training",NGPUS=1):
 
 
 def apply_prediction_model(layer_in, x, multi_gpu = False, lr = 1e-3):
-    dim1 = 2048
+    dim1 = 1024
     dim2 = 1024
 
     x = Dense(dim1, activation="relu")(x)

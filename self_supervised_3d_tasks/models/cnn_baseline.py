@@ -96,7 +96,7 @@ def train():
 
     checkp = ModelCheckpoint(
         str(output.with_name("intermediate_{epoch:04d}_{val_loss:.2f}_" + output.name)),
-        monitor="val_loss",
+        monitor="val_mean_absolute_error",
         period=1,
         save_best_only=True,  # reduce amount of data written
         mode="min",

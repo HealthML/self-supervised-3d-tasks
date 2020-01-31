@@ -1,21 +1,22 @@
 import csv
+import gc
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
 from sklearn.metrics import cohen_kappa_score
+from keras import backend as K
 
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, apply_prediction_model
 from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_algorithm_list
 
 epochs = 10
-repetitions = 3
+repetitions = 2
 batch_size = 16
 exp_splits = [0.5, 1, 2, 5, 10, 25, 50, 80, 90]  # different train splits to try in %
 
 test_split = 0.9
-val_split = 0.95
 NGPUS = 1
 lr = 0.00003
 
@@ -27,7 +28,7 @@ def score(y, y_pred):
 def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split):
     if dataset_name == "kaggle_retina":
         gen_train = KaggleGenerator(batch_size=batch_size, sample_classes_uniform=True, shuffle=True,
-                                    categorical=False, discard_part_of_dataset_split=train_split, split=val_split,
+                                    categorical=False, discard_part_of_dataset_split=train_split,
                                     pre_proc_func_train=f_train, pre_proc_func_val=f_val)
     else:
         raise ValueError("not implemented")  # we can only test with kaggle retina atm.
@@ -53,13 +54,23 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     gen = get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split)
 
-    layer_in, x = algorithm_def.get_finetuning_layers(load_weights, freeze_weights)
+    layer_in, x, cleanup_models = algorithm_def.get_finetuning_layers(load_weights, freeze_weights)
     model = apply_prediction_model(layer_in, x, multi_gpu=NGPUS, lr=lr)
     model.fit_generator(generator=gen, epochs=epochs)
 
     y_pred = model.predict(x_test)
     y_pred = np.rint(y_pred)
     s_name, result = score(y_test, y_pred)
+
+    # cleanup
+    del model
+    for i in sorted(range(len(cleanup_models)), reverse=True):
+        del cleanup_models[i]
+
+    K.clear_session()
+
+    for i in range(3):
+        gc.collect()
 
     print("{} score: {}".format(s_name, result))
     return result
@@ -76,9 +87,9 @@ def draw_curve(name):
     # helper function to plot results curve
     df = pandas.read_csv(name + '_results.csv')
 
-    plt.plot(df["Train Split"], df["Weights initialized"], label='CPC pretrained')
+    plt.plot(df["Train Split"], df["Weights initialized"], label=name+' pretrained')
     plt.plot(df["Train Split"], df["Weights random"], label='Random')
-    plt.plot(df["Train Split"], df["Weights freezed"], label='Freezed')
+    plt.plot(df["Train Split"], df["Weights freezed"], label=name+'Freezed')
 
     plt.legend()
     plt.show()
@@ -124,4 +135,5 @@ def run_complex_test(algorithm, dataset_name):
 
 
 if __name__ == "__main__":
-    init(run_complex_test, "test", NGPUS)
+    draw_curve("cpc")
+    #init(run_complex_test, "test", NGPUS)
