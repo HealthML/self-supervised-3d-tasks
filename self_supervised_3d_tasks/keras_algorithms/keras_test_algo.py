@@ -14,7 +14,7 @@ from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_alg
 epochs = 10
 repetitions = 2
 batch_size = 16
-exp_splits = [0.5, 1, 2, 5, 10, 25, 50, 80, 90]  # different train splits to try in %
+exp_splits = [90, 45, 22.5, 11.25, 5.625]  # different train splits to try in %
 
 test_split = 0.9
 NGPUS = 1
@@ -135,5 +135,5 @@ def run_complex_test(algorithm, dataset_name):
 
 
 if __name__ == "__main__":
-    draw_curve("cpc")
+    draw_curve("jigsaw")
     #init(run_complex_test, "test", NGPUS)
