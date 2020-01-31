@@ -9,11 +9,12 @@ def fully_connected(
 
     net = Dense(4608, activation="relu")(net)
     net = BatchNormalization(momentum=0.997, epsilon=1e-5)(net)
-    net = Dense(4096, activation="relu")(net)
-    net = BatchNormalization(momentum=0.997, epsilon=1e-5)(net)
 
     if is_training:
         net = Dropout(rate=rate)(net)
+
+    net = Dense(4096, activation="relu")(net)
+    net = BatchNormalization(momentum=0.997, epsilon=1e-5)(net)
 
     net = Dense(num_classes, activation="softmax")(net)
 

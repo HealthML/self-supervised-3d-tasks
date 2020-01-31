@@ -15,17 +15,21 @@ def preprocess_image(image, patch_jitter, patch_crop_size, split_per_side, paddi
 
     for image in crop_patches(image, is_training, split_per_side, patch_jitter):
         if is_training:
-            image = ab.Flip()(image=image)["image"]
-            image = crop(image, is_training, (patch_crop_size, patch_crop_size))
-            image = ab.ChannelDropout(p=1.0)(image=image)["image"]
-            image = ab.ChannelDropout(p=1.0)(image=image)["image"]
-            image = ab.ToGray(p=1.0)(image=image)["image"]  # make use of all 3 channels again for training
-            image = ab.PadIfNeeded(patch_crop_size+2*padding, patch_crop_size+2*padding)(image=image)["image"]
+            pass
+
+            # image = ab.Flip()(image=image)["image"]
+            # image = crop(image, is_training, (patch_crop_size, patch_crop_size))
+            # image = ab.ChannelDropout(p=1.0)(image=image)["image"]
+            # image = ab.ChannelDropout(p=1.0)(image=image)["image"]
+            # image = ab.ToGray(p=1.0)(image=image)["image"]  # make use of all 3 channels again for training
+            # image = ab.PadIfNeeded(patch_crop_size + 2 * padding, patch_crop_size + 2 * padding)(image=image)["image"]
 
         else:
-            image = crop(image, is_training, (patch_crop_size, patch_crop_size))  # center crop here
-            image = ab.ToGray(p=1.0)(image=image)["image"]
-            image = ab.PadIfNeeded(patch_crop_size + 2 * padding, patch_crop_size + 2 * padding)(image=image)["image"]
+            pass
+
+            # image = crop(image, is_training, (patch_crop_size, patch_crop_size))  # center crop here
+            # image = ab.ToGray(p=1.0)(image=image)["image"]
+            # image = ab.PadIfNeeded(patch_crop_size + 2 * padding, patch_crop_size + 2 * padding)(image=image)["image"]
 
         result.append(image)
 
@@ -50,22 +54,83 @@ def preprocess_grid(image):
     patch_size = int(sqrt(shape[1]))
     batch_size = shape[0]
 
+    def get_patch_at(batch, x, y, mirror=False):
+        if batch < 0 or batch >= batch_size:
+            return None
+
+        if x < 0:
+            if mirror:
+                x = -x
+            else:
+                return None
+
+        if y < 0:
+            if mirror:
+                y = -y
+            else:
+                return None
+
+        if x >= patch_size:
+            if mirror:
+                x = 2 * (patch_size - 1) - x
+            else:
+                return None
+
+        if y >= patch_size:
+            if mirror:
+                y = 2 * (patch_size - 1) - y
+            else:
+                return None
+
+        return image[batch, x * patch_size + y]
+
+    def get_patches_in_row(batch, x, x_start, y_start):
+        y_min = y_start - (x_start - x)
+        y_max = y_start + (x_start - x)
+
+        patches = []
+        for y in range(y_min, y_max + 1):
+            patches.append(get_patch_at(batch, x, y, mirror=True))
+
+        if x > 0:
+            patches = get_patches_in_row(batch, x - 1, x_start, y_start) + patches
+
+        return patches
+
+    def get_patches_for(batch, x, y):
+        me = get_patch_at(batch, x, y)
+        others = get_patches_in_row(batch, x - 1, x, y)
+        return others + [me]
+
+    def get_following_patches(batch, x, y):
+        me = get_patch_at(batch, x, y)
+        if me is None:
+            return []
+
+        others = [me] + get_following_patches(batch, x + 1, y)
+        return others
+
+    end_patch_index = int(patch_size / 2) - 1  # this is the last index of the terms
     for batch_index in range(batch_size):
-        for row_index in range(patch_size):
-            end_patch_index = int(row_index * patch_size + int(patch_size / 2))
-            patch_enc = image[batch_index, row_index * patch_size: end_patch_index, :, :]
-            patches_enc.append(patch_enc)
-            patches_pred.append(image[batch_index, end_patch_index + 1: (row_index + 1) * patch_size])
+        for col_index in range(patch_size):
+            # positive example
+            terms = get_patches_for(batch_index, end_patch_index, col_index)
+            predict_terms = get_following_patches(batch_index, end_patch_index + 2, col_index)
+            patches_enc.append(np.stack(terms))
+            patches_pred.append(np.stack(predict_terms))
             labels.append(1)
 
-            # TODO: make this a bit more random here
-            patches_enc.append(patch_enc)
-            batch_index_alt = (batch_index + 1) % batch_size
-            patches_pred.append(image[batch_index_alt, end_patch_index + 1: (row_index + 1) * patch_size])
+            # negative example
+            r_batch = batch_index
+            r_col = col_index
+
+            while r_batch == batch_index and r_col == col_index:
+                r_batch = np.random.randint(batch_size)
+                r_col = np.random.randint(patch_size)
+
+            predict_terms = get_following_patches(r_batch, end_patch_index + 2, r_col)
+            patches_enc.append(np.stack(terms))
+            patches_pred.append(np.stack(predict_terms))
             labels.append(0)
 
-    # data["patches_enc"] = patches_enc
-    # data["patches_pred"] = patches_pred
-    # data["labels"] = labels
-
-    return [np.array(patches_enc), np.array(patches_pred)], np.array(labels)
+    return [np.stack(patches_enc), np.stack(patches_pred)], np.array(labels)

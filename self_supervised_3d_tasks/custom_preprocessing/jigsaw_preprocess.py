@@ -22,4 +22,7 @@ def preprocess(batch, split_per_side, patch_jitter, permutations, is_training=Tr
         xs.append(x)
         ys.append(y)
 
-    return np.asarray(xs), np.asarray(ys)
+    xs = np.stack(xs)
+    ys = np.stack(ys)
+
+    return xs, ys
