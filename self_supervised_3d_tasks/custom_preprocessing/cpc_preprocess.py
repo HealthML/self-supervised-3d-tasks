@@ -15,21 +15,18 @@ def preprocess_image(image, patch_jitter, patch_crop_size, split_per_side, paddi
 
     for image in crop_patches(image, is_training, split_per_side, patch_jitter):
         if is_training:
-            pass
-
-            # image = ab.Flip()(image=image)["image"]
-            # image = crop(image, is_training, (patch_crop_size, patch_crop_size))
-            # image = ab.ChannelDropout(p=1.0)(image=image)["image"]
-            # image = ab.ChannelDropout(p=1.0)(image=image)["image"]
-            # image = ab.ToGray(p=1.0)(image=image)["image"]  # make use of all 3 channels again for training
-            # image = ab.PadIfNeeded(patch_crop_size + 2 * padding, patch_crop_size + 2 * padding)(image=image)["image"]
+            image = ab.Flip()(image=image)["image"]
+            image = crop(image, is_training, (patch_crop_size, patch_crop_size))
+            image = ab.ChannelDropout(p=1.0)(image=image)["image"]
+            image = ab.ChannelDropout(p=1.0)(image=image)["image"]
+            image = ab.ToGray(p=1.0)(image=image)["image"]  # make use of all 3 channels again for training
+            image = ab.PadIfNeeded(patch_crop_size + 2 * padding, patch_crop_size + 2 * padding)(image=image)["image"]
 
         else:
-            pass
-
             # image = crop(image, is_training, (patch_crop_size, patch_crop_size))  # center crop here
             # image = ab.ToGray(p=1.0)(image=image)["image"]
             # image = ab.PadIfNeeded(patch_crop_size + 2 * padding, patch_crop_size + 2 * padding)(image=image)["image"]
+            pass  # lets give it the most information we can get
 
         result.append(image)
 
