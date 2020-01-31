@@ -1,5 +1,6 @@
 import csv
 import gc
+from os.path import expanduser
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -77,8 +78,8 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     return result
 
 
-def write_result(name, row):
-    with open(name + '_results.csv', 'a') as csvfile:
+def write_result(base_path, row):
+    with open(base_path + '_results.csv', 'a') as csvfile:
         result_writer = csv.writer(csvfile, delimiter=',')
         result_writer.writerow(row)
 
@@ -101,8 +102,9 @@ def draw_curve(name):
 def run_complex_test(algorithm, dataset_name):
     results = []
     algorithm_def = keras_algorithm_list[algorithm]
+    base_path = algorithm_def.model_checkpoint
 
-    write_result(algorithm, ["Train Split", "Weights freezed", "Weights initialized", "Weights random"])
+    write_result(base_path, ["Train Split", "Weights freezed", "Weights initialized", "Weights random"])
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     x_test, y_test = get_dataset_test(dataset_name, batch_size, f_train, f_val)
 
@@ -132,7 +134,7 @@ def run_complex_test(algorithm, dataset_name):
 
         data = [str(train_split) + "%", np.mean(np.array(a_s)), np.mean(np.array(b_s)), np.mean(np.array(c_s))]
         results.append(data)
-        write_result(algorithm, data)
+        write_result(base_path, data)
 
 
 if __name__ == "__main__":
