@@ -2,6 +2,7 @@ import sys
 from contextlib import redirect_stdout, redirect_stderr
 
 from keras import Model
+from keras.applications import DenseNet121
 from keras.layers import Dense
 from keras.optimizers import Adam
 from keras.utils import multi_gpu_model
@@ -48,3 +49,10 @@ def apply_prediction_model(layer_in, x, multi_gpu = False, lr = 1e-3):
     )
     model.summary()
     return model
+
+
+def apply_encoder_model(x, code_size):
+    encoder_output = DenseNet121(include_top=False, weights=None)(x)
+    encoder_output = Dense(code_size)(encoder_output)
+
+    return encoder_output

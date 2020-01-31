@@ -10,6 +10,7 @@ from self_supervised_3d_tasks.data.data_generator import get_data_generators
 from self_supervised_3d_tasks.algorithms import patch_utils
 from self_supervised_3d_tasks.custom_preprocessing.jigsaw_preprocess import preprocess
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model
 from self_supervised_3d_tasks.keras_models.fully_connected import fully_connected
 
 from self_supervised_3d_tasks.keras_models.res_net_2d import get_res_net_2d
@@ -25,7 +26,6 @@ embed_dim = 1000
 architecture = "ResNet50"
 # data_dir="/mnt/mpws2019cl1/retinal_fundus/left/max_256/"
 data_dir = "/mnt/mpws2019cl1/kaggle_retina/train/resized_384"
-train_test_split = 0.95
 model_checkpoint = \
     expanduser('~/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina00/weights-improvement-018.hdf5')
 
@@ -34,9 +34,9 @@ def apply_model():
     perms, _ = patch_utils.load_permutations()
     input_x = Input((split_per_side * split_per_side, patch_dim, patch_dim, n_channels))
 
-    enc_model = get_res_net_2d(input_shape=[patch_dim, patch_dim, n_channels], classes=embed_dim,
-                               architecture=architecture,
-                               learning_rate=lr, compile_model=False)
+    encoder_input = Input((patch_dim, patch_dim, n_channels, ))
+    encoder_output = apply_encoder_model(encoder_input, embed_dim)
+    enc_model = Model(encoder_input, encoder_output, name='encoder')
 
     x = TimeDistributed(enc_model)(input_x)
     x = Flatten()(x)

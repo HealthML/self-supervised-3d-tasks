@@ -20,9 +20,7 @@ lr = 1e-3
 terms = 9
 predict_terms = 3
 image_size = int((crop_size / (split_per_side + 1)) * 2)
-test_split = 0.2
 img_shape = (image_size, image_size, n_channels)
-train_split = 0.95
 model_checkpoint = expanduser('~/workspace/self-supervised-transfer-learning/cpc_kaggle_retina/weights-improvement-005.hdf5')
 
 

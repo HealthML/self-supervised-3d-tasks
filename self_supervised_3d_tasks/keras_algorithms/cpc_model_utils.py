@@ -3,6 +3,8 @@ import keras.backend as K
 from keras.layers import Dense
 from keras_applications.densenet import DenseNet, DenseNet121
 
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model
+
 
 def network_autoregressive(x):
     x = keras.layers.GRU(units=256, return_sequences=False, name='ar_context')(x)
@@ -44,9 +46,7 @@ class CPCLayer(keras.layers.Layer):
 def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
     # Define encoder model
     encoder_input = keras.layers.Input(image_shape)
-    encoder_output = DenseNet121(include_top=False, weights=None)(encoder_input)
-    encoder_output = Dense(code_size)(encoder_output)
-
+    encoder_output = apply_encoder_model(encoder_input, code_size)
     encoder_model = keras.models.Model(encoder_input, encoder_output, name='encoder')
 
     # Define rest of model
