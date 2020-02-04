@@ -1,13 +1,12 @@
 import csv
 import gc
-from os.path import expanduser
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
-from sklearn.metrics import cohen_kappa_score
 from keras import backend as K
+from sklearn.metrics import cohen_kappa_score
 
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, apply_prediction_model
@@ -15,14 +14,14 @@ from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_alg
 
 epochs = 5
 repetitions = 2
-batch_size = 16
+batch_size = 2
 exp_splits = [100, 50, 25, 12.5, 6.25]  # different train splits to try in %
 
 NGPUS = 1
 lr = 0.00003
 
-csvDescriptor_train = Path("/mnt/mpws2019cl1/kaggle_retina/train/trainLabels_shuffled.csv")
-csvDescriptor_test = Path("/mnt/mpws2019cl1/kaggle_retina/train/trainLabels_shuffled.csv")
+csvDescriptor_train = Path("/mnt/mpws2019cl1/kaggle_retina/train/trainLabels_shuffled_train.csv")
+csvDescriptor_test = Path("/mnt/mpws2019cl1/kaggle_retina/train/trainLabels_shuffled_test.csv")
 
 
 def score(y, y_pred):
