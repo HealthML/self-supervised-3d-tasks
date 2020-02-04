@@ -1,24 +1,27 @@
 import functools
 import os
 import sys
+import time
 
 import keras
 from os.path import join, expanduser
 
 from self_supervised_3d_tasks.data.data_generator import get_data_generators
-from self_supervised_3d_tasks.keras_models.res_net_2d import get_res_net_2d
 
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from contextlib import redirect_stdout, redirect_stderr
 import numpy as np
+from tqdm import tqdm
+import tensorflow as tf
 
-from self_supervised_3d_tasks.triplet_loss import triplet_loss_adapted_from_tf
+from self_supervised_3d_tasks.models.exemplar_model import get_exemplar_model
 
 aquire_free_gpus(1)
 c_stdout, c_stderr = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
 
-def preprocessing_exemplar(x, y, batch_id, nb_images, num_cases=4):
+
+def preprocessing_exemplar_2d(x, y):
     def _distort_color(scan):
         """
         This function is based on the distort_color function from the tf implementation.
@@ -48,34 +51,39 @@ def preprocessing_exemplar(x, y, batch_id, nb_images, num_cases=4):
     # get batch size
     batch_size = len(y)
     # init np array for images
-    x_processed = np.empty(shape=(batch_size, num_cases, x.shape[-3], x.shape[-2], x.shape[-1]))
+    x_processed = np.empty(shape=(batch_size, 3, x.shape[-3], x.shape[-2], x.shape[-1]))
     # init patch array
-    patches = np.empty(shape=x.shape)
-    # init np array with zeros
-    y = np.zeros((nb_images, 1))
+    triplet = np.empty(shape=(3, x.shape[-3], x.shape[-2], x.shape[-1]))
+    # get negative examples
+    random_images = x
+    np.random.shuffle(random_images)
     # loop over all images with index and image
     for index, image in enumerate(x):
         # random transformation [0..1]
         random_lr_flip = np.random.randint(0, 2)
         random_ud_flip = np.random.randint(0, 2)
         distort_color = np.random.randint(0, 2)
+        processed_image = image
         # flip up and down
         if random_ud_flip == 1:
-            image = np.flip(image, 0)
+            processed_image = np.flip(processed_image, 0)
         # flip left and right
         if random_lr_flip == 1:
-            image = np.flip(image, 1)
+            processed_image = np.flip(processed_image, 1)
+        # distort_color
+        if distort_color == 1:
+            processed_image = _distort_color(processed_image)
 
-        for case in range(num_cases):
-            image = _distort_color(image)
-            patches = np.append(patches, image)
-
-        # TODO set label
-        # set index
-        y[batch_id*batch_size + index] = 1
-        x_processed[index] = patches
+        # Set Anchor Image
+        triplet[0] = processed_image
+        # Set Positiv Image
+        triplet[1] = image
+        # Set negativ Image
+        negativ_image = random_images[index]
+        triplet[2] = negativ_image
+        x_processed[index] = triplet
     # return images and rotation
-    return x, y
+    return x_processed, y
 
 
 def train_model(epochs,
@@ -83,9 +91,9 @@ def train_model(epochs,
                 work_dir,
                 data_dir,
                 batch_size=8,
-                lr=1e-3,
                 n_channels=3,
-                num_cases=1):
+                dim_3d=True,
+                model_params={}):
     """
     This method trains a resnet on Rotation task
     :param epochs: number of epochs
@@ -93,62 +101,104 @@ def train_model(epochs,
     :param work_dir: path to save model checkpoints
     :param data_dir: path to images
     :param batch_size: batch size
-    :param lr: learning rate
+    :param model_params: additional Params for the model
     :param n_channels: number of channels
-    :param num_cases: defines the number of cases for pre processing
+    :param dim_3d: defines whether 2d or 3d is used
     :return:
     """
 
-    num_classes = len(os.listdir(data_path))
-
     # init func
-    func = functools.partial(preprocessing_exemplar, num_cases=num_cases, nb_images=num_classes)
+    if dim_3d:
+        # Todo Implement 3d preprocessing
+        print("3d Not implemented yet!")
+        return 1
+    else:
+        func = functools.partial(preprocessing_exemplar_2d)
 
     # init data generator
-    train_data, validation_data = get_data_generators(data_dir, train_split=0.7,
-                                                      train_data_generator_args={"batch_size": batch_size,
-                                                                                 "dim": dim,
-                                                                                 "n_channels": n_channels,
-                                                                                 "pre_proc_func": func,
-                                                                                 "exemplar": True},
-                                                      test_data_generator_args={"batch_size": batch_size,
-                                                                                "dim": dim,
-                                                                                "n_channels": n_channels,
-                                                                                "pre_proc_func": func,
-                                                                                "exemplar": True}
-                                                      )
+    train_data, test_data = get_data_generators(data_dir, train_split=0.7,
+                                                train_data_generator_args={"batch_size": batch_size,
+                                                                           "dim": dim,
+                                                                           "n_channels": n_channels,
+                                                                           "pre_proc_func": func},
+                                                test_data_generator_args={"batch_size": batch_size,
+                                                                          "dim": dim,
+                                                                          "n_channels": n_channels,
+                                                                          "pre_proc_func": func}
+                                                )
 
     # compile model
-    model = get_res_net_2d(input_shape=[*dim, n_channels], classes=num_classes, architecture="ResNet50", learning_rate=lr,
-                           loss=triplet_loss_adapted_from_tf)
-
-    # Callbacks
-    tb_callback = keras.callbacks.TensorBoard(log_dir=work_dir,
-                                              histogram_freq=0,
-                                              batch_size=batch_size,
-                                              write_graph=True, write_grads=False, write_images=False,
-                                              embeddings_freq=0,
-                                              embeddings_layer_names=None, embeddings_metadata=None,
-                                              embeddings_data=None, update_freq='batch')
-
-    mc_callback = keras.callbacks.ModelCheckpoint(
-        work_dir + "/weights-improvement-{epoch:02d}-{val_loss:.2f}.hdf5", monitor='val_loss', verbose=0,
-        save_best_only=False,
-        save_weights_only=False, mode='auto', period=1)
-
-    callbacks = [keras.callbacks.ReduceLROnPlateau(monitor='val_loss', factor=1 / 3, patience=2, min_lr=1e-4),
-                 tb_callback, mc_callback]
+    # TODO Generate Model
+    model = get_exemplar_model(input_shape=(*dim, n_channels), **model_params)
+    print(model.summary())
 
     # Train the model
-    model.fit_generator(
-        generator=train_data,
-        steps_per_epoch=len(train_data),
-        validation_data=validation_data,
-        validation_steps=len(validation_data),
-        epochs=epochs,
-        verbose=1,
-        callbacks=callbacks
-    )
+    t_start = time.time()
+    n_iteration = 0
+    for epoch in range(0, epochs):
+        # Training
+        print("Epoch {}".format(epoch))
+        train_loss = train_name(model, train_data)
+        # On epochs End
+        # Validation
+        val_loss = validate_model(model, test_data)
+
+        print("\n ------------- \n")
+        print(
+            "[{}] Time for epoch: {.1f} mins, Test Loss: {}".format(epoch,
+                                                                    (time.time() - t_start) / 60.0,
+                                                                    val_loss))
+        model.save_weights("{}/exemplar-{}-{}.h5".format(working_dir, epoch, val_loss))
+        # Callback
+        keras_callback(val_loss, train_loss, epoch, working_dir)
+    return 0
+
+
+def keras_callback(val_loss, loss, step_number, working_dir):
+    items_to_write = {
+        "loss": loss,
+        "val_loss": val_loss
+    }
+    writer = keras.callbacks.TensorBoard(working_dir).writer
+    for name, value in items_to_write.items():
+        summary = tf.summary.Summary()
+        summary_value = summary.value.add()
+        summary_value.simple_value = value
+        summary_value.tag = name
+        writer.add_summary(summary, step_number)
+        writer.flush()
+
+
+def train_name(model, train_data):
+    """
+    Train model on train_data
+    :param model: triplet loss model
+    :param train_data: train_data generator
+    :return: return train loss
+    """
+    n_iteration = 0
+    loss = []
+    for iteration in tqdm(range(0, train_data.__len__())):
+        triplets, _ = train_data.__getitem__(iteration)
+        loss.append(model.train_on_batch(triplets, None))
+        n_iteration += 1
+    return np.mean(np.asarray(loss))
+
+
+def validate_model(model, test_data):
+    """
+    Validate model on test_data
+    :param model: triplet loss model
+    :param test_data: test data generator
+    :return: test loss
+    """
+    n_iteration = 0
+    loss = []
+    for iteration in tqdm(range(0, test_data.__len__())):
+        triplets, _ = test_data.__getitem__(iteration)
+        loss.append(model.test_on_batch(triplets, None))
+        n_iteration += 1
+    return np.mean(np.asarray(loss))
 
 
 if __name__ == "__main__":
@@ -160,16 +210,20 @@ if __name__ == "__main__":
     with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout
         with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
             # with tf.Session(config=config) as sess:
-            working_dir = expanduser("~/workspace/self-supervised-transfer-learning/rotation_retina_192")
-            data_path = "/mnt/mpws2019cl1/retinal_fundus/left/max_256/"
+            working_dir = expanduser("~/workspace/self-supervised-transfer-learning/exemplar")
+            data_path = "/mnt/mpws2019cl1/retinal_fundus/left/max_256"
             number_channels = 3
             train_model(
                 epochs=100,
                 dim=(192, 192),
-                batch_size=8,
-                lr=1e-3,
+                batch_size=4,
                 work_dir=working_dir,
                 data_dir=data_path,
                 n_channels=number_channels,
-                num_cases=1
+                dim_3d=False,
+                model_params={
+                    "alpha_triplet": 0.2,
+                    "embedding_size": 10,
+                    "lr": 0.0006
+                }
             )

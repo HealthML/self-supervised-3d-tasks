@@ -14,8 +14,7 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
                  dim=(32, 32, 32),
                  n_channels=1,
                  shuffle=True,
-                 pre_proc_func=None,
-                 exemplar=False):
+                 pre_proc_func=None):
         """
             :param data_path: path to directory with images
             :param file_list: list of files in directory for this data generator
@@ -24,7 +23,6 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
             :param n_channels: number of channels
             :param shuffle: flag indicates shuffle after epoch
             :param pre_proc_func: list of callable preprocessing functions
-            :param exemplar: indicates label for exemplar
         """
         self.dim = dim
         self.batch_size = batch_size
@@ -34,7 +32,6 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
         self.shuffle = shuffle
         self.path_to_data = data_path
         self.pre_proc_func = pre_proc_func
-        self.exemplar = exemplar
         self.on_epoch_end()
 
     def __len__(self):
@@ -56,11 +53,6 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
         # Generate data
         X, Y = self.__data_generation(list_IDs_temp)
 
-        # Generate exemplar labels
-        if self.exemplar:
-            for element, id in zip(Y, indexes):
-                element[id]=1
-
         return (X, Y)
 
     def on_epoch_end(self):
@@ -77,10 +69,7 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
         'Generates data containing batch_size samples'  # X : (n_samples, *dim, n_channels)
         # Initialization
         data_x = np.empty((self.batch_size, *self.dim, self.n_channels))
-        if self.exemplar:
-            data_y = np.empty(self.batch_size, len(self.list_IDs), dtype=int)
-        else:
-            data_y = np.empty(self.batch_size, dtype=int)
+        data_y = np.empty(self.batch_size, dtype=int)
         # Generate data
         for i, file_name in enumerate(list_files_temp):
             # Store sample

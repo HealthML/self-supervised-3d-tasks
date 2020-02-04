@@ -16,7 +16,7 @@ aquire_free_gpus(1)
 c_stdout, c_stderr = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
 
 
-def rotation_2d(x,y=None):
+def rotation_2d(x,y=None, nb_images=None):
     """
     This function preprocess a batch for relative patch location in a 2 dimensional space.
     :param x: array of images
@@ -49,7 +49,7 @@ def train_model(epochs,
                 data_dir,
                 batch_size=8,
                 lr=1e-3,
-                n_channels = 3):
+                n_channels=3):
     """
     This method trains a resnet on Rotation task
     :param epochs: number of epochs
@@ -72,6 +72,7 @@ def train_model(epochs,
                                                                                 "n_channels": n_channels,
                                                                                 "pre_proc_func": rotation_2d}
                                                       )
+
 
     # compile model
     model = get_res_net_2d(input_shape=[*dim, n_channels], classes=4, architecture="ResNet50", learning_rate=lr)
@@ -113,14 +114,14 @@ if __name__ == "__main__":
     with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout
         with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
             # with tf.Session(config=config) as sess:
-            working_dir = expanduser("~/workspace/self-supervised-transfer-learning/rotation_retina_192"),
-            data_path = "/mnt/mpws2019cl1/retinal_fundus/left/max_256/",
+            working_dir = expanduser("~/workspace/self-supervised-transfer-learning/rotation_retina_512")
+            data_path = "/mnt/mpws2019cl1/retinal_fundus/left/max_512"
             number_channels = 3
             train_model(
                 epochs=100,
-                dim=(192, 192),
-                batch_size=8,
-                lr=1e-3,
+                dim=(512, 512),
+                batch_size=4,
+                lr=1e-4,
                 work_dir=working_dir,
                 data_dir=data_path,
                 n_channels=number_channels
