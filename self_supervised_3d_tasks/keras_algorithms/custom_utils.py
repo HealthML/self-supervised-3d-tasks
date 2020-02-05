@@ -11,18 +11,16 @@ from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
 
 
-def init(f,name="training",NGPUS=1):
-    algo = "jigsaw"
-    dataset = "kaggle_retina"
-
-    if(len(sys.argv)) > 1:
-        algo = sys.argv[1]
-    if(len(sys.argv)) > 2:
-        algo = sys.argv[1]
+def init(f, name="training", NGPUS=1, algorithm="jigsaw",
+         dataset="kaggle_retina"):
+    if (len(sys.argv)) > 1:
+        algorithm = sys.argv[1]
+    if (len(sys.argv)) > 2:
+        algorithm = sys.argv[1]
         dataset = sys.argv[2]
 
     print("###########################################")
-    print("{} {} with data {}".format(name, algo, dataset))
+    print("{} {} with data {}".format(name, algorithm, dataset))
     print("###########################################")
 
     aquire_free_gpus(NGPUS)
@@ -30,10 +28,10 @@ def init(f,name="training",NGPUS=1):
 
     with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout
         with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
-            f(algo, dataset)
+            return f(algorithm, dataset)
 
 
-def apply_prediction_model(layer_in, x, multi_gpu = False, lr = 1e-3):
+def apply_prediction_model(layer_in, x, multi_gpu=False, lr=1e-3):
     dim1 = 1024
     dim2 = 1024
 
