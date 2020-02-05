@@ -51,6 +51,11 @@ def apply_prediction_model(layer_in, x, multi_gpu = False, lr = 1e-3):
     return model
 
 
+def apply_encoder_model_3d(input_shape, code_size):
+    # TODO: implement resnet 3D
+    pass
+
+
 def apply_encoder_model(input_shape, code_size):
     res_net = ResNet50(input_shape=input_shape, include_top=False, weights=None, pooling="max")
     encoder_output = Dense(code_size)(res_net.outputs[0])
