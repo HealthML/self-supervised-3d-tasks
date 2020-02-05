@@ -16,7 +16,7 @@ def preprocess_image(image, patches_per_side, patch_jitter, is_training):
     cropped_image = crop_patches(image, is_training, patches_per_side, patch_jitter)
 
     # return np.array([cropped_image[center_id], cropped_image[class_id]]), class_id
-    return cropped_image[class_id], class_id
+    return cropped_image, class_id
 
 
 def preprocess_batch(batch,  patches_per_side, patch_jitter=0, is_training=True):
@@ -27,7 +27,16 @@ def preprocess_batch(batch,  patches_per_side, patch_jitter=0, is_training=True)
     labels = np.zeros((batch_size, patches_per_side**2))
 
     for batch_index in range(batch_size):
-        patch, class_id = preprocess_image(batch[batch_index], patches_per_side, patch_jitter, is_training)
-        patches.append(patch)
+        cropped_image, class_id = preprocess_image(batch[batch_index], patches_per_side, patch_jitter, is_training)
+        if is_training:
+            patches.append(cropped_image[class_id])
+        else:
+            patches.append(np.array(cropped_image))
+
         labels[batch_index, class_id] = 1
     return np.array(patches), np.array(labels)
+
+
+def resize(batch, new_size):
+    return np.array([ab.Resize(new_size, new_size)(image=image)["image"] for image in batch])
+
