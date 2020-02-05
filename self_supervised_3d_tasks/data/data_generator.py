@@ -11,28 +11,25 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
                  data_path,
                  file_list,
                  batch_size=32,
-                 dim=(32, 32, 32),
-                 n_channels=1,
                  shuffle=True,
-                 pre_proc_func=None):
-        """
+                 pre_proc_func=None,
+                 dim=None):
+        '''
             :param data_path: path to directory with images
             :param file_list: list of files in directory for this data generator
             :param batch_size: int batch size
-            :param dim: tuple of ints as dimension
             :param n_channels: number of channels
             :param shuffle: flag indicates shuffle after epoch
-            :param pre_proc_func: list of callable preprocessing functions
-        """
-        self.dim = dim
+            :param preprocessing_functions: list of callable preprocessing functions
+        '''
         self.batch_size = batch_size
         self.list_IDs = file_list
         self.indexes = np.arange(len(self.list_IDs))
-        self.n_channels = n_channels
         self.shuffle = shuffle
         self.path_to_data = data_path
         self.pre_proc_func = pre_proc_func
         self.on_epoch_end()
+        self.dim = dim
 
     def __len__(self):
         'Denotes the number of batches per epoch'
@@ -68,7 +65,7 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
         """
         'Generates data containing batch_size samples'  # X : (n_samples, *dim, n_channels)
         # Initialization
-        data_x = np.empty((self.batch_size, *self.dim, self.n_channels))
+        data_x = []
         data_y = np.empty(self.batch_size, dtype=int)
         # Generate data
         for i, file_name in enumerate(list_files_temp):
@@ -76,14 +73,18 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
             path_to_image = "{}/{}".format(self.path_to_data, file_name)
             try:
                 im_frame = Image.open(path_to_image)
-                im_frame = im_frame.resize(self.dim)
+
+                if self.dim is not None:
+                    im_frame = im_frame.resize(self.dim)
+
                 img = np.asarray(im_frame, dtype="float32")
                 img /= 255
-                data_x[i] = img
+                data_x.append(img)
             except:
                 print("Error while loading image {}.".format(path_to_image))
                 continue
 
+        data_x = np.stack(data_x)
         if self.pre_proc_func:
             data_x, data_y = self.pre_proc_func(data_x, data_y)
 

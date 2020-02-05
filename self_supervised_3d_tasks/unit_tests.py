@@ -9,11 +9,16 @@ import tensorflow as tf
 from PIL import Image
 
 from self_supervised_3d_tasks.algorithms.patch_model_preprocess import get_crop_patches_fn
+from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import apply_to_x
+from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.datasets import get_data
-from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess
+from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess, preprocess_grid
+from self_supervised_3d_tasks.keras_algorithms import cpc
+from self_supervised_3d_tasks.keras_algorithms.jigsaw import get_training_generators, get_finetuning_generators
 from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
     get_pad
 
+import seaborn as sns
 
 def plot_sequences(x, y, labels=None, output_path=None):
     ''' Draws a plot where sequences of numbers can be studied conveniently '''
@@ -135,11 +140,11 @@ def test_records():
         print(i)
     print("done")
 
-def test_retina():
+def test_kaggle_retina():
     params = {
-        'dataset': 'retina',
+        'dataset': 'kaggle_retina',
         'preprocessing': [],
-        'dataset_dir': "/mnt/mpws2019cl1/retinal_fundus/retina_tf_records/max_256/",
+        'dataset_dir': "/mnt/mpws2019cl1/kaggle_retina/tf_records",
     }
 
     f = functools.partial(
@@ -154,11 +159,10 @@ def test_retina():
     result = f({'batch_size': 1})
     iterator = result.make_one_shot_iterator()
     el = iterator.get_next()
+
     with tf.Session() as sess:
         batch = sess.run(el)
         print(batch["data"].shape)
-
-        plot_sequences(batch["data"], batch["data"], output_path=expanduser("~/test_retina.png"))
 
 
 def test_mnist_data_generator():
@@ -204,7 +208,6 @@ def show_batch(image_batch):
 
     plt.show()
 
-
 def show_batch_numpy(image_batch):
     length = image_batch.shape[0]
 
@@ -234,11 +237,56 @@ def chain(f, g):
     return lambda x: g(f(x))
 
 
+def test_preprocessing_baseline():
+    gen = KaggleGenerator(batch_size=36, shuffle=False, categorical=False,
+                          pre_proc_func_train = apply_to_x)
+    show_batch(gen[0][0])
+
+    # sns.distplot(img[:,:,0].flatten())
+    # plt.show()
+    # sns.distplot(img[:,:,1].flatten())
+    # plt.show()
+    # sns.distplot(img[:,:,2].flatten())
+    # plt.show()
+
 def test_preprocessing_cpc():
     lena = get_lena_numpy()
-    patches = preprocess(lena, 256, 7)
-    print(patches.shape)
-    show_batch(patches)
+
+    pp = preprocess([lena], 256, 7)
+
+    patches = preprocess_grid(pp)
+    print(patches[0][0].shape)
+
+    show_batch(pp[0])
+
+    show_batch(patches[0][1][0])
+    show_batch(patches[0][1][1])
+
+    show_batch(patches[0][0][4])
+
+def test_cpc_gen():
+    gen = cpc.get_training_generators(1, "kaggle_retina")
+    data = gen[0][0][0][1]
+
+    print(data.shape)
+    print(data[0].max())
+    print(data[0].min())
+
+    show_batch(data[0])
+
+def test_data_jigsaw():
+    gen = get_training_generators(1, "kaggle_retina")
+    data = gen[0][0][0]
+
+    print(data.shape)
+    print(data[0].max())
+    print(data[0].min())
+
+    show_batch(data[0])
+
+def test_pil_fit():
+    x, _1, _2 = get_finetuning_generators(1, "kaggle_retina", training_proportion=0.8)
+    show_batch(x[0][0][0])
 
 
 def test_preprocessing():
@@ -259,4 +307,4 @@ def test_preprocessing():
 
 
 if __name__ == "__main__":
-    test_preprocessing_cpc()
+    test_cpc_gen()
