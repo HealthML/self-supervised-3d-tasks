@@ -7,14 +7,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from PIL import Image
+from self_supervised_3d_tasks.data.data_generator import get_data_generators
 
 from self_supervised_3d_tasks.algorithms.patch_model_preprocess import get_crop_patches_fn
 from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import apply_to_x
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
+from self_supervised_3d_tasks.data.nifti_loader import DataGeneratorUnlabeled3D
 from self_supervised_3d_tasks.datasets import get_data
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess, preprocess_grid
 from self_supervised_3d_tasks.keras_algorithms import cpc
-from self_supervised_3d_tasks.keras_algorithms.jigsaw import get_training_generators, get_finetuning_generators
 from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
     get_pad
 
@@ -274,19 +275,19 @@ def test_cpc_gen():
 
     show_batch(data[0])
 
-def test_data_jigsaw():
-    gen = get_training_generators(1, "kaggle_retina")
-    data = gen[0][0][0]
-
-    print(data.shape)
-    print(data[0].max())
-    print(data[0].min())
-
-    show_batch(data[0])
-
-def test_pil_fit():
-    x, _1, _2 = get_finetuning_generators(1, "kaggle_retina", training_proportion=0.8)
-    show_batch(x[0][0][0])
+# def test_data_jigsaw():
+#     gen = get_training_generators(1, "kaggle_retina")
+#     data = gen[0][0][0]
+#
+#     print(data.shape)
+#     print(data[0].max())
+#     print(data[0].min())
+#
+#     show_batch(data[0])
+#
+# def test_pil_fit():
+#     x, _1, _2 = get_finetuning_generators(1, "kaggle_retina", training_proportion=0.8)
+#     show_batch(x[0][0][0])
 
 
 def test_preprocessing():
@@ -307,4 +308,6 @@ def test_preprocessing():
 
 
 if __name__ == "__main__":
-    test_cpc_gen()
+    x,_ = get_data_generators("/mnt/mpws2019cl1/Task02_Heart/imagesTr", data3d=True,
+                              test_data_generator_args={"dim":(128,128,128)}, train_data_generator_args={"dim":(128,128,128)})
+    print(x[0][0].shape)
