@@ -22,7 +22,7 @@ aquire_free_gpus(1)
 c_stdout, c_stderr = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
 
 
-def preprocessing_exemplar_2d(x, y):
+def preprocessing_exemplar(x, y, process_3d = False):
     def _distort_color(scan):
         """
         This function is based on the distort_color function from the tf implementation.
@@ -51,10 +51,15 @@ def preprocessing_exemplar_2d(x, y):
     """
     # get batch size
     batch_size = len(y)
-    # init np array for images
-    x_processed = np.empty(shape=(batch_size, 3, x.shape[-3], x.shape[-2], x.shape[-1]))
+    if process_3d:
+        x_processed = np.empty(shape=(batch_size, 3, x.shape[-4], x.shape[-3], x.shape[-2], x.shape[-1]))
+    else:
+        x_processed = np.empty(shape=(batch_size, 3, x.shape[-3], x.shape[-2], x.shape[-1]))
     # init patch array
-    triplet = np.empty(shape=(3, x.shape[-3], x.shape[-2], x.shape[-1]))
+    if process_3d:
+        triplet = np.empty(shape=(3, x.shape[-4], x.shape[-3], x.shape[-2], x.shape[-1]))
+    else:
+        triplet = np.empty(shape=(3, x.shape[-3], x.shape[-2], x.shape[-1]))
     # get negative examples
     random_images = x
     np.random.shuffle(random_images)
@@ -109,22 +114,15 @@ def train_model(epochs,
     """
 
     # init func
-    if dim_3d:
-        # Todo Implement 3d preprocessing
-        print("3d Not implemented yet!")
-        return 1
-    else:
-        func = functools.partial(preprocessing_exemplar_2d)
+    func = functools.partial(preprocessing_exemplar, process_3d=dim_3d)
 
     # init data generator
     train_data, test_data = get_data_generators(data_dir, train_split=0.7,
                                                 train_data_generator_args={"batch_size": batch_size,
                                                                            "dim": dim,
-                                                                           "n_channels": n_channels,
                                                                            "pre_proc_func": func},
                                                 test_data_generator_args={"batch_size": batch_size,
                                                                           "dim": dim,
-                                                                          "n_channels": n_channels,
                                                                           "pre_proc_func": func}
                                                 )
 
