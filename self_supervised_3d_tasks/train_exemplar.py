@@ -1,3 +1,4 @@
+from datetime import datetime
 import functools
 import os
 import sys
@@ -95,7 +96,7 @@ def train_model(epochs,
                 dim_3d=True,
                 model_params={}):
     """
-    This method trains a resnet on Rotation task
+    This method trains a Encoder Model on the exemplar task
     :param epochs: number of epochs
     :param dim: dimensions (without channels!)
     :param work_dir: path to save model checkpoints
@@ -133,24 +134,8 @@ def train_model(epochs,
     print(model.summary())
 
     # Train the model
-    t_start = time.time()
-    n_iteration = 0
-    for epoch in range(0, epochs):
-        # Training
-        print("Epoch {}".format(epoch))
-        train_loss = train_name(model, train_data)
-        # On epochs End
-        # Validation
-        val_loss = validate_model(model, test_data)
-
-        print("\n ------------- \n")
-        print(
-            "[{}] Time for epoch: {.1f} mins, Test Loss: {}".format(epoch,
-                                                                    (time.time() - t_start) / 60.0,
-                                                                    val_loss))
-        model.save_weights("{}/exemplar-{}-{}.h5".format(working_dir, epoch, val_loss))
-        # Callback
-        keras_callback(val_loss, train_loss, epoch, working_dir)
+    model = train_loop(model, train_data, test_data, work_dir, epochs, validation_every=500)
+    model.save_weights("{}/final_model.h5".format(work_dir))
     return 0
 
 
@@ -159,7 +144,7 @@ def keras_callback(val_loss, loss, step_number, working_dir):
         "loss": loss,
         "val_loss": val_loss
     }
-    writer = keras.callbacks.TensorBoard(working_dir).writer
+    writer = tf.summary.FileWriter(working_dir)
     for name, value in items_to_write.items():
         summary = tf.summary.Summary()
         summary_value = summary.value.add()
@@ -169,20 +154,35 @@ def keras_callback(val_loss, loss, step_number, working_dir):
         writer.flush()
 
 
-def train_name(model, train_data):
+def train_loop(model, train_data, test_data, work_dir, epochs=100, validation_every=500):
     """
-    Train model on train_data
-    :param model: triplet loss model
-    :param train_data: train_data generator
-    :return: return train loss
+    :param model: model for training
+    :param train_data: train data generator
+    :param test_data: test data generator
+    :param work_dir: working directory
+    :param epochs: number of epochs
+    :param validation_every: validation
+    :return: model
     """
-    n_iteration = 0
+    step_number = 0
+    train_loss = 0
+    val_loss = 0
     loss = []
-    for iteration in tqdm(range(0, train_data.__len__())):
-        triplets, _ = train_data.__getitem__(iteration)
-        loss.append(model.train_on_batch(triplets, None))
-        n_iteration += 1
-    return np.mean(np.asarray(loss))
+    for epoch in range(0, epochs):
+        print("Epoch {}".format(epoch))
+        for iteration in tqdm(range(0, train_data.__len__())):
+            triplets, _ = train_data.__getitem__(iteration)
+            loss.append(model.train_on_batch(triplets, None))
+            step_number += 1
+            if step_number % validation_every == 0:
+                train_loss = np.mean(np.asarray(loss))
+                val_loss = validate_model(model, test_data)
+                keras_callback(val_loss, train_loss, step_number, work_dir)
+                loss = []
+        print("Loss: {}".format(train_loss))
+        print("Val_Loss: {}".format(val_loss))
+        model.save_weights("{}/exemplar-{}-{}.h5".format(work_dir, epoch, val_loss))
+    return model
 
 
 def validate_model(model, test_data):
@@ -210,12 +210,12 @@ if __name__ == "__main__":
     with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout
         with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
             # with tf.Session(config=config) as sess:
-            working_dir = expanduser("~/workspace/self-supervised-transfer-learning/exemplar")
+            working_dir = expanduser("~/workspace/self-supervised-transfer-learning/exemplar_ResNet")
             data_path = "/mnt/mpws2019cl1/retinal_fundus/left/max_256"
             number_channels = 3
             train_model(
                 epochs=100,
-                dim=(192, 192),
+                dim=(256, 256),
                 batch_size=4,
                 work_dir=working_dir,
                 data_dir=data_path,

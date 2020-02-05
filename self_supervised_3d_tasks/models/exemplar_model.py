@@ -1,60 +1,35 @@
 
 import os
 import numpy as np
+from keras.applications import InceptionV3, ResNet50
 from keras.optimizers import Adam
 
 np.random.seed(0)
 from keras.models import Sequential
-from keras.layers import Conv2D, Input
+from keras.layers import Conv2D, Input, GlobalAveragePooling2D
 from keras.models import Model
 
 from keras.layers.pooling import MaxPooling2D
 from keras.layers.core import Lambda, Flatten, Dense
 
 from keras.engine.topology import Layer
-from keras.regularizers import l2
 from keras import backend as K
 
 
-def build_network(input_shape, embedding_size):
-    '''
-    Define the neural network to learn image similarity
-    Input : 
-        input_shape : shape of input images
-        embeddingsize : vectorsize used to encode our picture   
-    '''
-    # Convolutional Neural Network
-    network = Sequential()
-    network.add(Conv2D(64, (7, 7), activation='relu',
-                   input_shape=input_shape,
-                   kernel_initializer='he_uniform',
-                   kernel_regularizer=l2(2e-4)))
-    network.add(MaxPooling2D())
-    network.add(Conv2D(64, (5, 5), activation='relu', kernel_initializer='he_uniform',
-                   kernel_regularizer=l2(2e-4)))
-    network.add(MaxPooling2D())
-    network.add(Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_uniform',
-                   kernel_regularizer=l2(2e-4)))
-    network.add(MaxPooling2D())
-    network.add(Conv2D(128, (3, 3), activation='relu', kernel_initializer='he_uniform',
-                   kernel_regularizer=l2(2e-4)))
-    network.add(MaxPooling2D())
-    network.add(Conv2D(256, (3, 3), activation='relu', kernel_initializer='he_uniform',
-                   kernel_regularizer=l2(2e-4)))
-    network.add(Flatten())
-    network.add(Dense(4096, activation='relu',
-                  kernel_regularizer=l2(1e-3),
-                  kernel_initializer='he_uniform'))
-
-    network.add(Dense(embedding_size, activation=None,
-                  kernel_regularizer=l2(1e-3),
-                  kernel_initializer='he_uniform'))
-
-    # Force the encoding to live on the d-dimentional hypershpere
-    network.add(Lambda(lambda x: K.l2_normalize(x, axis=-1)))
-    print(network.summary())
-    return network
-
+def build_network(input_shape, embedding_size, model_type="ResNet50"):
+    """
+    :param input_shape: defines Input Shape (Channel Last)
+    :param embedding_size: size of embedding layer
+    :param model_type: Resnet50
+    :return:
+    """
+    # define Base Model
+    base_model = None
+    if model_type =="ResNet50":
+        base_model = ResNet50(input_shape=input_shape, include_top=False, weights=None, classes=embedding_size)
+    elif model_type == "InceptionV3":
+        base_model = InceptionV3(input_shape=input_shape, include_top=False, weights=None, classes=embedding_size)
+    return base_model
 
 class TripletLossLayer(Layer):
     def __init__(self, alpha, **kwargs):
