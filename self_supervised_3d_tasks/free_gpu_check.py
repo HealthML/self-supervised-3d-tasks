@@ -15,7 +15,7 @@ def aquire_free_gpus(amount=1):
     gpu_df["memory.free"] = gpu_df["memory.free"].map(lambda x: int(x.rstrip(" [MiB]")))
     gpu_df["memory.used"] = gpu_df["memory.used"].map(lambda x: int(x.rstrip(" [MiB]")))
     gpu_df = gpu_df.sort_values(
-        by=["memory.free", "memory.used"], ascending=[False, True]
+        by=["memory.used", "memory.free"], ascending=[True, False]
     )
     # gpu_df.drop(0, inplace=True) # remove GPUs here if they dont work
     output = []

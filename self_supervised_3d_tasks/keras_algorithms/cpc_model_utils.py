@@ -1,5 +1,6 @@
 import keras
 import keras.backend as K
+from keras import Input, Model
 from keras.layers import Dense
 from keras_applications.densenet import DenseNet, DenseNet121
 
@@ -45,9 +46,7 @@ class CPCLayer(keras.layers.Layer):
 
 def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
     # Define encoder model
-    encoder_input = keras.layers.Input(image_shape)
-    encoder_output = apply_encoder_model(encoder_input, code_size)
-    encoder_model = keras.models.Model(encoder_input, encoder_output, name='encoder')
+    encoder_model = apply_encoder_model(image_shape, code_size)
 
     # Define rest of model
     x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))

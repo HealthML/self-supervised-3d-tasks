@@ -44,7 +44,7 @@ def get_writing_path(algorithm, dataset_name):
     i = 0
     while path.exists(working_dir):
         if i > 0:
-            working_dir = working_dir[-len(str(i - 1))]
+            working_dir = working_dir[:-len(str(i - 1))]
         else:
             working_dir += "_"
 
@@ -55,13 +55,14 @@ def get_writing_path(algorithm, dataset_name):
     return working_dir
 
 
-def train_model(algorithm, dataset_name, epochs=250, batch_size=16):
+def train_model(algorithm, dataset_name, epochs=250, batch_size=8):
     working_dir = get_writing_path(algorithm, dataset_name)
     algorithm_def = keras_algorithm_list[algorithm]
 
     f_train, f_val = algorithm_def.get_training_preprocessing()
     train_data, validation_data = get_dataset(dataset_name, batch_size, f_train, f_val)
     model = algorithm_def.get_training_model()
+    model.summary()
 
     # update after 500 samples
     tb_c = keras.callbacks.TensorBoard(log_dir=working_dir, batch_size=batch_size, update_freq=500)

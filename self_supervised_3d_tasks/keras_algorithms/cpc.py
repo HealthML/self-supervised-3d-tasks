@@ -21,18 +21,18 @@ terms = 9
 predict_terms = 3
 image_size = int((crop_size / (split_per_side + 1)) * 2)
 img_shape = (image_size, image_size, n_channels)
-model_checkpoint = expanduser('~/workspace/self-supervised-transfer-learning/cpc_kaggle_retina/weights-improvement-005.hdf5')
+model_checkpoint = expanduser('~/workspace/self-supervised-transfer-learning/cpc_kaggle_retina_12/weights-improvement-011.hdf5')
 
 
 def get_training_model():
-    model, enc_model = network_cpc(image_shape=(image_size, image_size, n_channels), terms=terms,
+    model, enc_model = network_cpc(image_shape=img_shape, terms=terms,
                                    predict_terms=predict_terms,
                                    code_size=code_size, learning_rate=lr)
     # we get a model that is already compiled
     return model
 
 
-def get_training_preprocessing(batch_size):
+def get_training_preprocessing():
     def f_train(x, y):  # not using y here, as it gets generated
         return preprocess_grid(preprocess(x, crop_size, split_per_side))
 

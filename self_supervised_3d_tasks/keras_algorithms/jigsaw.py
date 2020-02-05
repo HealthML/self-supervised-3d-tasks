@@ -8,7 +8,7 @@ from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import appl
 from self_supervised_3d_tasks.data.data_generator import get_data_generators
 
 from self_supervised_3d_tasks.algorithms import patch_utils
-from self_supervised_3d_tasks.custom_preprocessing.jigsaw_preprocess import preprocess
+from self_supervised_3d_tasks.custom_preprocessing.jigsaw_preprocess import preprocess, preprocess_resize
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model
 from self_supervised_3d_tasks.keras_models.fully_connected import fully_connected
@@ -27,16 +27,14 @@ architecture = "ResNet50"
 # data_dir="/mnt/mpws2019cl1/retinal_fundus/left/max_256/"
 data_dir = "/mnt/mpws2019cl1/kaggle_retina/train/resized_384"
 model_checkpoint = \
-    expanduser('~/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina00/weights-improvement-018.hdf5')
+    expanduser('~/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina_3/weights-improvement-059.hdf5')
 
 
 def apply_model():
     perms, _ = patch_utils.load_permutations()
     input_x = Input((split_per_side * split_per_side, patch_dim, patch_dim, n_channels))
 
-    encoder_input = Input((patch_dim, patch_dim, n_channels, ))
-    encoder_output = apply_encoder_model(encoder_input, embed_dim)
-    enc_model = Model(encoder_input, encoder_output, name='encoder')
+    enc_model = apply_encoder_model((patch_dim, patch_dim, n_channels, ), embed_dim)
 
     x = TimeDistributed(enc_model)(input_x)
     x = Flatten()(x)
@@ -68,13 +66,11 @@ def get_training_preprocessing():
 
 
 def get_finetuning_preprocessing():
-    perms = [range(split_per_side*split_per_side)]  # this means simply keep the order as is
-
     def f_train(x, y):
-        return preprocess(x, split_per_side, patch_jitter, perms, is_training=False)[0], y
+        return preprocess_resize(x, split_per_side, patch_dim), y
 
     def f_val(x, y):
-        return preprocess(x, split_per_side, patch_jitter, perms, is_training=False)[0], y
+        return preprocess_resize(x, split_per_side, patch_dim), y
 
     return f_train, f_val
 

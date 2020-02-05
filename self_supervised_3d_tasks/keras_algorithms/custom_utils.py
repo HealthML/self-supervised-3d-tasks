@@ -1,8 +1,8 @@
 import sys
 from contextlib import redirect_stdout, redirect_stderr
 
-from keras import Model
-from keras.applications import DenseNet121
+from keras import Model, Input
+from keras.applications import ResNet50
 from keras.layers import Dense
 from keras.optimizers import Adam
 from keras.utils import multi_gpu_model
@@ -11,7 +11,7 @@ from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
 
 
-def init(f,name="training",NGPUS=1):
+def init(f, name="training", NGPUS=1):
     algo = "jigsaw"
     dataset = "kaggle_retina"
 
@@ -47,12 +47,13 @@ def apply_prediction_model(layer_in, x, multi_gpu = False, lr = 1e-3):
     model.compile(
         optimizer=Adam(lr=lr), loss="mse", metrics=["mae"]
     )
-    model.summary()
+
     return model
 
 
-def apply_encoder_model(x, code_size):
-    encoder_output = DenseNet121(include_top=False, weights=None)(x)
-    encoder_output = Dense(code_size)(encoder_output)
+def apply_encoder_model(input_shape, code_size):
+    res_net = ResNet50(input_shape=input_shape, include_top=False, weights=None, pooling="max")
+    encoder_output = Dense(code_size)(res_net.outputs[0])
 
-    return encoder_output
+    enc_model = Model(res_net.inputs[0], encoder_output, name='encoder')
+    return enc_model

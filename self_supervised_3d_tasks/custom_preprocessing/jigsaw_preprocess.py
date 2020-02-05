@@ -1,4 +1,5 @@
 import random
+import albumentations as ab
 import numpy as np
 from self_supervised_3d_tasks.custom_preprocessing.crop import crop_patches
 
@@ -26,3 +27,22 @@ def preprocess(batch, split_per_side, patch_jitter, permutations, is_training=Tr
     ys = np.stack(ys)
 
     return xs, ys
+
+
+def preprocess_image_resize(image, split_per_side, patch_dim):
+    result = []
+    for patch in crop_patches(image, False, split_per_side, 0):
+        patch = ab.Resize(patch_dim, patch_dim)(image=patch)["image"]
+        result.append(patch)
+
+    return np.stack(result)
+
+
+def preprocess_resize(batch, split_per_side, patch_dim):
+    xs = []
+
+    for image in batch:
+        x = preprocess_image_resize(image, split_per_side, patch_dim)
+        xs.append(x)
+
+    return np.stack(xs)
