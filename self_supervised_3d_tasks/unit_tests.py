@@ -21,6 +21,7 @@ from self_supervised_3d_tasks.data.nifti_loader import DataGeneratorUnlabeled3D
 from self_supervised_3d_tasks.datasets import get_data
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess, preprocess_grid
 from self_supervised_3d_tasks.keras_algorithms import cpc
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import load_permutations_3d
 from self_supervised_3d_tasks.keras_algorithms.jigsaw import get_training_preprocessing
 from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
     get_pad
@@ -344,16 +345,20 @@ def plot_3d(image, dim_to_animate):
         plt.pause(.1)
         plt.draw()
 
-
-if __name__ == "__main__":
+def test_xxx():
     trainp, valp = get_training_preprocessing()
 
-    x,_ = get_data_generators("/mnt/mpws2019cl1/Task02_Heart", data3d=True,
-                              test_data_generator_args={"dim":(128,128,128),
-                                                        "pre_proc_func":valp},
-                              train_data_generator_args={"dim":(128,128,128),
-                                                        "pre_proc_func":trainp})
+    x, _ = get_data_generators("/mnt/mpws2019cl1/Task02_Heart", data3d=True,
+                               test_data_generator_args={"dim": (128, 128, 128),
+                                                         "pre_proc_func": valp},
+                               train_data_generator_args={"dim": (128, 128, 128),
+                                                          "pre_proc_func": trainp})
 
     print(x[0][0][0].shape)
 
     plot_3d(x[0][0][0][0:4], 0)
+
+
+if __name__ == "__main__":
+    x = load_permutations_3d()
+    print(x)

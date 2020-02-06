@@ -4,10 +4,10 @@ from keras import Input, Model
 from keras.layers import TimeDistributed, Flatten
 from keras.optimizers import Adam
 
-from self_supervised_3d_tasks.algorithms import patch3d_utils
 from self_supervised_3d_tasks.algorithms import patch_utils
 from self_supervised_3d_tasks.custom_preprocessing.jigsaw_preprocess import preprocess, preprocess_resize
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model, apply_encoder_model_3d
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model, apply_encoder_model_3d, \
+    load_permutations, load_permutations_3d
 from self_supervised_3d_tasks.keras_models.fully_connected import fully_connected
 
 h_w = 384
@@ -57,9 +57,9 @@ def get_training_model():
 
 def get_training_preprocessing():
     if train3d:
-        perms, _ = patch3d_utils.load_permutations()
+        perms, _ = load_permutations_3d()
     else:
-        perms, _ = patch_utils.load_permutations()
+        perms, _ = load_permutations()
 
     def f_train(x, y):  # not using y here, as it gets generated
         return preprocess(x, split_per_side, patch_jitter, perms, is_training=True, mode3d=train3d)
