@@ -4,6 +4,7 @@ from keras import Input, Model
 from keras.layers import TimeDistributed, Flatten
 from keras.optimizers import Adam
 
+from self_supervised_3d_tasks.algorithms import patch3d_utils
 from self_supervised_3d_tasks.algorithms import patch_utils
 from self_supervised_3d_tasks.custom_preprocessing.jigsaw_preprocess import preprocess, preprocess_resize
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model, apply_encoder_model_3d
@@ -24,9 +25,10 @@ architecture = "ResNet50"
 # data_dir="/mnt/mpws2019cl1/retinal_fundus/left/max_256/"
 model_checkpoint = \
     expanduser('~/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina_3/weights-improvement-059.hdf5')
+train3d = True
 
 
-def apply_model(train3d=False):
+def apply_model():
     perms, _ = patch_utils.load_permutations()
 
     if train3d:
@@ -54,23 +56,26 @@ def get_training_model():
 
 
 def get_training_preprocessing():
-    perms, _ = patch_utils.load_permutations()
+    if train3d:
+        perms, _ = patch3d_utils.load_permutations()
+    else:
+        perms, _ = patch_utils.load_permutations()
 
     def f_train(x, y):  # not using y here, as it gets generated
-        return preprocess(x, split_per_side, patch_jitter, perms, is_training=True)
+        return preprocess(x, split_per_side, patch_jitter, perms, is_training=True, mode3d=train3d)
 
     def f_val(x, y):
-        return preprocess(x, split_per_side, patch_jitter, perms, is_training=False)
+        return preprocess(x, split_per_side, patch_jitter, perms, is_training=False, mode3d=train3d)
 
     return f_train, f_val
 
 
 def get_finetuning_preprocessing():
     def f_train(x, y):
-        return preprocess_resize(x, split_per_side, patch_dim), y
+        return preprocess_resize(x, split_per_side, patch_dim, mode3d=train3d), y
 
     def f_val(x, y):
-        return preprocess_resize(x, split_per_side, patch_dim), y
+        return preprocess_resize(x, split_per_side, patch_dim, mode3d=train3d), y
 
     return f_train, f_val
 

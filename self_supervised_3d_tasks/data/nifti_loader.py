@@ -92,7 +92,7 @@ class DataGeneratorUnlabeled3D(keras.utils.Sequence):
                     img, _ = read_scan_find_bbox(img)
                     img = skTrans.resize(img, self.dim, order=1, preserve_range=True)
 
-                data_x.append(img)
+                data_x.append(np.expand_dims(img, axis=3)) # we have n_channels = 1
             except Exception as e:
                 print("Error while loading image {}.".format(path_to_image))
                 print(e)
