@@ -1,8 +1,8 @@
 from os.path import expanduser
 
-import keras
-from keras import Model, Input
-from keras.layers import Flatten, Dense, TimeDistributed
+import tensorflow.keras as keras
+from tensorflow.keras import Model, Input
+from tensorflow.keras.layers import Flatten, Dense, TimeDistributed
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess_grid, preprocess, resize
 from self_supervised_3d_tasks.data.data_generator import get_data_generators
 from self_supervised_3d_tasks.keras_algorithms.cpc_model_utils import network_cpc

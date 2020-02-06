@@ -1,12 +1,15 @@
-from keras.layers import Input, Add, Dense, Activation, ZeroPadding2D, BatchNormalization, Flatten, Conv2D, AveragePooling2D, MaxPooling2D
-from keras.models import Model
+from tensorflow.keras.layers import Input, Add, Dense, Activation, ZeroPadding2D, BatchNormalization, Flatten, Conv2D, \
+    AveragePooling2D, MaxPooling2D
+from tensorflow.keras.models import Model
 
-from keras.initializers import glorot_uniform
-from keras.optimizers import Adam
+from tensorflow.keras.initializers import glorot_uniform
+from tensorflow.keras.optimizers import Adam
 
-import keras.backend as K
+import tensorflow.keras.backend as K
+
 K.set_image_data_format('channels_last')
 K.set_learning_phase(1)
+
 
 def identity_block(X, f, filters, stage, block):
     """

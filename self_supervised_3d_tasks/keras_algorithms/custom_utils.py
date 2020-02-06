@@ -4,11 +4,11 @@ from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
 import numpy as np
 
-from keras import Model, Input
-from keras.applications import ResNet50
-from keras.layers import Dense
-from keras.optimizers import Adam
-from keras.utils import multi_gpu_model
+from tensorflow.keras import Model, Input
+from tensorflow.keras.applications import ResNet50
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.utils import multi_gpu_model
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
@@ -16,7 +16,7 @@ from self_supervised_3d_tasks.keras_models.unet import downconv_model
 
 
 def init(f, name="training", NGPUS=1):
-    algo = "jigsaw"
+    algo = "cpc"
     dataset = "kaggle_retina"
 
     if(len(sys.argv)) > 1:
