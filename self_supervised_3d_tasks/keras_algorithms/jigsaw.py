@@ -4,7 +4,6 @@ from keras import Input, Model
 from keras.layers import TimeDistributed, Flatten
 from keras.optimizers import Adam
 
-from self_supervised_3d_tasks.algorithms import patch_utils
 from self_supervised_3d_tasks.custom_preprocessing.jigsaw_preprocess import preprocess, preprocess_resize
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model, apply_encoder_model_3d, \
     load_permutations, load_permutations_3d
@@ -29,7 +28,10 @@ train3d = True
 
 
 def apply_model():
-    perms, _ = patch_utils.load_permutations()
+    if train3d:
+        perms, _ = load_permutations_3d()
+    else:
+        perms, _ = load_permutations()
 
     if train3d:
         input_x = Input((n_patches3D, patch_dim, patch_dim, patch_dim, n_channels))
