@@ -1,20 +1,27 @@
 import functools
 import glob
+import time
 from os.path import expanduser
+import _thread
 
 import absl.flags as flags
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from PIL import Image
+from self_supervised_3d_tasks.algorithms import patch3d_utils
+
+from self_supervised_3d_tasks.algorithms import patch_utils
+from self_supervised_3d_tasks.data.data_generator import get_data_generators
 
 from self_supervised_3d_tasks.algorithms.patch_model_preprocess import get_crop_patches_fn
 from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import apply_to_x
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
+from self_supervised_3d_tasks.data.nifti_loader import DataGeneratorUnlabeled3D
 from self_supervised_3d_tasks.datasets import get_data
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess, preprocess_grid
 from self_supervised_3d_tasks.keras_algorithms import cpc
-from self_supervised_3d_tasks.keras_algorithms.jigsaw import get_training_generators, get_finetuning_generators
+from self_supervised_3d_tasks.keras_algorithms.jigsaw import get_training_preprocessing
 from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
     get_pad
 
@@ -274,19 +281,19 @@ def test_cpc_gen():
 
     show_batch(data[0])
 
-def test_data_jigsaw():
-    gen = get_training_generators(1, "kaggle_retina")
-    data = gen[0][0][0]
-
-    print(data.shape)
-    print(data[0].max())
-    print(data[0].min())
-
-    show_batch(data[0])
-
-def test_pil_fit():
-    x, _1, _2 = get_finetuning_generators(1, "kaggle_retina", training_proportion=0.8)
-    show_batch(x[0][0][0])
+# def test_data_jigsaw():
+#     gen = get_training_generators(1, "kaggle_retina")
+#     data = gen[0][0][0]
+#
+#     print(data.shape)
+#     print(data[0].max())
+#     print(data[0].min())
+#
+#     show_batch(data[0])
+#
+# def test_pil_fit():
+#     x, _1, _2 = get_finetuning_generators(1, "kaggle_retina", training_proportion=0.8)
+#     show_batch(x[0][0][0])
 
 
 def test_preprocessing():
@@ -306,5 +313,47 @@ def test_preprocessing():
         show_batch(patches["image"])
 
 
+def plot_3d(image, dim_to_animate):
+    n = len(image)
+    ax = []
+    frame = []
+    ani = []
+
+    for i in range(n):
+        ax.append(plt.subplot(n, 1, i+1))
+        frame.append(None)
+        ani.append(-1)
+
+    while True:
+        for i in range(n):
+            img = image[i]
+            ani[i] += 1
+
+            if ani[i] >= img.shape[dim_to_animate]:
+                ani[i] = 0
+
+            idx = [ani[i] if dim == dim_to_animate else slice(None) for dim in range(img.ndim)]
+            im = np.squeeze(img[idx], axis=2)
+
+            if frame[i] is None:
+                frame[i] = ax[i].imshow(im, cmap="binary")
+            else:
+                frame[i].set_data(im)
+
+        time.sleep(0.05)
+        plt.pause(.1)
+        plt.draw()
+
+
 if __name__ == "__main__":
-    test_cpc_gen()
+    trainp, valp = get_training_preprocessing()
+
+    x,_ = get_data_generators("/mnt/mpws2019cl1/Task02_Heart", data3d=True,
+                              test_data_generator_args={"dim":(128,128,128),
+                                                        "pre_proc_func":valp},
+                              train_data_generator_args={"dim":(128,128,128),
+                                                        "pre_proc_func":trainp})
+
+    print(x[0][0][0].shape)
+
+    plot_3d(x[0][0][0][0:4], 0)
