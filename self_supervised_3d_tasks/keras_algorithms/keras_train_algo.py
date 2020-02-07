@@ -1,18 +1,16 @@
 from os import path
 from os.path import expanduser
-from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
-from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
-from self_supervised_3d_tasks.keras_algorithms import cpc, jigsaw, relative_patch_location
-
 import keras
+
 from self_supervised_3d_tasks.data.data_generator import get_data_generators
-from self_supervised_3d_tasks.keras_algorithms import cpc, jigsaw
+from self_supervised_3d_tasks.keras_algorithms import cpc, jigsaw, relative_patch_location, rotation
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
 
 keras_algorithm_list = {
     "cpc": cpc,
     "jigsaw": jigsaw,
-    "rpl": relative_patch_location
+    "rpl": relative_patch_location,
+    "rotation": rotation
 }
 
 dataset_dir_list = {

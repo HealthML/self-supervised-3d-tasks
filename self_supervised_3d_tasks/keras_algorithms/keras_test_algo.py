@@ -1,6 +1,7 @@
 import csv
 import gc
 from pathlib import Path
+from os.path import expanduser
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -101,7 +102,7 @@ def draw_curve(name):
 def run_complex_test(algorithm, dataset_name):
     results = []
     algorithm_def = keras_algorithm_list[algorithm]
-    base_path = algorithm_def.model_checkpoint
+    base_path = expanduser('~/workspace/self-supervised-transfer-learning/' + algorithm)
 
     write_result(base_path, ["Train Split", "Weights freezed", "Weights initialized", "Weights random"])
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
