@@ -13,6 +13,10 @@ def preprocess_image(image, patches_per_side, patch_jitter, is_training):
     if class_id >= center_id:
         patch_id = class_id + 1
 
+    if image.shape[0] != image.shape[1]:
+        square_size = min(image.shape[0], image.shape[1])
+        image = ab.CenterCrop(height=square_size, width=square_size)(image=image)['image']
+
     cropped_image = crop_patches(image, is_training, patches_per_side, patch_jitter)
 
     # return np.array([cropped_image[center_id], cropped_image[class_id]]), class_id

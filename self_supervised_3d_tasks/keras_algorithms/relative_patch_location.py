@@ -8,7 +8,7 @@ from self_supervised_3d_tasks.keras_models.res_net_2d import get_res_net_2d
 from self_supervised_3d_tasks.models.cnn_baseline import KaggleGenerator
 
 # optionally load this from a config file at some time
-data_dim = 384
+data_dim = 192
 n_channels = 3
 data_shape = (data_dim, data_dim)
 patches_per_side = 3
@@ -48,7 +48,7 @@ def get_finetuning_preprocessing():
 
 
 def get_finetuning_layers(load_weights, freeze_weights):
-    model = get_res_net_2d(input_shape=[image_size, image_size, n_channels], classes=9, architecture="ResNet50", learning_rate=lr)
+    model = get_res_net_2d(input_shape=[image_size, image_size, n_channels], classes=patches_per_side**2, architecture="ResNet50", learning_rate=lr)
 
     if load_weights:
         model.load_weights(model_checkpoint)
