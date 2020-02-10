@@ -1,13 +1,10 @@
+import shutil
 from os import path
 from os.path import expanduser
-
-import shutil
-
-from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
-from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
-from self_supervised_3d_tasks.keras_algorithms import cpc, jigsaw, relative_patch_location
+from pathlib import Path
 
 import tensorflow.keras as keras
+
 from self_supervised_3d_tasks.data.data_generator import get_data_generators
 from self_supervised_3d_tasks.keras_algorithms import cpc, jigsaw, relative_patch_location, rotation
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
@@ -19,18 +16,8 @@ keras_algorithm_list = {
     "rotation": rotation
 }
 
-dataset_dir_list = {
-    "kaggle_retina": "/mnt/mpws2019cl1/kaggle_retina/train/resized_384",
-    "ukb_retina": "/mnt/mpws2019cl1/retinal_fundus/left/max_512/resized_384/"
-}
 
-
-def get_dataset(dataset_name, batch_size, f_train, f_val, train_val_split):
-    if dataset_name not in dataset_dir_list:
-        raise ValueError("dataset not implemented")
-
-    data_dir = dataset_dir_list[dataset_name]
-
+def get_dataset(data_dir, batch_size, f_train, f_val, train_val_split):
     train_data, validation_data = get_data_generators(data_dir, train_split=train_val_split,
                                                       train_data_generator_args={"batch_size": batch_size,
                                                                                  "pre_proc_func": f_train},
@@ -53,13 +40,14 @@ def get_writing_path(algorithm, dataset_name, base_dir, root_config_file):
         working_dir += str(i)
         i += 1
 
+    Path(working_dir).mkdir()
     print("writing to: " + working_dir)
     shutil.copy2(root_config_file, working_dir)
 
     return working_dir
 
 
-def train_model(algorithm, dataset_name, root_config_file, epochs=250, batch_size=2, train_val_split=0.9,
+def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250, batch_size=2, train_val_split=0.9,
                 base_workspace="~/workspace/self-supervised-transfer-learning/", **kwargs):
     kwargs["root_config_file"] = root_config_file
 
@@ -67,7 +55,7 @@ def train_model(algorithm, dataset_name, root_config_file, epochs=250, batch_siz
     algorithm_def = keras_algorithm_list[algorithm].create_instance(**kwargs)
 
     f_train, f_val = algorithm_def.get_training_preprocessing()
-    train_data, validation_data = get_dataset(dataset_name, batch_size, f_train, f_val, train_val_split)
+    train_data, validation_data = get_dataset(data_dir, batch_size, f_train, f_val, train_val_split)
     model = algorithm_def.get_training_model()
     model.summary()
 

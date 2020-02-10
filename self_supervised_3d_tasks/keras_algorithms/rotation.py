@@ -15,7 +15,7 @@ from self_supervised_3d_tasks.models.cnn_baseline import KaggleGenerator
 
 class RotationBuilder:
     def __init__(
-            self, data_dim=192, n_channels=3, lr=1e-3,
+            self, data_dim=192, n_channels=3, lr=1e-3, **kwargs
     ):
         self.data_dim = data_dim
         self.n_channels = n_channels
@@ -76,4 +76,4 @@ class RotationBuilder:
 
 
 def create_instance(*params, **kwargs):
-    RotationBuilder(*params, **kwargs)
+    return RotationBuilder(*params, **kwargs)
