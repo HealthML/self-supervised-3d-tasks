@@ -9,6 +9,10 @@ from self_supervised_3d_tasks.data.data_generator import get_data_generators
 from self_supervised_3d_tasks.keras_algorithms import cpc, jigsaw, relative_patch_location, rotation
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
 
+# works only in 3D!
+data3d = True
+data_dim = (128, 128, 128)
+
 keras_algorithm_list = {
     "cpc": cpc,
     "jigsaw": jigsaw,
@@ -18,6 +22,8 @@ keras_algorithm_list = {
 
 dataset_dir_list = {
     "kaggle_retina": "/mnt/mpws2019cl1/kaggle_retina/train/resized_384",
+    "heart3d": "/mnt/mpws2019cl1/Task02_Heart/imagesTr",
+    "pancreas3d": "/mnt/mpws2019cl1/Task07_Pancreas/imagesPt",
     "ukb_retina": "/mnt/mpws2019cl1/retinal_fundus/left/max_512/resized_384/"
 }
 
@@ -56,7 +62,7 @@ def get_writing_path(algorithm, dataset_name):
     return working_dir
 
 
-def train_model(algorithm, dataset_name, epochs=250, batch_size=2):
+def train_model(algorithm, dataset_name, epochs=250, batch_size=8):
     working_dir = get_writing_path(algorithm, dataset_name)
     algorithm_def = keras_algorithm_list[algorithm]
 

@@ -6,12 +6,12 @@ from os.path import expanduser
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
+from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_algorithm_list
 from tensorflow.keras import backend as K
 from sklearn.metrics import cohen_kappa_score
 
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, apply_prediction_model
-from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import tensorflow.keras as keras_algorithm_list
 
 epochs = 5
 repetitions = 2
