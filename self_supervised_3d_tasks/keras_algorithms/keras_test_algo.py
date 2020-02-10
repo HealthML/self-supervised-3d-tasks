@@ -1,15 +1,15 @@
 import csv
 import gc
-from pathlib import Path
 from os.path import expanduser
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
-from tensorflow.keras import backend as K
+import shutil
 from sklearn.metrics import cohen_kappa_score
+from tensorflow.keras import backend as K
 
-from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator, get_kaggle_test_generator, \
+from self_supervised_3d_tasks.data.kaggle_retina_data import get_kaggle_test_generator, \
     get_kaggle_train_generator
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, apply_prediction_model
 from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_algorithm_list
@@ -86,13 +86,17 @@ def draw_curve(name):
     print(df["Train Split"])
 
 
-def run_complex_test(algorithm, dataset_name, epochs=5, repetitions=2, batch_size=2,
+def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint, epochs=5, repetitions=2, batch_size=2,
                      exp_splits=(100, 50, 25, 12.5, 6.25), lr=0.00003, **kwargs):
-    results = []
-    algorithm_def = keras_algorithm_list[algorithm].create_instance(**kwargs)
-    base_path = expanduser('~/workspace/self-supervised-transfer-learning/' + algorithm)
+    kwargs["model_checkpoint"] = model_checkpoint
+    kwargs["root_config_file"] = root_config_file
 
-    write_result(base_path, ["Train Split", "Weights freezed", "Weights initialized", "Weights random"])
+    shutil.copy2(root_config_file, model_checkpoint+"test_config.json")
+    algorithm_def = keras_algorithm_list[algorithm].create_instance(**kwargs)
+
+    results = []
+
+    write_result(model_checkpoint, ["Train Split", "Weights freezed", "Weights initialized", "Weights random"])
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     x_test, y_test = get_dataset_test(dataset_name, batch_size, f_train, f_val)
 
@@ -125,7 +129,7 @@ def run_complex_test(algorithm, dataset_name, epochs=5, repetitions=2, batch_siz
 
         data = [str(train_split) + "%", np.mean(np.array(a_s)), np.mean(np.array(b_s)), np.mean(np.array(c_s))]
         results.append(data)
-        write_result(base_path, data)
+        write_result(model_checkpoint, data)
 
 
 if __name__ == "__main__":

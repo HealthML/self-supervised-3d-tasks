@@ -19,11 +19,12 @@ from self_supervised_3d_tasks.keras_models.unet import downconv_model
 def init(f, name="training", NGPUS=1):
     config_filename = Path(__file__).parent / "config.json"
 
-    if(len(sys.argv)) > 1:
+    if (len(sys.argv)) > 1:
         config_filename = sys.argv[1]
 
     with open(config_filename, "r") as file:
         args = json.load(file)
+        args["root_config_file"] = config_filename
 
     print("###########################################")
     print("{} {} with parameters: ".format(name, args))
@@ -37,7 +38,7 @@ def init(f, name="training", NGPUS=1):
             f(**args)
 
 
-def apply_prediction_model(layer_in, x, multi_gpu = False, lr = 1e-3):
+def apply_prediction_model(layer_in, x, multi_gpu=False, lr=1e-3):
     dim1 = 1024
     dim2 = 1024
 
@@ -71,11 +72,9 @@ def apply_encoder_model(input_shape, code_size):
     return enc_model
 
 
-PERMUTATION_PATH = str(Path(__file__).parent.parent / "permutations" / "permutations3d_100_max.bin")
-
-
-def load_permutations_3d():
-    with open(PERMUTATION_PATH, "rb") as f:
+def load_permutations_3d(permutation_path=str(Path(__file__).parent.parent / "permutations" /
+                                              "permutations3d_100_max.bin")):
+    with open(permutation_path, "rb") as f:
         int32_size = 4
         s = f.read(int32_size * 2)
         [num_perms, c] = struct.unpack("<ll", s)
@@ -89,9 +88,10 @@ def load_permutations_3d():
     return perms, num_perms
 
 
-def load_permutations():
+def load_permutations(permutation_path=str(Path(__file__).parent.parent / "permutations" /
+                                           "permutations3d_100_max.bin")):
     """Loads a set of pre-defined permutations."""
-    with open(PERMUTATION_PATH, "rb") as f:
+    with open(permutation_path, "rb") as f:
         int32_size = 4
         s = f.read(int32_size * 2)
         [num_perms, c] = struct.unpack("<ll", s)

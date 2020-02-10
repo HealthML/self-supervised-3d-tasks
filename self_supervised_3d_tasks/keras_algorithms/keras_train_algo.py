@@ -1,5 +1,8 @@
 from os import path
 from os.path import expanduser
+
+import shutil
+
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
 from self_supervised_3d_tasks.keras_algorithms import cpc, jigsaw, relative_patch_location
@@ -37,8 +40,8 @@ def get_dataset(dataset_name, batch_size, f_train, f_val, train_val_split):
     return train_data, validation_data
 
 
-def get_writing_path(algorithm, dataset_name):
-    working_dir = expanduser("~/workspace/self-supervised-transfer-learning/") + algorithm + "_" + dataset_name
+def get_writing_path(algorithm, dataset_name, base_dir, root_config_file):
+    working_dir = expanduser(base_dir) + algorithm + "_" + dataset_name
 
     i = 0
     while path.exists(working_dir):
@@ -51,11 +54,16 @@ def get_writing_path(algorithm, dataset_name):
         i += 1
 
     print("writing to: " + working_dir)
+    shutil.copy2(root_config_file, working_dir)
+
     return working_dir
 
 
-def train_model(algorithm, dataset_name, epochs=250, batch_size=2, train_val_split=0.9, **kwargs):
-    working_dir = get_writing_path(algorithm, dataset_name)
+def train_model(algorithm, dataset_name, root_config_file, epochs=250, batch_size=2, train_val_split=0.9,
+                base_workspace="~/workspace/self-supervised-transfer-learning/", **kwargs):
+    kwargs["root_config_file"] = root_config_file
+
+    working_dir = get_writing_path(algorithm, dataset_name, base_workspace, root_config_file)
     algorithm_def = keras_algorithm_list[algorithm].create_instance(**kwargs)
 
     f_train, f_val = algorithm_def.get_training_preprocessing()
