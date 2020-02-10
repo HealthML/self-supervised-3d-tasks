@@ -1,4 +1,4 @@
-from keras import Model
+from tensorflow.keras import Model
 from tensorflow.keras import Input
 from tensorflow.keras.layers import Flatten, TimeDistributed
 from os.path import expanduser
@@ -30,7 +30,7 @@ class RotationBuilder:
             input_shape=self.img_shape,
             classes=4,
             architecture="ResNet50",
-            learning_rate=lr,
+            learning_rate=self.lr,
         )
 
         return model

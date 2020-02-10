@@ -1,8 +1,6 @@
 import os
-from os.path import expanduser
 from pathlib import Path
 
-from tensorflow.keras.models import Model
 from tensorflow.keras.layers import (
     BatchNormalization,
     Conv3D,
@@ -12,7 +10,9 @@ from tensorflow.keras.layers import (
     UpSampling3D,
     Input,
     concatenate,
+    AveragePooling3D
 )
+from tensorflow.keras.models import Model
 from tensorflow.keras.utils import plot_model
 
 
@@ -64,6 +64,7 @@ def downconv_model_3d(
         dropout_change_per_layer=0.0,
         filters=16,
         num_layers=4,
+        pooling=None
 ):
     inputs = Input(input_shape)
     x = inputs
@@ -81,6 +82,12 @@ def downconv_model_3d(
     x = conv3d_block(
         inputs=x, filters=filters, use_batch_norm=use_batch_norm, dropout=dropout
     )
+
+    if pooling == "max":
+        x = MaxPooling3D()(x)
+    elif pooling == "avg":
+        x = AveragePooling3D()(x)
+
 
     model = Model(inputs=[inputs], outputs=[x])
     return model, [down_layers, filters]

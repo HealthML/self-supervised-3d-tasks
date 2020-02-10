@@ -45,7 +45,7 @@ class CPCBuilder:
         self.predict_terms = predict_terms
         self.image_size = int((crop_size / (split_per_side + 1)) * 2)
         self.img_shape = (self.image_size, self.image_size, self.n_channels)
-        pass
+        self.kwargs = kwargs
 
     def get_training_model(self):
         model, enc_model = network_cpc(

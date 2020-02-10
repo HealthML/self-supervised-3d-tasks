@@ -13,6 +13,7 @@ from tensorflow.keras.utils import multi_gpu_model
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
+from self_supervised_3d_tasks.keras_models.unet import downconv_model
 from self_supervised_3d_tasks.keras_models.unet3d import downconv_model_3d
 
 
@@ -57,19 +58,19 @@ def apply_prediction_model(input_shape, multi_gpu=False, lr=1e-3):
     return model
 
 
-def apply_encoder_model_3d(input_shape, code_size):
-    model = downconv_model_3d(input_shape)
+def apply_encoder_model_3d(input_shape, code_size, num_layers=4, pooling="max", **kwargs):
+    model, _ = downconv_model_3d(input_shape, num_layers=num_layers, pooling=pooling)
     encoder_output = Dense(code_size)(model.outputs[0])
 
     enc_model = Model(model.inputs[0], encoder_output, name='encoder')
     return enc_model
 
 
-def apply_encoder_model(input_shape, code_size):
-    res_net = ResNet50(input_shape=input_shape, include_top=False, weights=None, pooling="max")
-    encoder_output = Dense(code_size)(res_net.outputs[0])
+def apply_encoder_model(input_shape, code_size, num_layers=4, pooling="max", **kwargs):
+    enc, _ = downconv_model(input_shape, num_layers=num_layers, pooling=pooling)
+    encoder_output = Dense(code_size)(enc.outputs[0])
 
-    enc_model = Model(res_net.inputs[0], encoder_output, name='encoder')
+    enc_model = Model(enc.inputs[0], encoder_output, name='encoder')
     return enc_model
 
 

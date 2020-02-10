@@ -31,7 +31,7 @@ class JigsawBuilder:
             patch_jitter=10,
             n_channels=3,
             lr=0.00003,
-            embed_dim=1000,
+            embed_dim=128,
             architecture="ResNet50",
             train3D=False,
             **kwargs
@@ -49,6 +49,7 @@ class JigsawBuilder:
         self.dim3D = (h_w, h_w, h_w)
         self.patch_dim = int((h_w / split_per_side) - patch_jitter)
         self.train3D = train3D
+        self.kwargs = kwargs
 
     def apply_model(self):
         if self.train3D:
@@ -68,21 +69,21 @@ class JigsawBuilder:
             )
             enc_model = apply_encoder_model_3d(
                 (self.patch_dim, self.patch_dim, self.patch_dim, self.n_channels,),
-                self.embed_dim,
+                self.embed_dim, **self.kwargs
             )
         else:
             input_x = Input(
                 (self.n_patches, self.patch_dim, self.patch_dim, self.n_channels)
             )
             enc_model = apply_encoder_model(
-                (self.patch_dim, self.patch_dim, self.n_channels,), self.embed_dim
+                (self.patch_dim, self.patch_dim, self.n_channels,), self.embed_dim, **self.kwargs
             )
 
         x = TimeDistributed(enc_model)(input_x)
         x = Flatten()(x)
         out = fully_connected(x, num_classes=len(perms))
 
-        model = Model(inputs=input_x, outputs=out)
+        model = Model(inputs=input_x, outputs=out, name="jigsaw_complete")
         model.compile(
             optimizer=Adam(lr=self.lr),
             loss="categorical_crossentropy",

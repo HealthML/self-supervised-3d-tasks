@@ -43,9 +43,9 @@ class CPCLayer(keras.layers.Layer):
         return (input_shape[0][0], 1)
 
 
-def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate):
+def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate, **kwargs):
     # Define encoder model
-    encoder_model = apply_encoder_model(image_shape, code_size)
+    encoder_model = apply_encoder_model(image_shape, code_size, **kwargs)
 
     # Define rest of model
     x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))

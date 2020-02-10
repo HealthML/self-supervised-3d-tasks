@@ -1,9 +1,9 @@
 import os
-from os.path import expanduser
 from pathlib import Path
 
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import (
+    AveragePooling2D,
     BatchNormalization,
     Conv2D,
     Conv2DTranspose,
@@ -64,6 +64,7 @@ def downconv_model(
         dropout_change_per_layer=0.0,
         filters=16,
         num_layers=4,
+        pooling=None
 ):
     inputs = Input(input_shape)
     x = inputs
@@ -82,8 +83,12 @@ def downconv_model(
         inputs=x, filters=filters, use_batch_norm=use_batch_norm, dropout=dropout
     )
 
+    if pooling == "max":
+        x = MaxPooling2D()(x)
+    elif pooling == "avg":
+        x = AveragePooling2D()(x)
+
     model = Model(inputs=[inputs], outputs=[x])
-    model.summary()
     return model, [down_layers, filters]
 
 
@@ -122,7 +127,6 @@ def upconv_model(
         )
     outputs = Conv2D(num_classes, (1, 1), activation=output_activation)(x)
     model = Model(inputs=inputs, outputs=[outputs])
-    model.summary()
     return model
 
 
