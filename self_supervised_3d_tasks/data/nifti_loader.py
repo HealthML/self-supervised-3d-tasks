@@ -2,6 +2,7 @@ import keras
 import nibabel as nib
 import numpy as np
 import skimage.transform as skTrans
+import traceback
 
 
 def norm(im):
@@ -92,10 +93,11 @@ class DataGeneratorUnlabeled3D(keras.utils.Sequence):
                     img, _ = read_scan_find_bbox(img)
                     img = skTrans.resize(img, self.dim, order=1, preserve_range=True)
 
-                data_x.append(np.expand_dims(img, axis=3)) # we have n_channels = 1
+                data_x.append(np.expand_dims(img, axis=3))  # we have n_channels = 1
             except Exception as e:
                 print("Error while loading image {}.".format(path_to_image))
-                print(e)
+                traceback.print_tb(e.__traceback__)
+
                 continue
 
         data_x = np.stack(data_x)

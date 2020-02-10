@@ -93,9 +93,9 @@ def crop3d(image, is_training, crop_size):
         z = np.random.randint(0, d_old-d)
     else:
         # crop center
-        x = (h_old - h) / 2
-        y = (w_old - w) / 2
-        z = (d_old - d) / 2
+        x = int((h_old - h) / 2)
+        y = int((w_old - w) / 2)
+        z = int((d_old - d) / 2)
 
     return do_crop_3d(image, x, y, z, h, w, d)
 
@@ -106,4 +106,11 @@ def do_crop(image, x, y, h, w):
 
 
 def do_crop_3d(image, x, y, z, h, w, d):
+    assert type(x) == int, x
+    assert type(y) == int, y
+    assert type(z) == int, z
+    assert type(h) == int, h
+    assert type(w) == int, w
+    assert type(d) == int, d
+
     return image[x:x + h, y:y + w, z:z + d, :]

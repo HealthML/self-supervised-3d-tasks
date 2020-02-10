@@ -4,7 +4,7 @@ from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
 import numpy as np
 
-from keras import Model, Input
+from keras import Model
 from keras.applications import ResNet50
 from keras.layers import Dense
 from keras.optimizers import Adam
@@ -17,7 +17,7 @@ from self_supervised_3d_tasks.keras_models.unet import downconv_model
 
 def init(f, name="training", NGPUS=1):
     algo = "jigsaw"
-    dataset = "kaggle_retina"
+    dataset = "pancreas3d"
 
     if(len(sys.argv)) > 1:
         algo = sys.argv[1]
@@ -56,7 +56,7 @@ def apply_prediction_model(layer_in, x, multi_gpu = False, lr = 1e-3):
 
 
 def apply_encoder_model_3d(input_shape, code_size):
-    model = downconv_model(input_shape)
+    model, _ = downconv_model(input_shape)
     encoder_output = Dense(code_size)(model.outputs[0])
 
     enc_model = Model(model.inputs[0], encoder_output, name='encoder')
