@@ -76,7 +76,7 @@ class RelativePatchLocationBuilder:
 
         return f_train, f_val
 
-    def get_finetuning_layers(self, load_weights, freeze_weights, model_checkpoint):
+    def get_finetuning_model(self, model_checkpoint=None):
         model = get_res_net_2d(
             input_shape=[self.image_size, self.image_size, self.n_channels],
             classes=self.patches_per_side ** 2,

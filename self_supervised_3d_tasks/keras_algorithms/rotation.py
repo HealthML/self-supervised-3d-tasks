@@ -53,7 +53,7 @@ class RotationBuilder:
 
         return f_train, f_val
 
-    def get_finetuning_layers(self, load_weights, freeze_weights, model_checkpoint):
+    def get_finetuning_model(self, model_checkpoint=None):
         model = get_res_net_2d(
             input_shape=self.img_shape,
             classes=4,
