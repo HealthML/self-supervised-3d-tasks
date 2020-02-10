@@ -160,7 +160,7 @@ def custom_unet(
         dropout_change_per_layer=dropout_change_per_layer,
         filters=data[1],
         down_layers=data[0],
-        output_activation=output_activation
+        output_activation=output_activation,
     )
     outputs = upconv(inputs=[downconv.output, *reversed(data[0])])
     model = Model(inputs=downconv.inputs, outputs=outputs)
@@ -171,4 +171,9 @@ if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
     cunet = custom_unet((128, 128, 1))
     cunet.summary()
-    plot_model(cunet, to_file=Path('~/unet_graph.png').expanduser(), show_shapes=True, expand_nested=True)
+    plot_model(
+        cunet,
+        to_file=Path("~/unet_graph.png").expanduser(),
+        show_shapes=True,
+        expand_nested=True,
+    )
