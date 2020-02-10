@@ -1,8 +1,9 @@
+import os
 from os.path import expanduser
 from pathlib import Path
 
-from keras.models import Model
-from keras.layers import (
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import (
     BatchNormalization,
     Conv3D,
     Conv3DTranspose,
@@ -12,7 +13,7 @@ from keras.layers import (
     Input,
     concatenate,
 )
-from keras.utils import plot_model
+from tensorflow.keras.utils import plot_model
 
 
 def upsample_conv(filters, kernel_size, strides, padding):
@@ -160,6 +161,7 @@ def custom_unet(
 
 
 if __name__ == "__main__":
+    os.environ["CUDA_VISIBLE_DEVICES"] = ""
     cunet = custom_unet((128, 128, 128, 1))
     cunet.summary()
     plot_model(cunet, to_file=Path('~/unet_graph.png').expanduser(), show_shapes=True, rankdir="LR", expand_nested=True)

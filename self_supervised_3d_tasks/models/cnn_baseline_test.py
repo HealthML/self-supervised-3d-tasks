@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from keras.engine.saving import load_model
+from tensorflow.keras.engine.saving import load_model
 from sklearn.metrics import confusion_matrix, accuracy_score, cohen_kappa_score
 
 from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import apply_to_x

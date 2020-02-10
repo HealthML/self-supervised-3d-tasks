@@ -8,8 +8,8 @@ import functools
 
 import tensorflow as tf
 import tensorflow_hub as hub
-import keras
-import keras.backend as K
+import tensorflow.keras as keras
+import tensorflow.keras.backend as K
 
 from self_supervised_3d_tasks import utils
 from self_supervised_3d_tasks.models.utils import get_net
@@ -17,8 +17,8 @@ from self_supervised_3d_tasks.trainer import make_estimator
 
 FLAGS = tf.flags.FLAGS
 
-def network_autoregressive(x):
 
+def network_autoregressive(x):
     ''' Define the network that integrates information along the sequence '''
 
     # x = keras.layers.GRU(units=256, return_sequences=True)(x)

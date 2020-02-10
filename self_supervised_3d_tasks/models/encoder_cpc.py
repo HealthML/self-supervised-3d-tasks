@@ -2,7 +2,7 @@
 """
 
 import tensorflow as tf
-import keras
+import tensorflow.keras as keras
 
 
 def batch_norm(x, training):

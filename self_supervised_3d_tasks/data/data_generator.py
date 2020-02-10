@@ -1,6 +1,6 @@
 import numpy as np
 from PIL import Image
-import keras
+import tensorflow.keras as keras
 import os
 
 from self_supervised_3d_tasks.data.nifti_loader import DataGeneratorUnlabeled3D

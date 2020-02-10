@@ -1,16 +1,17 @@
 import csv
 import gc
 from pathlib import Path
+from os.path import expanduser
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
-from keras import backend as K
+from tensorflow.keras import backend as K
 from sklearn.metrics import cohen_kappa_score
 
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, apply_prediction_model
-from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_algorithm_list
+from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import tensorflow.keras as keras_algorithm_list
 
 epochs = 5
 repetitions = 2
@@ -101,7 +102,7 @@ def draw_curve(name):
 def run_complex_test(algorithm, dataset_name):
     results = []
     algorithm_def = keras_algorithm_list[algorithm]
-    base_path = algorithm_def.model_checkpoint
+    base_path = expanduser('~/workspace/self-supervised-transfer-learning/' + algorithm)
 
     write_result(base_path, ["Train Split", "Weights freezed", "Weights initialized", "Weights random"])
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()

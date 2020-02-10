@@ -16,8 +16,8 @@ from self_supervised_3d_tasks.keras_models.unet import downconv_model
 
 
 def init(f, name="training", NGPUS=1):
-    algo = "jigsaw"
-    dataset = "pancreas3d"
+    algo = "cpc"
+    dataset = "kaggle_retina"
 
     if(len(sys.argv)) > 1:
         algo = sys.argv[1]

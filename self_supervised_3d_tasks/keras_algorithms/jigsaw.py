@@ -1,8 +1,8 @@
 from os.path import expanduser
 
-from keras import Input, Model
-from keras.layers import TimeDistributed, Flatten
-from keras.optimizers import Adam
+from tensorflow.keras import Input, Model
+from tensorflow.keras.layers import TimeDistributed, Flatten
+from tensorflow.keras.optimizers import Adam
 
 from self_supervised_3d_tasks.custom_preprocessing.jigsaw_preprocess import preprocess, preprocess_resize
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model, apply_encoder_model_3d, \
@@ -11,8 +11,8 @@ from self_supervised_3d_tasks.keras_models.fully_connected import fully_connecte
 
 h_w = 128  # 384
 split_per_side = 3
-n_patches = split_per_side*split_per_side
-n_patches3D = split_per_side*split_per_side*split_per_side
+n_patches = split_per_side * split_per_side
+n_patches3D = split_per_side * split_per_side * split_per_side
 dim = (h_w, h_w)
 dim3D = (h_w, h_w, h_w)
 patch_jitter = 5  # 10

@@ -1,7 +1,7 @@
 
 import sys
 
-import keras
+import tensorflow.keras as keras
 from os.path import join, expanduser
 
 from self_supervised_3d_tasks.data.data_generator import get_data_generators

@@ -3,12 +3,12 @@ from pathlib import Path
 
 import numpy as np
 import seaborn as sns
-from keras import Model
-from keras.applications import InceptionV3, VGG16, VGG19
-from keras.callbacks import Callback, ModelCheckpoint
-from keras.layers import Input, Dense, Flatten
-from keras.optimizers import Adam
-from keras.utils import multi_gpu_model
+from tensorflow.keras import Model
+from tensorflow.keras.applications import InceptionV3, VGG16, VGG19
+from tensorflow.keras.callbacks import Callback, ModelCheckpoint
+from tensorflow.keras.layers import Input, Dense, Flatten
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.utils import multi_gpu_model
 from sklearn.metrics import f1_score, precision_score, recall_score
 
 from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import blur_and_subtract, apply_to_x

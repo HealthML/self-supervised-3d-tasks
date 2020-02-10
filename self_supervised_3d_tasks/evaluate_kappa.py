@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from keras import Model
-from keras.models import load_model
+from tensorflow.keras import Model
+from tensorflow.keras.models import load_model
 from self_supervised_3d_tasks.models.cnn_baseline import KaggleGenerator
 from sklearn.metrics import cohen_kappa_score
 from sklearn.metrics import confusion_matrix
