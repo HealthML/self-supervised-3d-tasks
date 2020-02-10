@@ -21,10 +21,8 @@ dataset_dir_list = {
     "ukb_retina": "/mnt/mpws2019cl1/retinal_fundus/left/max_512/resized_384/"
 }
 
-train_val_split = 0.9
 
-
-def get_dataset(dataset_name, batch_size, f_train, f_val):
+def get_dataset(dataset_name, batch_size, f_train, f_val, train_val_split):
     if dataset_name not in dataset_dir_list:
         raise ValueError("dataset not implemented")
 
@@ -56,12 +54,12 @@ def get_writing_path(algorithm, dataset_name):
     return working_dir
 
 
-def train_model(algorithm, dataset_name, epochs=250, batch_size=2):
+def train_model(algorithm, dataset_name, epochs=250, batch_size=2, train_val_split=0.9, **kwargs):
     working_dir = get_writing_path(algorithm, dataset_name)
-    algorithm_def = keras_algorithm_list[algorithm]
+    algorithm_def = keras_algorithm_list[algorithm].create_instance(**kwargs)
 
     f_train, f_val = algorithm_def.get_training_preprocessing()
-    train_data, validation_data = get_dataset(dataset_name, batch_size, f_train, f_val)
+    train_data, validation_data = get_dataset(dataset_name, batch_size, f_train, f_val, train_val_split)
     model = algorithm_def.get_training_model()
     model.summary()
 

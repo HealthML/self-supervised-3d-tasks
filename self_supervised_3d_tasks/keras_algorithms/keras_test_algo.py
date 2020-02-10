@@ -9,20 +9,10 @@ import pandas
 from tensorflow.keras import backend as K
 from sklearn.metrics import cohen_kappa_score
 
-from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
+from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator, get_kaggle_test_generator, \
+    get_kaggle_train_generator
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, apply_prediction_model
-from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import tensorflow.keras as keras_algorithm_list
-
-epochs = 5
-repetitions = 2
-batch_size = 2
-exp_splits = [100, 50, 25, 12.5, 6.25]  # different train splits to try in %
-
-NGPUS = 1
-lr = 0.00003
-
-csvDescriptor_train = Path("/mnt/mpws2019cl1/kaggle_retina/train/trainLabels_shuffled_train.csv")
-csvDescriptor_test = Path("/mnt/mpws2019cl1/kaggle_retina/train/trainLabels_shuffled_test.csv")
+from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_algorithm_list
 
 
 def score(y, y_pred):
@@ -31,33 +21,30 @@ def score(y, y_pred):
 
 def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split):
     if dataset_name == "kaggle_retina":
-        gen_train = KaggleGenerator(batch_size=batch_size, sample_classes_uniform=True, shuffle=True,
-                                    categorical=False, csvDescriptor=csvDescriptor_train, split=train_split,
-                                    pre_proc_func_train=f_train, pre_proc_func_val=f_val)
+        gen_train = get_kaggle_train_generator(batch_size, train_split, f_train, f_val)
     else:
-        raise ValueError("not implemented")  # we can only test with kaggle retina atm.
+        raise ValueError("not implemented")
 
     return gen_train
 
 
 def get_dataset_test(dataset_name, batch_size, f_train, f_val):
     if dataset_name == "kaggle_retina":
-        gen_test = KaggleGenerator(batch_size=batch_size, split=-1, shuffle=False, categorical=False,
-                                   pre_proc_func_train=f_train, pre_proc_func_val=f_val,
-                                   csvDescriptor=csvDescriptor_test)
+        gen_test = get_kaggle_test_generator(batch_size, f_train, f_val)
         x_test, y_test = gen_test.get_val_data()
     else:
-        raise ValueError("not implemented")  # we can only test with kaggle retina atm.
+        raise ValueError("not implemented")
 
     return x_test, y_test
 
 
-def run_single_test(algorithm_def, dataset_name, train_split, load_weights, freeze_weights, x_test, y_test):
+def run_single_test(algorithm_def, dataset_name, train_split, load_weights, freeze_weights, x_test, y_test, lr,
+                    batch_size, epochs):
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     gen = get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split)
 
     layer_in, x, cleanup_models = algorithm_def.get_finetuning_layers(load_weights, freeze_weights)
-    model = apply_prediction_model(layer_in, x, multi_gpu=NGPUS, lr=lr)
+    model = apply_prediction_model(layer_in, x, lr=lr)
     model.fit_generator(generator=gen, epochs=epochs)
 
     y_pred = model.predict(x_test)
@@ -89,9 +76,9 @@ def draw_curve(name):
     # helper function to plot results curve
     df = pandas.read_csv(name + '_results.csv')
 
-    plt.plot(df["Train Split"], df["Weights initialized"], label=name+' pretrained')
+    plt.plot(df["Train Split"], df["Weights initialized"], label=name + ' pretrained')
     plt.plot(df["Train Split"], df["Weights random"], label='Random')
-    plt.plot(df["Train Split"], df["Weights freezed"], label=name+'Freezed')
+    plt.plot(df["Train Split"], df["Weights freezed"], label=name + 'Freezed')
 
     plt.legend()
     plt.show()
@@ -99,9 +86,10 @@ def draw_curve(name):
     print(df["Train Split"])
 
 
-def run_complex_test(algorithm, dataset_name):
+def run_complex_test(algorithm, dataset_name, epochs=5, repetitions=2, batch_size=2,
+                     exp_splits=(100, 50, 25, 12.5, 6.25), lr=0.00003, **kwargs):
     results = []
-    algorithm_def = keras_algorithm_list[algorithm]
+    algorithm_def = keras_algorithm_list[algorithm].create_instance(**kwargs)
     base_path = expanduser('~/workspace/self-supervised-transfer-learning/' + algorithm)
 
     write_result(base_path, ["Train Split", "Weights freezed", "Weights initialized", "Weights random"])
@@ -118,13 +106,16 @@ def run_complex_test(algorithm, dataset_name):
 
         for i in range(repetitions):
             # load and freeze weights
-            a = run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test)
+            a = run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
+                                batch_size, epochs)
 
             # load weights and train
-            b = run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test)
+            b = run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
+                                batch_size, epochs)
 
             # random initialization
-            c = run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test)
+            c = run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
+                                batch_size, epochs)
 
             print("train split:{} model accuracy freezed: {}, initialized: {}, random: {}".format(percentage, a, b, c))
 
@@ -139,4 +130,4 @@ def run_complex_test(algorithm, dataset_name):
 
 if __name__ == "__main__":
     # draw_curve("jigsaw")
-    init(run_complex_test, "test", NGPUS)
+    init(run_complex_test, "test")

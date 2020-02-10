@@ -1,3 +1,4 @@
+import json
 import struct
 import sys
 from contextlib import redirect_stdout, redirect_stderr
@@ -16,17 +17,16 @@ from self_supervised_3d_tasks.keras_models.unet import downconv_model
 
 
 def init(f, name="training", NGPUS=1):
-    algo = "cpc"
-    dataset = "kaggle_retina"
+    config_filename = Path(__file__).parent / "config.json"
 
     if(len(sys.argv)) > 1:
-        algo = sys.argv[1]
-    if(len(sys.argv)) > 2:
-        algo = sys.argv[1]
-        dataset = sys.argv[2]
+        config_filename = sys.argv[1]
+
+    with open(config_filename, "r") as file:
+        args = json.load(file)
 
     print("###########################################")
-    print("{} {} with data {}".format(name, algo, dataset))
+    print("{} {} with parameters: ".format(name, args))
     print("###########################################")
 
     aquire_free_gpus(NGPUS)
@@ -34,7 +34,7 @@ def init(f, name="training", NGPUS=1):
 
     with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout
         with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
-            f(algo, dataset)
+            f(**args)
 
 
 def apply_prediction_model(layer_in, x, multi_gpu = False, lr = 1e-3):
