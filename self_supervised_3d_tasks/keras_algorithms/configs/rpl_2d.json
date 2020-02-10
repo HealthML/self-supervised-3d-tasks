@@ -1,0 +1,6 @@
+{
+  "algorithm": "rpl",
+  "data_dir": "/mnt/mpws2019cl1/kaggle_retina/train/resized_384",
+  "dataset_name": "kaggle_retina",
+  "train3D": false
+}
