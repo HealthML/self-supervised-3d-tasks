@@ -38,11 +38,12 @@ def init(f, name="training", NGPUS=1):
             f(**args)
 
 
-def apply_prediction_model(layer_in, x, multi_gpu=False, lr=1e-3):
+def apply_prediction_model(input_shape, multi_gpu=False, lr=1e-3):
     dim1 = 1024
     dim2 = 1024
 
-    x = Dense(dim1, activation="relu")(x)
+    layer_in = Input(input_shape)
+    x = Dense(dim1, activation="relu")(layer_in)
     x = Dense(dim2, activation="relu")(x)
     x = Dense(1, activation="relu")(x)
 

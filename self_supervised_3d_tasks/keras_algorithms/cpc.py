@@ -94,7 +94,7 @@ class CPCBuilder:
 
         return f_train, f_val
 
-    def get_finetuning_layers(self, load_weights, freeze_weights, model_checkpoint):
+    def get_finetuning_model(self, model_checkpoint=None):
         cpc_model, enc_model = network_cpc(
             image_shape=self.img_shape,
             terms=self.terms,
@@ -103,18 +103,14 @@ class CPCBuilder:
             learning_rate=self.lr,
         )
 
-        if load_weights:
+        if model_checkpoint is not None:
             cpc_model.load_weights(model_checkpoint)
-
-        if freeze_weights:
-            # freeze the encoder weights
-            enc_model.trainable = False
 
         layer_in = Input((self.split_per_side * self.split_per_side,) + self.img_shape)
         layer_out = TimeDistributed(enc_model)(layer_in)
 
         x = Flatten()(layer_out)
-        return layer_in, x, [enc_model, cpc_model]
+        return Model(layer_in, x), [enc_model, cpc_model]
 
 
 def create_instance(*params, **kwargs):

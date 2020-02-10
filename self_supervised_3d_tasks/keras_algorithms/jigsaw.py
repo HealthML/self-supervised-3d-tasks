@@ -142,15 +142,11 @@ class JigsawBuilder:
 
         return f_train, f_val
 
-    def get_finetuning_layers(self, load_weights, freeze_weights, model_checkpoint):
+    def get_finetuning_model(self, model_checkpoint=None):
         enc_model, model_full = self.apply_model()
 
-        if load_weights:
+        if model_checkpoint is not None:
             model_full.load_weights(model_checkpoint)
-
-        if freeze_weights:
-            # freeze the encoder weights
-            enc_model.trainable = False
 
         layer_in = Input(
             (
@@ -163,7 +159,7 @@ class JigsawBuilder:
         layer_out = TimeDistributed(enc_model)(layer_in)
 
         x = Flatten()(layer_out)
-        return layer_in, x, [enc_model, model_full]
+        return Model(layer_in, x), [enc_model, model_full]
 
 
 def create_instance(*params, **kwargs):

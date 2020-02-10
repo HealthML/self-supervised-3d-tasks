@@ -1,3 +1,4 @@
+from keras import Model
 from tensorflow.keras import Input
 from tensorflow.keras.layers import Flatten, TimeDistributed
 from os.path import expanduser
@@ -60,19 +61,15 @@ class RotationBuilder:
             learning_rate=self.lr,
         )
 
-        if load_weights:
+        if model_checkpoint is not None:
             model.load_weights(model_checkpoint)
-
-        if freeze_weights:
-            # freeze the encoder weights
-            model.trainable = False
 
         layer_in = Input(self.img_shape)
         layer_out = TimeDistributed(model)(layer_in)
 
         x = Flatten()(layer_out)
 
-        return layer_in, x, model
+        return Model(layer_in, x), [model]
 
 
 def create_instance(*params, **kwargs):
