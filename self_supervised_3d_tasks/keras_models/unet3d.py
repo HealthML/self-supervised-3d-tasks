@@ -5,36 +5,36 @@ from pathlib import Path
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import (
     BatchNormalization,
-    Conv2D,
-    Conv2DTranspose,
-    MaxPooling2D,
+    Conv3D,
+    Conv3DTranspose,
+    MaxPooling3D,
     Dropout,
-    UpSampling2D,
+    UpSampling3D,
     Input,
     concatenate,
 )
 from tensorflow.keras.utils import plot_model
 
 
-def upsample_conv(filters, kernel_size, strides, padding):
-    return Conv2DTranspose(filters, kernel_size, strides=strides, padding=padding)
+def upsample_conv_3d(filters, kernel_size, strides, padding):
+    return Conv3DTranspose(filters, kernel_size, strides=strides, padding=padding)
 
 
-def upsample_simple(filters, kernel_size, strides, padding):
-    return UpSampling2D(strides)
+def upsample_simple_3d(filters, kernel_size, strides, padding):
+    return UpSampling3D(strides)
 
 
-def conv_block(
+def conv3d_block(
         inputs,
         use_batch_norm=True,
         dropout=0.3,
         filters=16,
-        kernel_size=(3, 3),
+        kernel_size=(3, 3, 3),
         activation="relu",
         kernel_initializer="he_normal",
         padding="same",
 ):
-    c = Conv2D(
+    c = Conv3D(
         filters,
         kernel_size,
         activation=activation,
@@ -45,7 +45,7 @@ def conv_block(
         c = BatchNormalization()(c)
     if dropout > 0.0:
         c = Dropout(dropout)(c)
-    c = Conv2D(
+    c = Conv3D(
         filters,
         kernel_size,
         activation=activation,
@@ -57,7 +57,7 @@ def conv_block(
     return c
 
 
-def downconv_model(
+def downconv_model_3d(
         input_shape,
         use_batch_norm=True,
         dropout=0.3,
@@ -70,24 +70,23 @@ def downconv_model(
 
     down_layers = []
     for l in range(num_layers):
-        x = conv_block(
+        x = conv3d_block(
             inputs=x, filters=filters, use_batch_norm=use_batch_norm, dropout=dropout
         )
         down_layers.append(x)
-        x = MaxPooling2D((2, 2))(x)
+        x = MaxPooling3D((2, 2, 2))(x)
         dropout += dropout_change_per_layer
         filters = filters * 2  # double the number of filters with each layer
 
-    x = conv_block(
+    x = conv3d_block(
         inputs=x, filters=filters, use_batch_norm=use_batch_norm, dropout=dropout
     )
 
     model = Model(inputs=[inputs], outputs=[x])
-    model.summary()
     return model, [down_layers, filters]
 
 
-def upconv_model(
+def upconv_model_3d(
         input_shape,
         num_classes=1,
         use_batch_norm=True,
@@ -103,30 +102,28 @@ def upconv_model(
     inputs = [inp]
     x = inp
     if upsample_mode == "deconv":
-        upsample = upsample_conv
+        upsample = upsample_conv_3d
     else:
-        upsample = upsample_simple
+        upsample = upsample_simple_3d
     if not use_dropout_on_upsampling:
         dropout = 0.0
         dropout_change_per_layer = 0.0
     for conv in reversed(down_layers):
         filters //= 2  # decreasing number of filters with each layer
         dropout -= dropout_change_per_layer
-        x = upsample(filters, (2, 2), strides=(2, 2), padding="same")(x)
+        x = upsample(filters, (2, 2, 2), strides=(2, 2, 2), padding="same")(x)
         c_in = Input((int(x) for x in conv.shape[1:]))
-        c_in.trainable = False
         inputs.append(c_in)
         x = concatenate([x, c_in])
-        x = conv_block(
+        x = conv3d_block(
             inputs=x, filters=filters, use_batch_norm=use_batch_norm, dropout=dropout
         )
-    outputs = Conv2D(num_classes, (1, 1), activation=output_activation)(x)
+    outputs = Conv3D(num_classes, (1, 1, 1), activation=output_activation)(x)
     model = Model(inputs=inputs, outputs=[outputs])
-    model.summary()
     return model
 
 
-def custom_unet(
+def custom_unet_3d(
         input_shape,
         num_classes=1,
         use_batch_norm=True,
@@ -138,7 +135,7 @@ def custom_unet(
         num_layers=4,
         output_activation="sigmoid",  # 'sigmoid' or 'softmax'
 ):
-    downconv, data = downconv_model(
+    downconv, data = downconv_model_3d(
         input_shape,
         use_batch_norm=use_batch_norm,
         dropout=dropout,
@@ -146,7 +143,7 @@ def custom_unet(
         filters=filters,
         num_layers=num_layers,
     )
-    upconv = upconv_model(
+    upconv = upconv_model_3d(
         downconv.layers[-1].output_shape[1:],
         num_classes=num_classes,
         use_batch_norm=use_batch_norm,
@@ -158,13 +155,13 @@ def custom_unet(
         down_layers=data[0],
         output_activation=output_activation
     )
-    outputs = upconv(inputs=[downconv.output, *reversed(data[0])])
+    outputs = upconv([downconv.output, *reversed(data[0])])
     model = Model(inputs=downconv.inputs, outputs=outputs)
     return model
 
 
 if __name__ == "__main__":
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
-    cunet = custom_unet((128, 128, 1))
+    cunet = custom_unet_3d((128, 128, 128, 1))
     cunet.summary()
-    plot_model(cunet, to_file=Path('~/unet_graph.png').expanduser(), show_shapes=True, expand_nested=True)
+    plot_model(cunet, to_file=Path('~/unet_graph.png').expanduser(), show_shapes=True, rankdir="LR", expand_nested=True)
