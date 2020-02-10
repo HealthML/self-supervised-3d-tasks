@@ -33,7 +33,8 @@ class JigsawBuilder:
             lr=0.00003,
             embed_dim=1000,
             architecture="ResNet50",
-            train3D=True,
+            train3D=False,
+            **kwargs
     ):
         self.h_w = h_w
         self.split_per_side = split_per_side
@@ -166,4 +167,4 @@ class JigsawBuilder:
 
 
 def create_instance(*params, **kwargs):
-    JigsawBuilder(*params, **kwargs)
+    return JigsawBuilder(*params, **kwargs)

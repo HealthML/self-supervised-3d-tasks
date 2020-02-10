@@ -1,11 +1,10 @@
 import csv
 import gc
-from os.path import expanduser
+import shutil
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
-import shutil
 from sklearn.metrics import cohen_kappa_score
 from tensorflow.keras import backend as K
 
@@ -39,11 +38,11 @@ def get_dataset_test(dataset_name, batch_size, f_train, f_val):
 
 
 def run_single_test(algorithm_def, dataset_name, train_split, load_weights, freeze_weights, x_test, y_test, lr,
-                    batch_size, epochs):
+                    batch_size, epochs, model_checkpoint):
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     gen = get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split)
 
-    layer_in, x, cleanup_models = algorithm_def.get_finetuning_layers(load_weights, freeze_weights)
+    layer_in, x, cleanup_models = algorithm_def.get_finetuning_layers(load_weights, freeze_weights, model_checkpoint)
     model = apply_prediction_model(layer_in, x, lr=lr)
     model.fit_generator(generator=gen, epochs=epochs)
 
@@ -111,15 +110,15 @@ def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint
         for i in range(repetitions):
             # load and freeze weights
             a = run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
-                                batch_size, epochs)
+                                batch_size, epochs, model_checkpoint)
 
             # load weights and train
             b = run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
-                                batch_size, epochs)
+                                batch_size, epochs, model_checkpoint)
 
             # random initialization
             c = run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
-                                batch_size, epochs)
+                                batch_size, epochs, model_checkpoint)
 
             print("train split:{} model accuracy freezed: {}, initialized: {}, random: {}".format(percentage, a, b, c))
 

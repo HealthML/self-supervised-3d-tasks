@@ -89,7 +89,7 @@ def load_permutations_3d(permutation_path=str(Path(__file__).parent.parent / "pe
 
 
 def load_permutations(permutation_path=str(Path(__file__).parent.parent / "permutations" /
-                                           "permutations3d_100_max.bin")):
+                                           "permutations_100_max.bin")):
     """Loads a set of pre-defined permutations."""
     with open(permutation_path, "rb") as f:
         int32_size = 4
