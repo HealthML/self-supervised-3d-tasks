@@ -1,17 +1,19 @@
 import csv
 import gc
 import shutil
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
-from keras import Sequential
+from tensorflow.keras import Sequential
 from sklearn.metrics import cohen_kappa_score
 from tensorflow.keras import backend as K
+from tensorflow.keras.optimizers import Adam
 
 from self_supervised_3d_tasks.data.kaggle_retina_data import get_kaggle_test_generator, \
     get_kaggle_train_generator
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, apply_prediction_model
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, apply_prediction_model, get_writing_path
 from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_algorithm_list
 
 
@@ -39,7 +41,7 @@ def get_dataset_test(dataset_name, batch_size, f_train, f_val):
 
 
 def run_single_test(algorithm_def, dataset_name, train_split, load_weights, freeze_weights, x_test, y_test, lr,
-                    batch_size, epochs, epochs_warmup, model_checkpoint):
+                    batch_size, epochs, epochs_warmup, model_checkpoint, kwargs):
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     gen = get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split)
 
@@ -48,20 +50,25 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     else:
         enc_model, cleanup_models = algorithm_def.get_finetuning_model()
 
-    pred_model = apply_prediction_model(input_shape=enc_model.output_shape, lr=lr)
+    pred_model = apply_prediction_model(input_shape=enc_model.output_shape, **kwargs)
     model = Sequential(layers=[enc_model, pred_model])
 
     if freeze_weights or load_weights:
         enc_model.trainable = False
 
     if load_weights:
-        assert epochs_warmup > epochs, "warmup epochs must be smaller than epochs"
+        assert epochs_warmup < epochs, "warmup epochs must be smaller than epochs"
 
+        print(("-"*5) + " encoder model is frozen")
+        model.compile(optimizer=Adam(lr=lr), loss="mse", metrics=["mae"])
         model.fit_generator(generator=gen, epochs=epochs_warmup)
         epochs = epochs - epochs_warmup
 
         enc_model.trainable = True
+        print(("-"*5) + " encoder model unfrozen")
 
+    # recompile model
+    model.compile(optimizer=Adam(lr=lr), loss="mse", metrics=["mae"])
     model.fit_generator(generator=gen, epochs=epochs)
 
     y_pred = model.predict(x_test)
@@ -83,7 +90,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
 
 
 def write_result(base_path, row):
-    with open(base_path + '_results.csv', 'a') as csvfile:
+    with open(base_path / 'results.csv', 'a') as csvfile:
         result_writer = csv.writer(csvfile, delimiter=',')
         result_writer.writerow(row)
 
@@ -108,12 +115,15 @@ def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint
     kwargs["model_checkpoint"] = model_checkpoint
     kwargs["root_config_file"] = root_config_file
 
-    shutil.copy2(root_config_file, model_checkpoint+"test_config.json")
+    working_dir = get_writing_path(Path(model_checkpoint).expanduser().parent /
+                                   (Path(model_checkpoint).expanduser().stem + "_test"),
+                                   root_config_file)
+
     algorithm_def = keras_algorithm_list[algorithm].create_instance(**kwargs)
 
     results = []
 
-    write_result(model_checkpoint, ["Train Split", "Weights freezed", "Weights initialized", "Weights random"])
+    write_result(working_dir, ["Train Split", "Weights freezed", "Weights initialized", "Weights random"])
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     x_test, y_test = get_dataset_test(dataset_name, batch_size, f_train, f_val)
 
@@ -127,16 +137,19 @@ def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint
 
         for i in range(repetitions):
             # load and freeze weights
+            print(("-"*10) + "LOADING weights, encoder model is frozen")
             a = run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint)
+                                batch_size, epochs, epochs_warmup, model_checkpoint, kwargs)
 
+            print(("-" * 10) + "LOADING weights, encoder model is trainable after warm-up")
             # load weights and train
             b = run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint)
+                                batch_size, epochs, epochs_warmup, model_checkpoint, kwargs)
 
+            print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
             # random initialization
             c = run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint)
+                                batch_size, epochs, epochs_warmup, model_checkpoint, kwargs)
 
             print("train split:{} model accuracy freezed: {}, initialized: {}, random: {}".format(percentage, a, b, c))
 
@@ -146,7 +159,7 @@ def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint
 
         data = [str(train_split) + "%", np.mean(np.array(a_s)), np.mean(np.array(b_s)), np.mean(np.array(c_s))]
         results.append(data)
-        write_result(model_checkpoint, data)
+        write_result(working_dir, data)
 
 
 if __name__ == "__main__":

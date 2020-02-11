@@ -8,7 +8,7 @@ from tensorflow.keras.utils import plot_model
 
 from self_supervised_3d_tasks.data.data_generator import get_data_generators
 from self_supervised_3d_tasks.keras_algorithms import cpc, jigsaw, relative_patch_location, rotation
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, get_writing_path
 
 keras_algorithm_list = {
     "cpc": cpc,
@@ -28,31 +28,12 @@ def get_dataset(data_dir, batch_size, f_train, f_val, train_val_split):
     return train_data, validation_data
 
 
-def get_writing_path(algorithm, dataset_name, base_dir, root_config_file):
-    working_dir = expanduser(base_dir) + algorithm + "_" + dataset_name
-
-    i = 0
-    while path.exists(working_dir):
-        if i > 0:
-            working_dir = working_dir[:-len(str(i - 1))]
-        else:
-            working_dir += "_"
-
-        working_dir += str(i)
-        i += 1
-
-    Path(working_dir).mkdir()
-    print("writing to: " + working_dir)
-    shutil.copy2(root_config_file, working_dir)
-
-    return working_dir
-
-
 def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250, batch_size=2, train_val_split=0.9,
                 base_workspace="~/workspace/self-supervised-transfer-learning/", **kwargs):
     kwargs["root_config_file"] = root_config_file
 
-    working_dir = get_writing_path(algorithm, dataset_name, base_workspace, root_config_file)
+    working_dir = get_writing_path(Path(base_workspace).expanduser() / (algorithm + "_" + dataset_name),
+                                   root_config_file)
     algorithm_def = keras_algorithm_list[algorithm].create_instance(**kwargs)
 
     f_train, f_val = algorithm_def.get_training_preprocessing()

@@ -75,7 +75,8 @@ def get_cnn_baseline_model(shape=(384, 384, 3,), multi_gpu=False, lr=1e-3):
     vgg_in_shape = tuple([int(el) for el in inputs.shape[1:]])
     x = make_vgg(in_shape=vgg_in_shape)(inputs)
 
-    return apply_prediction_model(inputs, x, multi_gpu=multi_gpu, lr=lr)
+    model = apply_prediction_model(inputs, x, multi_gpu=multi_gpu)
+    model.compile(optimizer=Adam(lr=lr), loss="mse", metrics=["mae"])
 
 
 def train():

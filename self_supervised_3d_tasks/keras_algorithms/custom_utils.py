@@ -4,10 +4,10 @@ import sys
 from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
 import numpy as np
+import shutil
 
 from tensorflow.keras import Model, Input
 from tensorflow.keras.layers import Dense, Flatten
-from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import multi_gpu_model
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
@@ -38,21 +38,20 @@ def init(f, name="training", NGPUS=1):
             f(**args)
 
 
-def apply_prediction_model(input_shape, multi_gpu=False, lr=1e-3):
-    dim1 = 1024
-    dim2 = 1024
+def apply_prediction_model(input_shape, multi_gpu=False, n_prediction_layers=2, **kwargs):
+    dim_h = 1024
 
     layer_in = Input(input_shape)
-    x = Dense(dim1, activation="relu")(layer_in)
-    x = Dense(dim2, activation="relu")(x)
+    x = layer_in
+
+    for i in range(n_prediction_layers):
+        x = Dense(dim_h, activation="relu")(x)
+
     x = Dense(1, activation="relu")(x)
 
     model = Model(inputs=layer_in, outputs=x)
     if multi_gpu >= 2:
         model = multi_gpu_model(model, gpus=multi_gpu)
-    model.compile(
-        optimizer=Adam(lr=lr), loss="mse", metrics=["mae"]
-    )
 
     return model
 
@@ -110,3 +109,23 @@ def load_permutations(permutation_path=str(Path(__file__).parent.parent / "permu
     # The bin file used index [1,9] for permutation, updated to [0, 8] for index.
     perms = perms - 1
     return perms, num_perms
+
+
+def get_writing_path(working_dir, root_config_file):
+    working_dir = str(working_dir)
+
+    i = 1
+    while Path(working_dir).exists():
+        if i > 1:
+            working_dir = working_dir[:-len(str(i - 1))]
+        else:
+            working_dir += "_"
+
+        working_dir += str(i)
+        i += 1
+
+    Path(working_dir).mkdir()
+    print("writing to: " + working_dir)
+    shutil.copy2(root_config_file, working_dir)
+
+    return Path(working_dir)
