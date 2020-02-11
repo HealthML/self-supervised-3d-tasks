@@ -11,31 +11,38 @@ def resize(batch, new_size):
 
 def preprocess_image(image, patch_jitter, patch_crop_size, split_per_side, padding, crop_size, is_training=True):
     result = []
-    image = crop(image, is_training, (crop_size, crop_size))
 
-    for image in crop_patches(image, is_training, split_per_side, patch_jitter):
+    w, h, _ = image.shape
+
+    image = crop(image, is_training, (crop_size, crop_size))
+    image = ab.PadIfNeeded(w, h)(image=image)["image"]
+
+    for patch in crop_patches(image, is_training, split_per_side, patch_jitter):
         if is_training:
-            image = ab.Flip()(image=image)["image"]
-            image = crop(image, is_training, (patch_crop_size, patch_crop_size))
-            image = ab.ChannelDropout(p=1.0)(image=image)["image"]
-            image = ab.ChannelDropout(p=1.0)(image=image)["image"]
-            image = ab.ToGray(p=1.0)(image=image)["image"]  # make use of all 3 channels again for training
-            image = ab.PadIfNeeded(patch_crop_size + 2 * padding, patch_crop_size + 2 * padding)(image=image)["image"]
+            patch = ab.Flip()(image=patch)["image"]
+            patch = crop(patch, is_training, (patch_crop_size, patch_crop_size))
+            patch = ab.ChannelDropout(p=1.0)(image=patch)["image"]
+            patch = ab.ChannelDropout(p=1.0)(image=patch)["image"]
+            patch = ab.ToGray(p=1.0)(image=patch)["image"]  # make use of all 3 channels again for training
+            patch = ab.PadIfNeeded(patch_crop_size + 2 * padding, patch_crop_size + 2 * padding)(image=patch)["image"]
 
         else:
-            # image = crop(image, is_training, (patch_crop_size, patch_crop_size))  # center crop here
-            # image = ab.ToGray(p=1.0)(image=image)["image"]
-            # image = ab.PadIfNeeded(patch_crop_size + 2 * padding, patch_crop_size + 2 * padding)(image=image)["image"]
+            # patch = crop(patch, is_training, (patch_crop_size, patch_crop_size))  # center crop here
+            # patch = ab.ToGray(p=1.0)(image=patch)["image"]
+            # patch = ab.PadIfNeeded(patch_crop_size + 2 * padding, patch_crop_size + 2 * padding)(image=patch)["image"]
             pass  # lets give it the most information we can get
 
-        result.append(image)
+        result.append(patch)
 
     return np.asarray(result)
 
 
 def preprocess(batch, crop_size, split_per_side, is_training=True):
-    patch_jitter = int(- crop_size / (split_per_side + 1))
-    patch_crop_size = int((crop_size - patch_jitter * (split_per_side - 1)) / split_per_side * 7 / 8)
+    _, w, h, _ = batch.shape
+    assert w == h, "accepting only squared images"
+
+    patch_jitter = int(- w / (split_per_side + 1))
+    patch_crop_size = int((w - patch_jitter * (split_per_side - 1)) / split_per_side * 7 / 8)
     padding = int((-2 * patch_jitter - patch_crop_size) / 2)
 
     return np.array([preprocess_image(image, patch_jitter, patch_crop_size, split_per_side, padding, crop_size,

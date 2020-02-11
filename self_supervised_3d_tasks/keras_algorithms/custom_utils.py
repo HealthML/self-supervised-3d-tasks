@@ -1,32 +1,33 @@
+import json
 import struct
 import sys
 from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
 import numpy as np
+import shutil
 
-from keras import Model
-from keras.applications import ResNet50
-from keras.layers import Dense
-from keras.optimizers import Adam
-from keras.utils import multi_gpu_model
+from tensorflow.keras import Model, Input
+from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.utils import multi_gpu_model
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
 from self_supervised_3d_tasks.keras_models.unet import downconv_model
+from self_supervised_3d_tasks.keras_models.unet3d import downconv_model_3d
 
 
 def init(f, name="training", NGPUS=1):
-    algo = "cpc"
-    dataset = "kaggle_retina"
+    config_filename = Path(__file__).parent / "config.json"
 
-    if(len(sys.argv)) > 1:
-        algo = sys.argv[1]
-    if(len(sys.argv)) > 2:
-        algo = sys.argv[1]
-        dataset = sys.argv[2]
+    if (len(sys.argv)) > 1:
+        config_filename = sys.argv[1]
+
+    with open(config_filename, "r") as file:
+        args = json.load(file)
+        args["root_config_file"] = config_filename
 
     print("###########################################")
-    print("{} {} with data {}".format(name, algo, dataset))
+    print("{} {} with parameters: ".format(name, args))
     print("###########################################")
 
     aquire_free_gpus(NGPUS)
@@ -34,48 +35,50 @@ def init(f, name="training", NGPUS=1):
 
     with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout
         with redirect_stderr(Tee(c_stderr, sys.stderr)):  # needed to actually capture stderr
-            f(algo, dataset)
+            f(**args)
 
 
-def apply_prediction_model(layer_in, x, multi_gpu = False, lr = 1e-3):
-    dim1 = 1024
-    dim2 = 1024
+def apply_prediction_model(input_shape, multi_gpu=False, n_prediction_layers=2, **kwargs):
+    dim_h = 1024
 
-    x = Dense(dim1, activation="relu")(x)
-    x = Dense(dim2, activation="relu")(x)
+    layer_in = Input(input_shape)
+    x = layer_in
+
+    for i in range(n_prediction_layers):
+        x = Dense(dim_h, activation="relu")(x)
+
     x = Dense(1, activation="relu")(x)
 
     model = Model(inputs=layer_in, outputs=x)
     if multi_gpu >= 2:
         model = multi_gpu_model(model, gpus=multi_gpu)
-    model.compile(
-        optimizer=Adam(lr=lr), loss="mse", metrics=["mae"]
-    )
 
     return model
 
 
-def apply_encoder_model_3d(input_shape, code_size):
-    model, _ = downconv_model(input_shape)
-    encoder_output = Dense(code_size)(model.outputs[0])
+def apply_encoder_model_3d(input_shape, code_size, num_layers=4, pooling="max", **kwargs):
+    model, _ = downconv_model_3d(input_shape, num_layers=num_layers, pooling=pooling)
 
-    enc_model = Model(model.inputs[0], encoder_output, name='encoder')
+    x = Flatten()(model.outputs[0])
+    x = Dense(code_size)(x)
+
+    enc_model = Model(model.inputs[0], x, name='encoder')
     return enc_model
 
 
-def apply_encoder_model(input_shape, code_size):
-    res_net = ResNet50(input_shape=input_shape, include_top=False, weights=None, pooling="max")
-    encoder_output = Dense(code_size)(res_net.outputs[0])
+def apply_encoder_model(input_shape, code_size, num_layers=4, pooling="max", **kwargs):
+    model, _ = downconv_model(input_shape, num_layers=num_layers, pooling=pooling)
 
-    enc_model = Model(res_net.inputs[0], encoder_output, name='encoder')
+    x = Flatten()(model.outputs[0])
+    x = Dense(code_size)(x)
+
+    enc_model = Model(model.inputs[0], x, name='encoder')
     return enc_model
 
 
-PERMUTATION_PATH = str(Path(__file__).parent.parent / "permutations" / "permutations3d_100_max.bin")
-
-
-def load_permutations_3d():
-    with open(PERMUTATION_PATH, "rb") as f:
+def load_permutations_3d(permutation_path=str(Path(__file__).parent.parent / "permutations" /
+                                              "permutations3d_100_max.bin")):
+    with open(permutation_path, "rb") as f:
         int32_size = 4
         s = f.read(int32_size * 2)
         [num_perms, c] = struct.unpack("<ll", s)
@@ -89,9 +92,10 @@ def load_permutations_3d():
     return perms, num_perms
 
 
-def load_permutations():
+def load_permutations(permutation_path=str(Path(__file__).parent.parent / "permutations" /
+                                           "permutations_100_max.bin")):
     """Loads a set of pre-defined permutations."""
-    with open(PERMUTATION_PATH, "rb") as f:
+    with open(permutation_path, "rb") as f:
         int32_size = 4
         s = f.read(int32_size * 2)
         [num_perms, c] = struct.unpack("<ll", s)
@@ -105,3 +109,23 @@ def load_permutations():
     # The bin file used index [1,9] for permutation, updated to [0, 8] for index.
     perms = perms - 1
     return perms, num_perms
+
+
+def get_writing_path(working_dir, root_config_file):
+    working_dir = str(working_dir)
+
+    i = 1
+    while Path(working_dir).exists():
+        if i > 1:
+            working_dir = working_dir[:-len(str(i - 1))]
+        else:
+            working_dir += "_"
+
+        working_dir += str(i)
+        i += 1
+
+    Path(working_dir).mkdir()
+    print("writing to: " + working_dir)
+    shutil.copy2(root_config_file, working_dir)
+
+    return Path(working_dir)
