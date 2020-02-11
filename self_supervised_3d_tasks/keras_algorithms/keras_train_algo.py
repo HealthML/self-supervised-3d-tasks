@@ -4,6 +4,7 @@ from os.path import expanduser
 from pathlib import Path
 
 import tensorflow.keras as keras
+from tensorflow.keras.utils import plot_model
 
 from self_supervised_3d_tasks.data.data_generator import get_data_generators
 from self_supervised_3d_tasks.keras_algorithms import cpc, jigsaw, relative_patch_location, rotation
@@ -58,6 +59,9 @@ def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250,
     train_data, validation_data = get_dataset(data_dir, batch_size, f_train, f_val, train_val_split)
     model = algorithm_def.get_training_model()
     model.summary()
+
+    # plot_model(model, to_file=expanduser("~/workspace/test.png"), expand_nested=True, show_shapes=True)
+    # uncomment if you want to plot the model
 
     # update after 500 samples
     tb_c = keras.callbacks.TensorBoard(log_dir=working_dir, batch_size=batch_size, update_freq=500)

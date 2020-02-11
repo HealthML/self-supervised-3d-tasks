@@ -89,7 +89,6 @@ class JigsawBuilder:
             loss="categorical_crossentropy",
             metrics=["accuracy"],
         )
-        model.summary()
 
         return enc_model, model
 

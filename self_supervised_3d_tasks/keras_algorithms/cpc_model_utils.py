@@ -50,7 +50,6 @@ def network_cpc(image_shape, terms, predict_terms, code_size, learning_rate, **k
     # Define rest of model
     x_input = keras.layers.Input((terms, image_shape[0], image_shape[1], image_shape[2]))
     x_encoded = keras.layers.TimeDistributed(encoder_model)(x_input)
-    print(x_encoded)
     context = network_autoregressive(x_encoded)
     preds = network_prediction(context, code_size, predict_terms)
 

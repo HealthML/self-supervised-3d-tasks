@@ -25,7 +25,7 @@ class CPCBuilder:
             self,
             data_shape=(384, 384, 3),
             data_dim=384,
-            crop_size=384,
+            crop_size=int(384*0.95),
             split_per_side=7,
             code_size=128,
             lr=1e-3,
@@ -43,7 +43,7 @@ class CPCBuilder:
         self.lr = lr
         self.terms = terms
         self.predict_terms = predict_terms
-        self.image_size = int((crop_size / (split_per_side + 1)) * 2)
+        self.image_size = int((data_dim / (split_per_side + 1)) * 2)
         self.img_shape = (self.image_size, self.image_size, self.n_channels)
         self.kwargs = kwargs
 

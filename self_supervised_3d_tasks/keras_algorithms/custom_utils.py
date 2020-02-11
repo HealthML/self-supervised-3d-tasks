@@ -6,8 +6,7 @@ from pathlib import Path
 import numpy as np
 
 from tensorflow.keras import Model, Input
-from tensorflow.keras.applications import ResNet50
-from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import multi_gpu_model
 
@@ -60,17 +59,21 @@ def apply_prediction_model(input_shape, multi_gpu=False, lr=1e-3):
 
 def apply_encoder_model_3d(input_shape, code_size, num_layers=4, pooling="max", **kwargs):
     model, _ = downconv_model_3d(input_shape, num_layers=num_layers, pooling=pooling)
-    encoder_output = Dense(code_size)(model.outputs[0])
 
-    enc_model = Model(model.inputs[0], encoder_output, name='encoder')
+    x = Flatten()(model.outputs[0])
+    x = Dense(code_size)(x)
+
+    enc_model = Model(model.inputs[0], x, name='encoder')
     return enc_model
 
 
 def apply_encoder_model(input_shape, code_size, num_layers=4, pooling="max", **kwargs):
-    enc, _ = downconv_model(input_shape, num_layers=num_layers, pooling=pooling)
-    encoder_output = Dense(code_size)(enc.outputs[0])
+    model, _ = downconv_model(input_shape, num_layers=num_layers, pooling=pooling)
 
-    enc_model = Model(enc.inputs[0], encoder_output, name='encoder')
+    x = Flatten()(model.outputs[0])
+    x = Dense(code_size)(x)
+
+    enc_model = Model(model.inputs[0], x, name='encoder')
     return enc_model
 
 
