@@ -1,0 +1,11 @@
+{
+  "algorithm": "jigsaw",
+  "data_dir": "/mnt/mpws2019cl1/Task07_Pancreas/imagesPt",
+  "dataset_name": "pancreas3d",
+  "train3D": true,
+  "data3d": true,
+  "data_dim": [128, 128, 128],
+  "batch_size": 16,
+  "n_channels": 1,
+  "patch_jitter": 5
+}

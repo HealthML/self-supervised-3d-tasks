@@ -32,7 +32,6 @@ class JigsawBuilder:
             n_channels=3,
             lr=0.00003,
             embed_dim=128,
-            architecture="ResNet50",
             train3D=False,
             **kwargs
     ):
@@ -42,7 +41,6 @@ class JigsawBuilder:
         self.n_channels = n_channels
         self.lr = lr
         self.embed_dim = embed_dim
-        self.architecture = architecture
         self.n_patches = split_per_side * split_per_side
         self.n_patches3D = split_per_side * split_per_side * split_per_side
         self.dim = (h_w, h_w)
