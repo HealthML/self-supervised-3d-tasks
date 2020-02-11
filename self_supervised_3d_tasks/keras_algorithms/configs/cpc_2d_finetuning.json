@@ -3,7 +3,7 @@
   "data_dir": "/mnt/mpws2019cl1/kaggle_retina/train/resized_384",
   "dataset_name": "kaggle_retina",
   "train3D": false,
-  "batch_size": 4,
+  "batch_size": 3,
   "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_kaggle_retina_24/weights-improvement-011.hdf5",
   "n_prediction_layers": 4,
   "lr": 1e-3
