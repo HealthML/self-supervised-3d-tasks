@@ -1,6 +1,7 @@
 from os.path import expanduser
 
 import numpy as np
+from functools import partial
 from self_supervised_3d_tasks.custom_preprocessing.preprocessing_exemplar import preprocessing_exemplar
 
 from self_supervised_3d_tasks.algorithms import patch_utils
@@ -9,7 +10,7 @@ from keras.optimizers import Adam
 
 np.random.seed(0)
 
-from keras.layers import Input, TimeDistributed
+from keras.layers import Input, TimeDistributed, Concatenate
 from keras.models import Model
 
 from keras.layers.core import Lambda, Flatten, Dense
@@ -17,13 +18,10 @@ from keras.layers.core import Lambda, Flatten, Dense
 from keras.engine.topology import Layer
 from keras import backend as K
 
-working_dir = expanduser("~/workspace/self-supervised-transfer-learning/exemplar_ResNet")
-data_path = "/mnt/mpws2019cl1/retinal_fundus/left/max_256"
+
 number_channels = 3
-dim = (256, 256)
-batch_size = 4
-work_dir = working_dir
-data_dir = data_path
+dim = (384, 384)
+batch_size = 10
 n_channels = number_channels
 dim_3d = False
 model_params = {
@@ -31,9 +29,9 @@ model_params = {
             "embedding_size": 10,
             "lr": 0.0006
             }
-#TODO Adjust model checkpoint
-model_checkpoint= "/".join(working_dir, "")
 
+# TODO adjust model checkpiont
+model_checkpoint = ""
 
 
 class TripletLossLayer(Layer):
@@ -53,8 +51,16 @@ class TripletLossLayer(Layer):
         return loss
 
 
+def triplet_loss(y_true, y_pred, embedding_size=10, _alpha=0):
+    embeddings = K.reshape(y_pred, (-1, 3, embedding_size))
+
+    positive_distance = K.mean(K.square(embeddings[:,0] - embeddings[:,1]),axis=-1)
+    negative_distance = K.mean(K.square(embeddings[:,0] - embeddings[:,2]),axis=-1)
+    return K.mean(K.maximum(0.0, positive_distance - negative_distance) + _alpha)
+
+
 def apply_model(input_shape, alpha_triplet=0.2, embedding_size=10, lr=0.0006):
-    network = ResNet50(input_shape=input_shape, include_top=False, weights=None, classes=embedding_size)
+    network = ResNet50(input_shape=input_shape, include_top=True, weights=None, classes=embedding_size)
     # Define the tensors for the three input images
     input = Input((3, *input_shape), name="anchor_input")
     anchor_input = Lambda(lambda x: x[0, :])(input)
@@ -66,19 +72,22 @@ def apply_model(input_shape, alpha_triplet=0.2, embedding_size=10, lr=0.0006):
     encoded_p = network(positive_input)
     encoded_n = network(negative_input)
 
+    output = Concatenate()([encoded_a, encoded_p, encoded_n])
+
     # TripletLoss Layer
-    loss_layer = TripletLossLayer(alpha=alpha_triplet, name='triplet_loss_layer')([encoded_a, encoded_p, encoded_n])
+    #loss_layer = TripletLossLayer(alpha=alpha_triplet, name='triplet_loss_layer')([encoded_a, encoded_p, encoded_n])
 
     optimizer = Adam(lr=lr)
 
     # Connect the inputs with the outputs
-    model = Model(inputs=input, outputs=loss_layer)
-    model.compile(loss=None, optimizer=optimizer)
+    # model = Model(inputs=input, outputs=loss_layer)
+    model = Model(inputs=input, outputs=output)
+    model.compile(loss=triplet_loss, optimizer=optimizer)
     return network, model
 
 
 def get_training_model():
-    return apply_model()[1]
+    return apply_model((*dim, number_channels))[1]
 
 
 def get_training_preprocessing():
@@ -104,7 +113,7 @@ def get_finetuning_preprocessing():
 
 
 def get_finetuning_layers(load_weights, freeze_weights):
-    enc_model, model_full = apply_model()
+    enc_model, model_full = apply_model((*dim, number_channels))
 
     if load_weights:
         model_full.load_weights(model_checkpoint)
