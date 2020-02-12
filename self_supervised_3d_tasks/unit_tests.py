@@ -15,6 +15,7 @@ from self_supervised_3d_tasks.data.data_generator import get_data_generators
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.keras_algorithms import cpc
 from self_supervised_3d_tasks.keras_algorithms.jigsaw import JigsawBuilder
+from self_supervised_3d_tasks.keras_algorithms.rotation import RotationBuilder
 from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
     get_pad
 
@@ -367,5 +368,26 @@ def test_jigsaw_fintuning_preprocess():
     show_batch(train_data[0][0][0])
 
 
+def test_rotation():
+    path = "/mnt/mpws2019cl1/kaggle_retina/train/resized_384"
+    batch_size = 16
+    f_train, f_val = RotationBuilder().get_training_preprocessing()
+
+    train_data, validation_data = get_data_generators(path, shuffle_files=False, train_split=0.95,
+                                                      train_data_generator_args={"batch_size": batch_size,
+                                                                                 "pre_proc_func": f_train,
+                                                                                 "shuffle": False},
+                                                      test_data_generator_args={"batch_size": batch_size,
+                                                                                "pre_proc_func": f_val,
+                                                                                "shuffle": False})
+
+    xxx = validation_data[0]
+
+    print(xxx[0].shape)
+    print(xxx[1].shape)
+    show_batch(xxx[0])
+    print(xxx[1])
+
+
 if __name__ == "__main__":
-    test_jigsaw_fintuning_preprocess()
+    test_rotation()

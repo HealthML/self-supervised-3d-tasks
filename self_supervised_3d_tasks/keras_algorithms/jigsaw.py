@@ -26,7 +26,7 @@ from self_supervised_3d_tasks.keras_models.fully_connected import fully_connecte
 class JigsawBuilder:
     def __init__(
             self,
-            h_w=384,
+            data_dim=384,
             split_per_side=3,
             patch_jitter=10,
             n_channels=3,
@@ -35,7 +35,7 @@ class JigsawBuilder:
             train3D=False,
             **kwargs
     ):
-        self.h_w = h_w
+        self.data_dim = data_dim
         self.split_per_side = split_per_side
         self.patch_jitter = patch_jitter
         self.n_channels = n_channels
@@ -43,9 +43,9 @@ class JigsawBuilder:
         self.embed_dim = embed_dim
         self.n_patches = split_per_side * split_per_side
         self.n_patches3D = split_per_side * split_per_side * split_per_side
-        self.dim = (h_w, h_w)
-        self.dim3D = (h_w, h_w, h_w)
-        self.patch_dim = int((h_w / split_per_side) - patch_jitter)
+        self.dim = (data_dim, data_dim)
+        self.dim3D = (data_dim, data_dim, data_dim)
+        self.patch_dim = int((data_dim / split_per_side) - patch_jitter)
         self.train3D = train3D
         self.kwargs = kwargs
 
@@ -82,16 +82,17 @@ class JigsawBuilder:
         out = fully_connected(x, num_classes=len(perms))
 
         model = Model(inputs=input_x, outputs=out, name="jigsaw_complete")
+        return enc_model, model
+
+    def get_training_model(self):
+        model = self.apply_model()[1]
         model.compile(
             optimizer=Adam(lr=self.lr),
             loss="categorical_crossentropy",
             metrics=["accuracy"],
         )
 
-        return enc_model, model
-
-    def get_training_model(self):
-        return self.apply_model()[1]
+        return model
 
     def get_training_preprocessing(self):
         if self.train3D:

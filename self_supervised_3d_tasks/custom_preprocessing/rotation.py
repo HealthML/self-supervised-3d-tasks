@@ -17,7 +17,6 @@ def rotate_batch(x, y=None):
     # loop over all images with index and image
     for index, image in enumerate(x):
         # square the image
-        square_size = min(image.shape[0], image.shape[1])
         if image.shape[0] != image.shape[1]:
             square_size = min(image.shape[0], image.shape[1])
             image = ab.CenterCrop(height=square_size, width=square_size)(image=image)['image']
@@ -32,7 +31,7 @@ def rotate_batch(x, y=None):
         # set index
         y[index, rot] = 1
     # return images and rotation
-    return np.array(rotated_batch), y
+    return np.stack(rotated_batch), y
 
 
 def resize(batch, new_size):

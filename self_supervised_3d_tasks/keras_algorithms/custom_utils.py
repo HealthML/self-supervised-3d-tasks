@@ -6,9 +6,12 @@ from pathlib import Path
 import numpy as np
 import shutil
 
+from tensorflow.keras.applications import InceptionV3
 from tensorflow.keras import Model, Input
 from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.keras.utils import multi_gpu_model
+
+import tensorflow as tf
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
@@ -25,6 +28,11 @@ def init(f, name="training", NGPUS=1):
     with open(config_filename, "r") as file:
         args = json.load(file)
         args["root_config_file"] = config_filename
+
+    if "log_level" in args:
+        tf.get_logger().setLevel(args["log_level"])
+    else:
+        tf.get_logger().setLevel('ERROR')
 
     print("###########################################")
     print("{} {} with parameters: ".format(name, args))
@@ -56,8 +64,24 @@ def apply_prediction_model(input_shape, multi_gpu=False, n_prediction_layers=2, 
     return model
 
 
-def apply_encoder_model_3d(input_shape, code_size, num_layers=4, pooling="max", **kwargs):
-    model, _ = downconv_model_3d(input_shape, num_layers=num_layers, pooling=pooling)
+def get_architecture_model(name, in_shape, pooling):
+    if name == "InceptionV3":
+        model = InceptionV3(include_top=False, input_shape=in_shape, weights=None, pooling=pooling)
+    else:
+        raise ValueError("model " + name + " not found")
+
+    return model
+
+
+def get_architecture_model_3d(name, in_shape):
+    raise ValueError("model " + name + " not found")
+
+
+def apply_encoder_model_3d(input_shape, code_size, num_layers=4, pooling="max", architecture=None, **kwargs):
+    if architecture is not None:
+        model = get_architecture_model_3d(architecture, input_shape)
+    else:
+        model, _ = downconv_model_3d(input_shape, num_layers=num_layers, pooling=pooling)
 
     x = Flatten()(model.outputs[0])
     x = Dense(code_size)(x)
@@ -66,8 +90,11 @@ def apply_encoder_model_3d(input_shape, code_size, num_layers=4, pooling="max", 
     return enc_model
 
 
-def apply_encoder_model(input_shape, code_size, num_layers=4, pooling="max", **kwargs):
-    model, _ = downconv_model(input_shape, num_layers=num_layers, pooling=pooling)
+def apply_encoder_model(input_shape, code_size, num_layers=4, pooling="max", architecture=None, **kwargs):
+    if architecture is not None:
+        model = get_architecture_model(architecture, input_shape, pooling)
+    else:
+        model, _ = downconv_model(input_shape, num_layers=num_layers, pooling=pooling)
 
     x = Flatten()(model.outputs[0])
     x = Dense(code_size)(x)
