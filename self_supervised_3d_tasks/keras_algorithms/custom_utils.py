@@ -30,7 +30,7 @@ def init(f, name="training", NGPUS=1):
     print("{} {} with parameters: ".format(name, args))
     print("###########################################")
 
-    aquire_free_gpus(NGPUS)
+    aquire_free_gpus(amount=NGPUS, **args)
     c_stdout, c_stderr = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
 
     with redirect_stdout(Tee(c_stdout, sys.stdout)):  # needed to actually capture stdout

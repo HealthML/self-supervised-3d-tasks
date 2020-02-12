@@ -1,32 +1,23 @@
 import functools
 import glob
 import time
-from os.path import expanduser
-import _thread
 
 import absl.flags as flags
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from PIL import Image
-from self_supervised_3d_tasks.algorithms import patch3d_utils
-
-from self_supervised_3d_tasks.algorithms import patch_utils
-from self_supervised_3d_tasks.data.data_generator import get_data_generators
 
 from self_supervised_3d_tasks.algorithms.patch_model_preprocess import get_crop_patches_fn
-from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import apply_to_x
-from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
-from self_supervised_3d_tasks.data.nifti_loader import DataGeneratorUnlabeled3D
-from self_supervised_3d_tasks.datasets import get_data
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess, preprocess_grid
+from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import apply_to_x
+from self_supervised_3d_tasks.data.data_generator import get_data_generators
+from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.keras_algorithms import cpc
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import load_permutations_3d
-from self_supervised_3d_tasks.keras_algorithms.jigsaw import get_training_preprocessing
+from self_supervised_3d_tasks.keras_algorithms.jigsaw import JigsawBuilder
 from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
     get_pad
 
-import seaborn as sns
 
 def plot_sequences(x, y, labels=None, output_path=None):
     ''' Draws a plot where sequences of numbers can be studied conveniently '''
@@ -345,20 +336,36 @@ def plot_3d(image, dim_to_animate):
         plt.pause(.1)
         plt.draw()
 
-def test_xxx():
-    trainp, valp = get_training_preprocessing()
+# def test_xxx():
+#     trainp, valp = get_training_preprocessing()
+#
+#     x, _ = get_data_generators("/mnt/mpws2019cl1/Task02_Heart", data3d=True,
+#                                test_data_generator_args={"dim": (128, 128, 128),
+#                                                          "pre_proc_func": valp},
+#                                train_data_generator_args={"dim": (128, 128, 128),
+#                                                           "pre_proc_func": trainp})
+#
+#     print(x[0][0][0].shape)
+#
+#     plot_3d(x[0][0][0][0:4], 0)
 
-    x, _ = get_data_generators("/mnt/mpws2019cl1/Task02_Heart", data3d=True,
-                               test_data_generator_args={"dim": (128, 128, 128),
-                                                         "pre_proc_func": valp},
-                               train_data_generator_args={"dim": (128, 128, 128),
-                                                          "pre_proc_func": trainp})
 
-    print(x[0][0][0].shape)
+def test_jigsaw_fintuning_preprocess():
+    path = "/mnt/mpws2019cl1/kaggle_retina/train/resized_384"
+    batch_size = 16
+    f_train, f_val = JigsawBuilder().get_finetuning_preprocessing()
 
-    plot_3d(x[0][0][0][0:4], 0)
+    train_data, validation_data = get_data_generators(path, shuffle_files=False, train_split=0.95,
+                                                      train_data_generator_args={"batch_size": batch_size,
+                                                                                 "pre_proc_func": f_train,
+                                                                                 "shuffle": False},
+                                                      test_data_generator_args={"batch_size": batch_size,
+                                                                                "pre_proc_func": f_val,
+                                                                                "shuffle": False})
+
+    print(validation_data[0][0].shape)
+    show_batch(train_data[0][0][0])
 
 
 if __name__ == "__main__":
-    x = load_permutations_3d()
-    print(x)
+    test_jigsaw_fintuning_preprocess()

@@ -1,13 +1,12 @@
 import csv
 import gc
-import shutil
 from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas
-from tensorflow.keras import Sequential
 from sklearn.metrics import cohen_kappa_score
+from tensorflow.keras import Sequential
 from tensorflow.keras import backend as K
 from tensorflow.keras.optimizers import Adam
 
@@ -137,18 +136,22 @@ def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint
 
         for i in range(repetitions):
             # load and freeze weights
-            print(("-"*10) + "LOADING weights, encoder model is frozen")
-            a = run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint, kwargs)
+            #print(("-"*10) + "LOADING weights, encoder model is frozen")
+            #a = run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
+            #                    batch_size, epochs, epochs_warmup, model_checkpoint, kwargs)
 
-            print(("-" * 10) + "LOADING weights, encoder model is trainable after warm-up")
-            # load weights and train
-            b = run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint, kwargs)
+            a = 0  # TODO: put back in
+
 
             print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
             # random initialization
             c = run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
+                                batch_size, epochs, epochs_warmup, model_checkpoint, kwargs)
+
+
+            print(("-" * 10) + "LOADING weights, encoder model is trainable after warm-up")
+            # load weights and train
+            b = run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
                                 batch_size, epochs, epochs_warmup, model_checkpoint, kwargs)
 
             print("train split:{} model accuracy freezed: {}, initialized: {}, random: {}".format(percentage, a, b, c))
