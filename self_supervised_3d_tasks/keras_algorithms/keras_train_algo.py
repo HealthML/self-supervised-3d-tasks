@@ -1,10 +1,6 @@
-import shutil
-from os import path
-from os.path import expanduser
 from pathlib import Path
 
 import tensorflow.keras as keras
-from tensorflow.keras.utils import plot_model
 
 from self_supervised_3d_tasks.data.data_generator import get_data_generators
 from self_supervised_3d_tasks.keras_algorithms import cpc, jigsaw, relative_patch_location, rotation

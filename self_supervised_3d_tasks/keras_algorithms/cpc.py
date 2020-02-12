@@ -1,23 +1,12 @@
-from os.path import expanduser
-
-import tensorflow.keras as keras
 from tensorflow.keras import Model, Input
-from tensorflow.keras.layers import Flatten, Dense, TimeDistributed
+from tensorflow.keras.layers import Flatten, TimeDistributed
+
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import (
     preprocess_grid,
     preprocess,
     resize,
 )
-from self_supervised_3d_tasks.data.data_generator import get_data_generators
 from self_supervised_3d_tasks.keras_algorithms.cpc_model_utils import network_cpc
-from self_supervised_3d_tasks.models.cnn_baseline import KaggleGenerator
-
-
-# optionally load this from a config file at some time
-# data_dir = "/mnt/mpws2019cl1/kaggle_retina/train/resized_384"
-# model_checkpoint = expanduser(
-#     "~/workspace/self-supervised-transfer-learning/cpc_kaggle_retina_12/weights-improvement-011.hdf5"
-# )
 
 
 class CPCBuilder:
@@ -46,6 +35,7 @@ class CPCBuilder:
         self.image_size = int((data_dim / (split_per_side + 1)) * 2)
         self.img_shape = (self.image_size, self.image_size, self.n_channels)
         self.kwargs = kwargs
+        self.cleanup_models = []
 
     def get_training_model(self):
         model, enc_model = network_cpc(
@@ -108,9 +98,17 @@ class CPCBuilder:
 
         layer_in = Input((self.split_per_side * self.split_per_side,) + self.img_shape)
         layer_out = TimeDistributed(enc_model)(layer_in)
-
         x = Flatten()(layer_out)
-        return Model(layer_in, x), [enc_model, cpc_model]
+
+        self.cleanup_models.append(enc_model)
+        self.cleanup_models.append(cpc_model)
+        return Model(layer_in, x)
+
+    def purge(self):
+        for i in sorted(range(len(self.cleanup_models)), reverse=True):
+            del self.cleanup_models[i]
+        del self.cleanup_models
+        self.cleanup_models = []
 
 
 def create_instance(*params, **kwargs):

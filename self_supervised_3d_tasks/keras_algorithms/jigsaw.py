@@ -1,5 +1,3 @@
-from os.path import expanduser
-
 from tensorflow.keras import Input, Model
 from tensorflow.keras.layers import TimeDistributed, Flatten
 from tensorflow.keras.optimizers import Adam
@@ -15,12 +13,6 @@ from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     load_permutations_3d,
 )
 from self_supervised_3d_tasks.keras_models.fully_connected import fully_connected
-
-
-# data_dir="/mnt/mpws2019cl1/retinal_fundus/left/max_256/"
-# model_checkpoint = expanduser(
-#     "~/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina_3/weights-improvement-059.hdf5"
-# )
 
 
 class JigsawBuilder:
@@ -48,6 +40,7 @@ class JigsawBuilder:
         self.patch_dim = int((data_dim / split_per_side) - patch_jitter)
         self.train3D = train3D
         self.kwargs = kwargs
+        self.cleanup_models = []
 
     def apply_model(self):
         if self.train3D:
@@ -156,9 +149,17 @@ class JigsawBuilder:
             )
         )
         layer_out = TimeDistributed(enc_model)(layer_in)
-
         x = Flatten()(layer_out)
-        return Model(layer_in, x), [enc_model, model_full]
+
+        self.cleanup_models.append(enc_model)
+        self.cleanup_models.append(model_full)
+        return Model(layer_in, x)
+
+    def purge(self):
+        for i in sorted(range(len(self.cleanup_models)), reverse=True):
+            del self.cleanup_models[i]
+        del self.cleanup_models
+        self.cleanup_models = []
 
 
 def create_instance(*params, **kwargs):

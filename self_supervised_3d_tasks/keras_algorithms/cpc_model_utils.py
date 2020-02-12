@@ -1,7 +1,5 @@
 import tensorflow.keras as keras
 import tensorflow.keras.backend as K
-from tensorflow.keras import Input, Model
-from tensorflow.keras.layers import Dense
 
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model
 

@@ -1,22 +1,11 @@
 from tensorflow.keras import Model, Input
-from tensorflow.keras.layers import Flatten, Dense, TimeDistributed
-from os.path import expanduser
+from tensorflow.keras.layers import Flatten, TimeDistributed
 
 from self_supervised_3d_tasks.custom_preprocessing.relative_patch_location import (
     preprocess_batch,
     resize,
 )
-from self_supervised_3d_tasks.data.data_generator import get_data_generators
 from self_supervised_3d_tasks.keras_models.res_net_2d import get_res_net_2d
-from self_supervised_3d_tasks.models.cnn_baseline import KaggleGenerator
-
-
-# optionally load this from a config file at some time
-
-# model_checkpoint = expanduser(
-#     "~/workspace/self-supervised-transfer-learning/rpl_ukb_retina/"
-#     "weights-improvement-98-0.98.hdf5"
-# )
 
 
 class RelativePatchLocationBuilder:

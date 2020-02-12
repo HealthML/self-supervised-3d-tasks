@@ -45,12 +45,13 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     gen = get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split)
 
     if load_weights:
-        enc_model, cleanup_models = algorithm_def.get_finetuning_model(model_checkpoint)
+        enc_model = algorithm_def.get_finetuning_model(model_checkpoint)
     else:
-        enc_model, cleanup_models = algorithm_def.get_finetuning_model()
+        enc_model = algorithm_def.get_finetuning_model()
 
-    pred_model = apply_prediction_model(input_shape=enc_model.output_shape, **kwargs)
+    pred_model = apply_prediction_model(input_shape=enc_model.output_shape[1:], **kwargs)
     model = Sequential(layers=[enc_model, pred_model])
+    model.summary()
 
     if freeze_weights or load_weights:
         enc_model.trainable = False
@@ -75,13 +76,13 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     s_name, result = score(y_test, y_pred)
 
     # cleanup
+    del pred_model
     del model
-    for i in sorted(range(len(cleanup_models)), reverse=True):
-        del cleanup_models[i]
 
+    algorithm_def.purge()
     K.clear_session()
 
-    for i in range(3):
+    for i in range(5):
         gc.collect()
 
     print("{} score: {}".format(s_name, result))
@@ -109,8 +110,8 @@ def draw_curve(name):
     print(df["Train Split"])
 
 
-def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint, epochs=5, repetitions=2, batch_size=2,
-                     exp_splits=(100, 50, 25, 12.5, 6.25), lr=0.00003, epochs_warmup=2, **kwargs):
+def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint, epochs=5, repetitions=2, batch_size=8,
+                     exp_splits=(100, 50, 25, 12.5, 6.25), lr=1e-3, epochs_warmup=2, **kwargs):
     kwargs["model_checkpoint"] = model_checkpoint
     kwargs["root_config_file"] = root_config_file
 

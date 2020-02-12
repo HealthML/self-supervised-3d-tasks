@@ -33,10 +33,11 @@ def aquire_free_gpus(amount=1, use_gpu=None, **kwargs):
     for i in range(amount):
         max_gpu = gpu_df.index[0]
         if gpu_df.loc[max_gpu]["memory.used"] != 0:
-            raise ValueError(
-                "The requested amount of GPUs are not available currently." +
-                " Try removing the 'use_gpu' flag" if use_gpu else ""
-            )
+            error = "The requested amount of GPUs are not available currently."
+            if use_gpu:
+                error += " Try removing the 'use_gpu' flag."
+
+            raise ValueError(error)
         output.append(max_gpu)
         gpu_df.drop(max_gpu, inplace=True)
 
