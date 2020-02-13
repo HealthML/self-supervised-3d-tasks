@@ -17,7 +17,8 @@ def test():
     batch_size = 16
 
     aquire_free_gpus(NGPUS)
-    model_path = "~/workspace/cnn_baseline/run_2020-01-29 10:15:28.366338/intermediate_0002_0.45_model.hdf5"
+    model_path = "/home/Winfried.Loetzsch/workspace/cnn_baseline/run_2020-02-12 " \
+                 "16:38:42.040347/intermediate_0034_0.72_model.hdf5"
 
     f = lambda x, y: (x, y)
     gen = get_kaggle_test_generator(batch_size, f, f)

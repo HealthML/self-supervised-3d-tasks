@@ -35,8 +35,6 @@ class JigsawBuilder:
         self.embed_dim = embed_dim
         self.n_patches = split_per_side * split_per_side
         self.n_patches3D = split_per_side * split_per_side * split_per_side
-        self.dim = (data_dim, data_dim)
-        self.dim3D = (data_dim, data_dim, data_dim)
         self.patch_dim = int((data_dim / split_per_side) - patch_jitter)
         self.train3D = train3D
         self.kwargs = kwargs
@@ -140,14 +138,26 @@ class JigsawBuilder:
         if model_checkpoint is not None:
             model_full.load_weights(model_checkpoint)
 
-        layer_in = Input(
-            (
-                self.split_per_side * self.split_per_side,
-                self.patch_dim,
-                self.patch_dim,
-                self.n_channels,
+        if self.train3D:
+            layer_in = Input(
+                (
+                    self.n_patches3D,
+                    self.patch_dim,
+                    self.patch_dim,
+                    self.patch_dim,
+                    self.n_channels,
+                )
             )
-        )
+        else:
+            layer_in = Input(
+                (
+                    self.n_patches,
+                    self.patch_dim,
+                    self.patch_dim,
+                    self.n_channels,
+                )
+            )
+
         layer_out = TimeDistributed(enc_model)(layer_in)
         x = Flatten()(layer_out)
 

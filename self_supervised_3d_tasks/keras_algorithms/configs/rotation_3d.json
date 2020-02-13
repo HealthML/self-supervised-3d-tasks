@@ -1,5 +1,5 @@
 {
-  "algorithm": "jigsaw",
+  "algorithm": "rotation",
   "data_dir": "/mnt/mpws2019cl1/Task07_Pancreas/imagesPt",
   "dataset_name": "pancreas3d",
   "train3D": true,

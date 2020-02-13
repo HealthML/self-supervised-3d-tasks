@@ -59,6 +59,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     if load_weights:
         assert epochs_warmup < epochs, "warmup epochs must be smaller than epochs"
 
+        print(("-" * 10) + "LOADING weights, encoder model is trainable after warm-up")
         print(("-"*5) + " encoder model is frozen")
         model.compile(optimizer=Adam(lr=lr), loss="mse", metrics=["mae"])
         model.fit_generator(generator=gen, epochs=epochs_warmup)
@@ -66,6 +67,10 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
 
         enc_model.trainable = True
         print(("-"*5) + " encoder model unfrozen")
+    elif freeze_weights:
+        print(("-" * 10) + "LOADING weights, encoder model is completely frozen")
+    else:
+        print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
 
     # recompile model
     model.compile(optimizer=Adam(lr=lr), loss="mse", metrics=["mae"])
@@ -77,6 +82,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
 
     # cleanup
     del pred_model
+    del enc_model
     del model
 
     algorithm_def.purge()
@@ -100,9 +106,9 @@ def draw_curve(name):
     # helper function to plot results curve
     df = pandas.read_csv(name + '_results.csv')
 
-    plt.plot(df["Train Split"], df["Weights initialized"], label=name + ' pretrained')
+    plt.plot(df["Train Split"], df["Weights initialized"], label=name + ' Pretrained')
     plt.plot(df["Train Split"], df["Weights random"], label='Random')
-    plt.plot(df["Train Split"], df["Weights freezed"], label=name + 'Freezed')
+    plt.plot(df["Train Split"], df["Weights frozen"], label=name + 'Frozen')
 
     plt.legend()
     plt.show()
@@ -123,7 +129,7 @@ def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint
 
     results = []
 
-    write_result(working_dir, ["Train Split", "Weights freezed", "Weights initialized", "Weights random"])
+    write_result(working_dir, ["Train Split", "Weights frozen", "Weights initialized", "Weights random"])
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     x_test, y_test = get_dataset_test(dataset_name, batch_size, f_train, f_val)
 
@@ -137,25 +143,20 @@ def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint
 
         for i in range(repetitions):
             # load and freeze weights
-            #print(("-"*10) + "LOADING weights, encoder model is frozen")
+            #
             #a = run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
             #                    batch_size, epochs, epochs_warmup, model_checkpoint, kwargs)
 
             a = 0  # TODO: put back in
 
+            b = run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
+                                batch_size, epochs, epochs_warmup, model_checkpoint, kwargs)
 
-            print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
-            # random initialization
             c = run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
                                 batch_size, epochs, epochs_warmup, model_checkpoint, kwargs)
 
 
-            print(("-" * 10) + "LOADING weights, encoder model is trainable after warm-up")
-            # load weights and train
-            b = run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint, kwargs)
-
-            print("train split:{} model accuracy freezed: {}, initialized: {}, random: {}".format(percentage, a, b, c))
+            print("train split:{} model accuracy frozen: {}, initialized: {}, random: {}".format(percentage, a, b, c))
 
             a_s.append(a)
             b_s.append(b)

@@ -3,18 +3,17 @@ from pathlib import Path
 
 import numpy as np
 import seaborn as sns
-from tensorflow.keras.layers import Dense
 from sklearn.metrics import f1_score, precision_score, recall_score
 from tensorflow.keras import Model
 from tensorflow.keras import Sequential
 from tensorflow.keras.applications import InceptionV3
 from tensorflow.keras.callbacks import Callback, ModelCheckpoint
+from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import Input
 from tensorflow.keras.optimizers import Adam
 
 from self_supervised_3d_tasks.data.kaggle_retina_data import get_kaggle_train_generator
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_prediction_model
 from self_supervised_3d_tasks.keras_models.fully_connected import fully_connected_big
 
 sns.set()
@@ -76,10 +75,7 @@ def get_cnn_baseline_model(shape=(384, 384, 3,)):
 
     fc_in = Input(vgg.output_shape[1:])
     fc = fully_connected_big(fc_in)
-    fc = Dense(1, activation="relu")(fc)
     pred_model = Model(fc_in, fc)
-
-    # pred_model = apply_prediction_model(input_shape=vgg.output_shape)
 
     model = Sequential(layers=[vgg, pred_model])
     model.compile(optimizer=Adam(lr=lr), loss="mse", metrics=["mae"])

@@ -54,7 +54,7 @@ class DataGeneratorUnlabeled3D(keras.utils.Sequence):
                  batch_size=32,
                  shuffle=True,
                  pre_proc_func=None,
-                 dim=None):
+                 data_dim=None):
         self.batch_size = batch_size
         self.list_IDs = file_list
         self.indexes = np.arange(len(self.list_IDs))
@@ -62,7 +62,11 @@ class DataGeneratorUnlabeled3D(keras.utils.Sequence):
         self.path_to_data = data_path
         self.pre_proc_func = pre_proc_func
         self.on_epoch_end()
-        self.dim = dim
+
+        if data_dim is None:
+            self.dim = None
+        else:
+            self.dim = (data_dim, data_dim, data_dim)
 
     def __len__(self):
         return int(np.floor(len(self.list_IDs) / self.batch_size))

@@ -1,18 +1,16 @@
 import json
+import shutil
 import struct
 import sys
 from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
+
 import numpy as np
-import shutil
-
 import tensorflow as tf
-
-from tensorflow.keras.applications import InceptionV3
 from tensorflow.keras import Model, Input
-from tensorflow.keras.layers import Dense, Flatten
-from tensorflow.keras.utils import multi_gpu_model
+from tensorflow.keras.applications import InceptionV3
 from tensorflow.keras.applications import ResNet50
+from tensorflow.keras.layers import Dense, Flatten
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee

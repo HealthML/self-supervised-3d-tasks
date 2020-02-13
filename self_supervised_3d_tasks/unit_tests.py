@@ -390,4 +390,12 @@ def test_rotation():
 
 
 if __name__ == "__main__":
-    test_rotation()
+    cube = np.ones((128,128,128,1))
+    print(cube.shape)
+
+    cube = np.flip(cube, 1)
+    print(cube.shape)
+
+    volume = np.transpose(np.flip(x, 1), (0, 2, 1, 3))  # 90 deg X
+    volume = np.transpose(np.flip(cube, 1), (0, 2, 1, 3))
+    print(volume.shape)

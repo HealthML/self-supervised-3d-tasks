@@ -14,12 +14,18 @@ keras_algorithm_list = {
 }
 
 
-def get_dataset(data_dir, batch_size, f_train, f_val, train_val_split):
+def get_dataset(data_dir, batch_size, f_train, f_val, train_val_split, kwargs):
+    base_args = {}
+
+    if "data_dim" in kwargs:
+        data_dim = kwargs["data_dim"]
+        base_args["data_dim"] = data_dim
+
     train_data, validation_data = get_data_generators(data_dir, train_split=train_val_split,
-                                                      train_data_generator_args={"batch_size": batch_size,
-                                                                                 "pre_proc_func": f_train},
-                                                      test_data_generator_args={"batch_size": batch_size,
-                                                                                "pre_proc_func": f_val})
+                                                      train_data_generator_args=dict(base_args, **{"batch_size": batch_size,
+                                                                                 "pre_proc_func": f_train}),
+                                                      test_data_generator_args=dict(base_args, **{"batch_size": batch_size,
+                                                                                "pre_proc_func": f_val}), **kwargs)
 
     return train_data, validation_data
 
@@ -33,7 +39,7 @@ def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250,
     algorithm_def = keras_algorithm_list[algorithm].create_instance(**kwargs)
 
     f_train, f_val = algorithm_def.get_training_preprocessing()
-    train_data, validation_data = get_dataset(data_dir, batch_size, f_train, f_val, train_val_split)
+    train_data, validation_data = get_dataset(data_dir, batch_size, f_train, f_val, train_val_split, kwargs)
     model = algorithm_def.get_training_model()
     model.summary()
 
