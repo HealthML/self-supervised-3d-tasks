@@ -70,17 +70,18 @@ if __name__ == "__main__":
         "lr": hp.lognormal("learning_rate", 7.0, 2.5),
         "model_params": {
             "embed_dim": hp.uniform("embed_dim", 128, 20000),
-            "encoder_architecture": hp.choice("architecture",
-                                              [
-                                                  None,
-                                                  "ResNet50",
-                                                  "InceptionV3",
-                                                  "ResNet50V2",
-                                                  "ResNet101",
-                                                  "ResNet101V2",
-                                                  "InceptionResNetV2",
-                                              ]
-                                              ),
+            "encoder_architecture": hp.choice(
+                "architecture",
+                [
+                    None,
+                    "ResNet50",
+                    "InceptionV3",
+                    "ResNet50V2",
+                    "ResNet101",
+                    "ResNet101V2",
+                    "InceptionResNetV2",
+                ],
+            ),
             "pooling": hp.choice("pooling", ["max", "avg"]),
             "num_layers": hp.uniform("num_layers", 2, 6),
         },
