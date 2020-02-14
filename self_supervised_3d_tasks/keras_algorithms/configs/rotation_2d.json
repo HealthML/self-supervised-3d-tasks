@@ -4,5 +4,5 @@
   "dataset_name": "kaggle_retina",
   "train3D": false,
   "batch_size": 16,
-  "architecture": "InceptionV3"
+  "encoder_architecture": "InceptionV3"
 }
