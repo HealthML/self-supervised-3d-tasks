@@ -28,7 +28,7 @@ def preprocessing_exemplar(x, y, process_3d = False, embedding_layers=10):
     """
     # get batch size
     batch_size = len(y)
-    y = np.zeros((batch_size, 3, embedding_layers))
+    y = np.empty((batch_size, 3, embedding_layers))
     if process_3d:
         x_processed = np.empty(shape=(batch_size, 3, x.shape[-4], x.shape[-3], x.shape[-2], x.shape[-1]))
     else:

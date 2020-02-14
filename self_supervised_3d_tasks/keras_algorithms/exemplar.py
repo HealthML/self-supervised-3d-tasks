@@ -35,6 +35,9 @@ model_checkpoint = ""
 
 
 class TripletLossLayer(Layer):
+    """
+    I am a layer for the loss function. I am not used anymore because I am not compatible with model.fit
+    """
     def __init__(self, alpha, **kwargs):
         self.alpha = alpha
         super(TripletLossLayer, self).__init__(**kwargs)
@@ -51,15 +54,31 @@ class TripletLossLayer(Layer):
         return loss
 
 
-def triplet_loss(y_true, y_pred, embedding_size=10, _alpha=0):
+def triplet_loss(y_true, y_pred, embedding_size=10, _alpha=.5):
+    """
+    This function returns the calculated triplet loss for y_pred
+    :param y_true: not needed
+    :param y_pred: predictions of the model
+    :param embedding_size: length of embedding
+    :param _alpha: defines the shift of the loss
+    :return: calculated loss
+    """
     embeddings = K.reshape(y_pred, (-1, 3, embedding_size))
 
     positive_distance = K.mean(K.square(embeddings[:,0] - embeddings[:,1]),axis=-1)
     negative_distance = K.mean(K.square(embeddings[:,0] - embeddings[:,2]),axis=-1)
-    return K.mean(K.maximum(0.0, positive_distance - negative_distance) + _alpha)
+    return K.mean(K.maximum(0.0, positive_distance - negative_distance + _alpha))
 
 
-def apply_model(input_shape, alpha_triplet=0.2, embedding_size=10, lr=0.0006):
+def apply_model(input_shape, embedding_size=10, lr=0.0006):
+    """
+    apply model function to apply the model
+    :param input_shape: defines the input shape (dim last)
+    :param embedding_size: number of embedded layers
+    :param lr: learning rate
+    :return: return the network (encoder) and the compiled model with concated output
+    """
+    # defines encoder
     network = ResNet50(input_shape=input_shape, include_top=True, weights=None, classes=embedding_size)
     # Define the tensors for the three input images
     input = Input((3, *input_shape), name="anchor_input")
@@ -72,16 +91,15 @@ def apply_model(input_shape, alpha_triplet=0.2, embedding_size=10, lr=0.0006):
     encoded_p = network(positive_input)
     encoded_n = network(negative_input)
 
+    # Concat the outputs together
     output = Concatenate()([encoded_a, encoded_p, encoded_n])
 
-    # TripletLoss Layer
-    #loss_layer = TripletLossLayer(alpha=alpha_triplet, name='triplet_loss_layer')([encoded_a, encoded_p, encoded_n])
-
+    # set optimizer
     optimizer = Adam(lr=lr)
 
     # Connect the inputs with the outputs
-    # model = Model(inputs=input, outputs=loss_layer)
     model = Model(inputs=input, outputs=output)
+    # compile the model
     model.compile(loss=triplet_loss, optimizer=optimizer)
     return network, model
 

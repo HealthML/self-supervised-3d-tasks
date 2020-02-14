@@ -12,7 +12,7 @@ from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
 
 
 def init(f, name="training", NGPUS=1):
-    algo = "jigsaw"
+    algo = "exemplar"
     dataset = "kaggle_retina"
 
     if(len(sys.argv)) > 1:
