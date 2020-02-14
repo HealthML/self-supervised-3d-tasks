@@ -1,15 +1,15 @@
 import csv
 import os
 
-import keras
+import tensorflow.keras as keras
 
 from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas
 import numpy as np
-from keras import Model
-from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
-from keras.layers import Dense, Flatten, concatenate
+from tensorflow.keras import Model
+from tensorflow.keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
+from tensorflow.keras.layers import Dense, Flatten, concatenate
 
 from datetime import datetime
 

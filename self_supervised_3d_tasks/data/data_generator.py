@@ -1,7 +1,9 @@
 import numpy as np
 from PIL import Image
-import keras
+import tensorflow.keras as keras
 import os
+
+from self_supervised_3d_tasks.data.nifti_loader import DataGeneratorUnlabeled3D
 
 
 class DataGeneratorUnlabeled(keras.utils.Sequence):
@@ -13,7 +15,7 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
                  batch_size=32,
                  shuffle=True,
                  pre_proc_func=None,
-                 dim=None):
+                 data_dim=None):
         '''
             :param data_path: path to directory with images
             :param file_list: list of files in directory for this data generator
@@ -29,7 +31,12 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
         self.path_to_data = data_path
         self.pre_proc_func = pre_proc_func
         self.on_epoch_end()
-        self.dim = dim
+
+        if data_dim is None:
+            self.dim = None
+        else:
+
+            self.dim = (data_dim, data_dim)
 
     def __len__(self):
         'Denotes the number of batches per epoch'
@@ -91,8 +98,8 @@ class DataGeneratorUnlabeled(keras.utils.Sequence):
         return data_x, np.array(data_y)
 
 
-def get_data_generators(data_path, train_split=.6, val_split=None, shuffle_files=True, train_data_generator_args={},
-                        test_data_generator_args={}, val_data_generator_args={}):
+def get_data_generators(data_path, train_split=.6, val_split=None, shuffle_files=True, train3D=False, train_data_generator_args={},
+                        test_data_generator_args={}, val_data_generator_args={}, **kwargs):
     """
     This function generates the data generator for training, testing and optional validation.
     :param data_path: path to files
@@ -102,6 +109,7 @@ def get_data_generators(data_path, train_split=.6, val_split=None, shuffle_files
     :param train_data_generator_args: Optional arguments for data generator
     :param test_data_generator_args: Optional arguments for data generator
     :param val_data_generator_args: Optional arguments for data generator
+    :param data3d: 3d training
     :return: returns data generators
     """
 
@@ -114,7 +122,7 @@ def get_data_generators(data_path, train_split=.6, val_split=None, shuffle_files
 
     # Validation set is needed
     if val_split:
-        assert (val_split + train_split >= 1., "Invalid arguments for splits: {}, {}".format(val_split, train_split))
+        assert val_split + train_split >= 1., "Invalid arguments for splits: {}, {}".format(val_split, train_split)
         # Calculate splits
         train_split = int(len(files) * train_split)
         val_split = int(len(files) * val_split)
@@ -125,9 +133,14 @@ def get_data_generators(data_path, train_split=.6, val_split=None, shuffle_files
         test = files[train_split + val_split:]
 
         # create generators
-        train_data_generator = DataGeneratorUnlabeled(data_path, train, **train_data_generator_args)
-        test_data_generator = DataGeneratorUnlabeled(data_path, test, **test_data_generator_args)
-        val_data_generator = DataGeneratorUnlabeled(data_path, val, **val_data_generator_args)
+        if train3D:
+            train_data_generator = DataGeneratorUnlabeled3D(data_path, train, **train_data_generator_args)
+            test_data_generator = DataGeneratorUnlabeled3D(data_path, test, **test_data_generator_args)
+            val_data_generator = DataGeneratorUnlabeled3D(data_path, val, **val_data_generator_args)
+        else:
+            train_data_generator = DataGeneratorUnlabeled(data_path, train, **train_data_generator_args)
+            test_data_generator = DataGeneratorUnlabeled(data_path, test, **test_data_generator_args)
+            val_data_generator = DataGeneratorUnlabeled(data_path, val, **val_data_generator_args)
         # Return generators
         return train_data_generator, test_data_generator, val_data_generator
     else:
@@ -141,8 +154,12 @@ def get_data_generators(data_path, train_split=.6, val_split=None, shuffle_files
         test = files[train_split:]
 
         # Create data generators
-        train_data_generator = DataGeneratorUnlabeled(data_path, train, **train_data_generator_args)
-        test_data_generator = DataGeneratorUnlabeled(data_path, test, **test_data_generator_args)
+        if train3D:
+            train_data_generator = DataGeneratorUnlabeled3D(data_path, train, **train_data_generator_args)
+            test_data_generator = DataGeneratorUnlabeled3D(data_path, test, **test_data_generator_args)
+        else:
+            train_data_generator = DataGeneratorUnlabeled(data_path, train, **train_data_generator_args)
+            test_data_generator = DataGeneratorUnlabeled(data_path, test, **test_data_generator_args)
 
         # Return generators
         return train_data_generator, test_data_generator

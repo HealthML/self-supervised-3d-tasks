@@ -3,7 +3,7 @@ from contextlib import redirect_stdout, redirect_stderr
 from os.path import expanduser
 
 import os
-import keras
+import tensorflow.keras as keras
 
 from self_supervised_3d_tasks.algorithms.contrastive_predictive_coding import network_cpc
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess, preprocess_grid

@@ -7,6 +7,6 @@ setup(
 
     package_data={
         'permutations': ['*.bin'],
-    }, install_requires=['scikit-image', 'tensorflow', 'joblib', 'numpy', 'nibabel', 'scipy', 'pillow', 'pandas',
-                         'matplotlib', 'keras', 'albumentations', 'tqdm']
+    }, install_requires=['scikit-image', 'joblib', 'numpy', 'nibabel', 'scipy', 'pillow', 'pandas',
+                         'matplotlib', 'seaborn', 'albumentations', 'tqdm', 'pydot', 'tensorflow-gpu', 'scikit-learn']
 )

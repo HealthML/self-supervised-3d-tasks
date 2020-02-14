@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from PIL import Image
-from keras.utils import Sequence, to_categorical
+from tensorflow.keras.utils import Sequence, to_categorical
 from sklearn.utils import resample
 
 
@@ -21,8 +21,8 @@ class KaggleGenerator(Sequence):
             shuffle=False,
             pre_proc_func_train=None,
             pre_proc_func_val=None,
-            categorical = True,
-            sample_classes_uniform = False,
+            categorical=True,
+            sample_classes_uniform=False,
             # discard_part_of_dataset_split = False
     ):
         # if discard_part_of_dataset_split > 1 or discard_part_of_dataset_split < -1:
@@ -136,3 +136,19 @@ class KaggleGenerator(Sequence):
             data_x,
             data_y,
         )
+
+
+def get_kaggle_train_generator(batch_size, train_split, f_train, f_val):
+    csv_descriptor_train = Path("/mnt/mpws2019cl1/kaggle_retina/train/trainLabels_shuffled_train.csv")
+
+    return KaggleGenerator(batch_size=batch_size, sample_classes_uniform=True, shuffle=True,
+                           categorical=False, csvDescriptor=csv_descriptor_train, split=train_split,
+                           pre_proc_func_train=f_train, pre_proc_func_val=f_val)
+
+
+def get_kaggle_test_generator(batch_size, f_train, f_val):
+    csv_descriptor_test = Path("/mnt/mpws2019cl1/kaggle_retina/train/trainLabels_shuffled_test.csv")
+
+    return KaggleGenerator(batch_size=batch_size, split=-1, shuffle=False, categorical=False,
+                           pre_proc_func_train=f_train, pre_proc_func_val=f_val,
+                           csvDescriptor=csv_descriptor_test)
