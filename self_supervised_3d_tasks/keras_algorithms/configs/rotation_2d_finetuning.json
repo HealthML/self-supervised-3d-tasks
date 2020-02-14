@@ -8,6 +8,6 @@
   "repetitions": 1,
   "epochs": 6,
   "epochs_warmup": 2,
-  "architecture": "InceptionV3",
+  "encoder_architecture": "InceptionV3",
   "prediction_architecture": "big_fully"
 }
