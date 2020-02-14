@@ -1,3 +1,5 @@
+import time
+
 import tensorflow.keras as keras
 import nibabel as nib
 import numpy as np
