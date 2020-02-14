@@ -1,7 +1,7 @@
 import random
 import albumentations as ab
 import numpy as np
-from self_supervised_3d_tasks.custom_preprocessing.crop import crop_patches, crop_patches3d
+from self_supervised_3d_tasks.custom_preprocessing.crop import crop_patches, crop_patches_3d
 import skimage.transform as skTrans
 
 
@@ -9,7 +9,7 @@ def preprocess_image(image, is_training, split_per_side, patch_jitter, permutati
     label = random.randint(0, len(permutations) - 1)
 
     if mode3d:
-        patches = crop_patches3d(image, is_training, split_per_side, patch_jitter)
+        patches = crop_patches_3d(image, is_training, split_per_side, patch_jitter)
     else:
         patches = crop_patches(image, is_training, split_per_side, patch_jitter)
 
@@ -38,7 +38,7 @@ def preprocess_image_resize(image, split_per_side, patch_dim, mode3d):
     result = []
 
     if mode3d:
-        patches = crop_patches3d(image, False, split_per_side, 0)
+        patches = crop_patches_3d(image, False, split_per_side, 0)
     else:
         patches = crop_patches(image, False, split_per_side, 0)
 

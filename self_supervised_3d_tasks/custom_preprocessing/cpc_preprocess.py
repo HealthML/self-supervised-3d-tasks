@@ -14,8 +14,9 @@ def preprocess_image(image, patch_jitter, patch_crop_size, split_per_side, paddi
 
     w, h, _ = image.shape
 
-    image = crop(image, is_training, (crop_size, crop_size))
-    image = ab.PadIfNeeded(w, h)(image=image)["image"]
+    if is_training:
+        image = crop(image, is_training, (crop_size, crop_size))
+        image = ab.PadIfNeeded(w, h)(image=image)["image"]
 
     for patch in crop_patches(image, is_training, split_per_side, patch_jitter):
         if is_training:
@@ -41,8 +42,11 @@ def preprocess(batch, crop_size, split_per_side, is_training=True):
     _, w, h, _ = batch.shape
     assert w == h, "accepting only squared images"
 
-    patch_jitter = int(- w / (split_per_side + 1))
+    patch_jitter = int(- w / (split_per_side + 1))  # overlap half of the patch size
     patch_crop_size = int((w - patch_jitter * (split_per_side - 1)) / split_per_side * 7 / 8)
+    print(patch_crop_size)
+    print("Is this right?? for patch_crop size")
+    # TODO: check this
     padding = int((-2 * patch_jitter - patch_crop_size) / 2)
 
     return np.array([preprocess_image(image, patch_jitter, patch_crop_size, split_per_side, padding, crop_size,

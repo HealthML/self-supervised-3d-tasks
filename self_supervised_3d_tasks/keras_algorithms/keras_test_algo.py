@@ -101,14 +101,14 @@ def write_result(base_path, row):
         result_writer.writerow(row)
 
 
-def draw_curve(name):
+def draw_curve(path, name):
     # TODO: load multiple algorithms here
     # helper function to plot results curve
-    df = pandas.read_csv(name + '_results.csv')
+    df = pandas.read_csv(path)
 
     plt.plot(df["Train Split"], df["Weights initialized"], label=name + ' Pretrained')
     plt.plot(df["Train Split"], df["Weights random"], label='Random')
-    plt.plot(df["Train Split"], df["Weights frozen"], label=name + 'Frozen')
+    # plt.plot(df["Train Split"], df["Weights frozen"], label=name + 'Frozen')
 
     plt.legend()
     plt.show()
@@ -168,5 +168,6 @@ def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint
 
 
 if __name__ == "__main__":
-    # draw_curve("jigsaw")
-    init(run_complex_test, "test")
+    draw_curve("/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_kaggle_retina_8/weights-improvement-006_test/results.csv",
+               "rotation")
+    # init(run_complex_test, "test")
