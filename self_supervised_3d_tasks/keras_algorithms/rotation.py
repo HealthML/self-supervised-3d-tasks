@@ -2,13 +2,28 @@ from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
 
-from self_supervised_3d_tasks.custom_preprocessing.rotation_preprocess import rotate_batch, rotate_batch_3d
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model, apply_encoder_model_3d
+from self_supervised_3d_tasks.custom_preprocessing.rotation_preprocess import (
+    rotate_batch,
+    rotate_batch_3d,
+)
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
+    apply_encoder_model,
+    apply_encoder_model_3d,
+    get_prediction_model,
+    apply_prediction_model,
+)
 
 
 class RotationBuilder:
     def __init__(
-            self, data_dim=384, embed_dim=1024, n_channels=3, lr=1e-3, train3D=False, **kwargs
+            self,
+            data_dim=384,
+            embed_dim=1024,
+            n_channels=3,
+            lr=1e-3,
+            train3D=False,
+            top_architecture="big_fully",
+            **kwargs
     ):
         self.data_dim = data_dim
         self.n_channels = n_channels
@@ -16,20 +31,40 @@ class RotationBuilder:
         self.image_size = data_dim
         self.embed_dim = embed_dim
         self.img_shape = (self.image_size, self.image_size, n_channels)
-        self.img_shape_3d = (self.image_size, self.image_size, self.image_size, n_channels)
+        self.img_shape_3d = (
+            self.image_size,
+            self.image_size,
+            self.image_size,
+            n_channels,
+        )
+        self.top_architecture = top_architecture
         self.kwargs = kwargs
         self.cleanup_models = []
         self.train3D = train3D
 
     def apply_model(self):
         if self.train3D:
-            enc_model = apply_encoder_model_3d(self.img_shape_3d, self.embed_dim, **self.kwargs)
-            x = Dense(10, activation='softmax')
+            enc_model = apply_encoder_model_3d(
+                self.img_shape_3d, self.embed_dim, **self.kwargs
+            )
+            a = apply_prediction_model(
+                self.embed_dim,
+                prediction_architecture=self.top_architecture,
+                include_top=False,
+            )
+            x = Dense(10, activation="softmax")
         else:
-            enc_model = apply_encoder_model(self.img_shape, self.embed_dim, **self.kwargs)
-            x = Dense(4, activation='softmax')
+            enc_model = apply_encoder_model(
+                self.img_shape, self.embed_dim, **self.kwargs
+            )
+            a = apply_prediction_model(
+                self.embed_dim,
+                prediction_architecture=self.top_architecture,
+                include_top=False,
+            )
+            x = Dense(4, activation="softmax")
 
-        model = Sequential([enc_model, x])
+        model = Sequential([enc_model, a, x])
         enc_model.summary()
         model.summary()
 
@@ -41,7 +76,7 @@ class RotationBuilder:
         model.compile(
             optimizer=Adam(lr=self.lr),
             loss="categorical_crossentropy",
-            metrics=["accuracy"]
+            metrics=["accuracy"],
         )
 
         return model

@@ -53,10 +53,10 @@ def init(f, name="training", NGPUS=1):
             f(**args)
 
 
-def get_prediction_model(name, in_shape):
+def get_prediction_model(name, in_shape, include_top=True):
     if name == "big_fully":
         input_l = Input(in_shape)
-        output_l = fully_connected_big(input_l)
+        output_l = fully_connected_big(input_l, include_top=include_top)
         model = Model(input_l, output_l)
     else:
         raise ValueError("model " + name + " not found")
@@ -69,10 +69,11 @@ def apply_prediction_model(
         n_prediction_layers=2,
         dim_prediction_layers=1024,
         prediction_architecture=None,
+        include_top=True,
         **kwargs
 ):
     if prediction_architecture is not None:
-        model = get_prediction_model(prediction_architecture, input_shape)
+        model = get_prediction_model(prediction_architecture, input_shape, include_top)
     else:
         layer_in = Input(input_shape)
         x = layer_in
@@ -80,7 +81,8 @@ def apply_prediction_model(
         for i in range(n_prediction_layers):
             x = Dense(dim_prediction_layers, activation="relu")(x)
 
-        x = Dense(1, activation="relu")(x)
+        if include_top:
+            x = Dense(1, activation="relu")(x)
         model = Model(inputs=layer_in, outputs=x)
 
     return model

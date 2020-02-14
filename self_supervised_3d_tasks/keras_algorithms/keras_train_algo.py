@@ -46,7 +46,6 @@ def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250,
     # plot_model(model, to_file=expanduser("~/workspace/test.png"), expand_nested=True, show_shapes=True)
     # uncomment if you want to plot the model
 
-    # update after 500 samples
     tb_c = keras.callbacks.TensorBoard(log_dir=str(working_dir))
     mc_c = keras.callbacks.ModelCheckpoint(str(working_dir / "weights-improvement-{epoch:03d}.hdf5"), monitor="val_loss",
                                            mode="min", save_best_only=True)  # reduce storage space
