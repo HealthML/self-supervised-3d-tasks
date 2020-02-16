@@ -3,7 +3,7 @@ from PIL import Image
 import tensorflow.keras as keras
 import os
 
-from self_supervised_3d_tasks.data.nifti_loader import DataGeneratorUnlabeled3D
+from self_supervised_3d_tasks.data.numpy_3d_loader import DataGeneratorUnlabeled3D
 
 
 class DataGeneratorUnlabeled(keras.utils.Sequence):
@@ -144,7 +144,7 @@ def get_data_generators(data_path, train_split=.6, val_split=None, shuffle_files
         # Return generators
         return train_data_generator, test_data_generator, val_data_generator
     else:
-        assert (train_split >= 1., "Invalid arguments for split: {}".format(train_split))
+        assert train_split >= 1., "Invalid arguments for split: {}".format(train_split)
 
         # Calculate split
         train_split = int(len(files) * train_split)
