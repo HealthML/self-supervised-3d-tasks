@@ -122,7 +122,7 @@ def get_data_generators(data_path, train_split=.6, val_split=None, shuffle_files
 
     # Validation set is needed
     if val_split:
-        assert val_split + train_split >= 1., "Invalid arguments for splits: {}, {}".format(val_split, train_split)
+        assert val_split + train_split <= 1., "Invalid arguments for splits: {}, {}".format(val_split, train_split)
         # Calculate splits
         train_split = int(len(files) * train_split)
         val_split = int(len(files) * val_split)
