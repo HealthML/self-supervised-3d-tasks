@@ -46,18 +46,32 @@ def preprocessing_exemplar(x, y, process_3d = False, embedding_layers=10):
         # random transformation [0..1]
         random_lr_flip = np.random.randint(0, 2)
         random_ud_flip = np.random.randint(0, 2)
+        random_flip3d = np.random.randint(0, 2) if process_3d else 0
         distort_color = np.random.randint(0, 2)
-        processed_image = image
+        processed_image = np.copy(image)
         # flip up and down
         if random_ud_flip == 1:
             processed_image = np.flip(processed_image, 0)
         # flip left and right
         if random_lr_flip == 1:
             processed_image = np.flip(processed_image, 1)
+        # flip left and right
+        if random_flip3d == 1:
+            processed_image = np.flip(processed_image, 2)
         # distort_color
         if distort_color == 1:
             processed_image = _distort_color(processed_image)
-
+        # rotation
+        if process_3d:
+            rotation = np.random.randint(0, 4)
+            processed_image = np.rot90(processed_image, k=rotation, axes=(0, 1))
+            rotation = np.random.randint(0, 4)
+            processed_image = np.rot90(processed_image, k=rotation, axes=(1, 2))
+            rotation = np.random.randint(0, 4)
+            processed_image = np.rot90(processed_image, k=rotation, axes=(0, 2))
+        else:
+            rotation = np.random.randint(0, 4)
+            processed_image = np.rot90(processed_image, k=rotation)
         # Set Anchor Image
         triplet[0] = processed_image
         # Set Positiv Image
