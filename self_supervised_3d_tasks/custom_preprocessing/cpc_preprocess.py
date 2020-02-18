@@ -44,8 +44,8 @@ def preprocess(batch, crop_size, split_per_side, is_training=True):
 
     patch_jitter = int(- w / (split_per_side + 1))  # overlap half of the patch size
     patch_crop_size = int((w - patch_jitter * (split_per_side - 1)) / split_per_side * 7 / 8)
-    print(patch_crop_size)
-    print("Is this right?? for patch_crop size")
+    # print(patch_crop_size)
+    # print("Is this right?? for patch_crop size")
     # TODO: check this
     padding = int((-2 * patch_jitter - patch_crop_size) / 2)
 
