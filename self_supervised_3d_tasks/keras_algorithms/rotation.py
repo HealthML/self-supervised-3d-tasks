@@ -136,7 +136,7 @@ class RotationBuilder:
         return self.enc_model
 
     def purge(self):
-        for i in sorted(range(len(self.cleanup_models)), reverse=True):
+        for i in reversed(range(len(self.cleanup_models))):
             del self.cleanup_models[i]
         del self.cleanup_models
         self.cleanup_models = []

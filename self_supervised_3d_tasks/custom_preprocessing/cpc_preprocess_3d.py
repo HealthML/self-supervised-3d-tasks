@@ -25,9 +25,6 @@ def preprocess_volume_3d(volume, crop_size, split_per_side, patch_overlap, is_tr
             patch = pad_to_final_size_3d(patch, normal_patch_size)
 
         else:
-            # patch = crop(patch, is_training, (patch_crop_size, patch_crop_size))  # center crop here
-            # patch = ab.ToGray(p=1.0)(image=patch)["image"]
-            # patch = ab.PadIfNeeded(patch_crop_size + 2 * padding, patch_crop_size + 2 * padding)(image=patch)["image"]
             pass  # lets give it the most information we can get
 
         result.append(patch)
@@ -39,7 +36,7 @@ def preprocess_3d(batch, crop_size, split_per_side, is_training=True):
     _, w, h, d, _ = batch.shape
     assert w == h and h == d, "accepting only cube volumes"
 
-    patch_overlap = 0
+    patch_overlap = 0  # dont use overlap here
     return np.stack([preprocess_volume_3d(volume, crop_size, split_per_side, patch_overlap, is_training=is_training)
                      for volume in batch])
 

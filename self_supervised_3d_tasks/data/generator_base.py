@@ -1,6 +1,5 @@
 import numpy as np
 import tensorflow.keras as keras
-from abc import abstractmethod, ABC
 
 
 class DataGeneratorBase(keras.utils.Sequence):
@@ -29,6 +28,16 @@ class DataGeneratorBase(keras.utils.Sequence):
 
         return int(np.ceil((len(self.list_IDs) * self.index_multiplicator) / self.batch_size))
 
+    @staticmethod
+    def slice_input(x, start, end):
+        if isinstance(x, list):
+            result = []
+            for ar in x:
+                result.append(ar[start:end])
+            return result
+        else:
+            return x[start:end]
+
     def __getitem__(self, index):
         if self.index_multiplicator is None:
             self.get_multiplicator()
@@ -54,8 +63,8 @@ class DataGeneratorBase(keras.utils.Sequence):
         if relative_end > len(X):
             relative_end = None
 
-        X = X[relative_start:relative_end]
-        Y = Y[relative_start:relative_end]
+        X = DataGeneratorBase.slice_input(X, relative_start, relative_end)
+        Y = DataGeneratorBase.slice_input(Y, relative_start, relative_end)
 
         return (X, Y)
 

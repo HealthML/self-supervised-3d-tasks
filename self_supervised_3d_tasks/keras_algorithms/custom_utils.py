@@ -13,7 +13,7 @@ from tensorflow.keras.applications import InceptionV3, InceptionResNetV2, ResNet
 from tensorflow.keras.applications import ResNet50, ResNet50V2, ResNet101, ResNet101V2
 from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.python.keras import Sequential
-from tensorflow.python.keras.layers import Lambda, Concatenate, TimeDistributed, MaxPooling3D, UpSampling3D
+from tensorflow.python.keras.layers import Lambda, Concatenate, TimeDistributed, MaxPooling3D, UpSampling3D, Permute
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
@@ -75,21 +75,31 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance):
                                    filters=algorithm_instance.layer_data[1])
 
         pred_patches = []
+        print("org shape")
+        print(in_shape)
         large_inputs = [Input(in_shape)]
 
         for s in reversed(algorithm_instance.layer_data[0]):
-            large_inputs.append(Input(s.shape))
+            print("big shapes")
+            print(s.shape)
+            print(in_shape[0] + s.shape[1:])
+            large_inputs.append(Input(in_shape[0] + s.shape[1:]))
 
         for p in range(in_shape[0]):
-            y = [Lambda(lambda x: x[:, p, :, :, :, :], output_shape=in_shape[2:])]
+            print("reduced sizes now")
+            print(in_shape[2:])
+            y = [Lambda(lambda x: x[:, p, :, :, :, :], output_shape=in_shape[1:])]
             for s in reversed(algorithm_instance.layer_data[0]):
-                y.append(Lambda(lambda x: x[:, p, :, :, :, :], output_shape=s.shape[2:]))
+                print("reduced sizes now")
+                print(s.shape[2:])
+                y.append(Lambda(lambda x: x[:, p, :, :, :, :], output_shape=s.shape[1:]))
 
             test = [y[i](large_inputs[i]) for i in range(len(large_inputs))]
-            print(test)
             pred_patches.append(model_up(test))
 
-        last_out = Concatenate(axis=0)(pred_patches)
+        print(len(pred_patches))
+        last_out = Concatenate()(pred_patches)
+        last_out = Permute((4, 1, 2, 3))(last_out)
         last_out = Reshape((in_shape[0],) + model_up.layers[-1].output_shape[1:])(last_out)
 
         model = Model(inputs=large_inputs, outputs=[last_out])
@@ -290,4 +300,5 @@ def prepare_encoder_3d_for_finetuning_w_patches(n_patches, embed_dim, enc_model,
     outputs = [TimeDistributed(m)(layer_in) for m in models_skip]
 
     result = Model(inputs=[layer_in], outputs=[x, *reversed(outputs)])
-    return result
+    result.summary(positions=[.23, .65, .77, 1.])  # debug
+    return result, [*models_skip, model_first_up, result]

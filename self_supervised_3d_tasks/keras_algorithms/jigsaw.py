@@ -13,7 +13,7 @@ from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     apply_encoder_model_3d,
     load_permutations,
     load_permutations_3d,
-    apply_prediction_model)
+    apply_prediction_model, prepare_encoder_3d_for_finetuning_w_patches)
 from self_supervised_3d_tasks.keras_models.fully_connected import fully_connected
 
 
@@ -175,28 +175,10 @@ class JigsawBuilder:
                 )
             )
 
-            x = TimeDistributed(self.enc_model)(layer_in)
-            flat = Flatten()(x)
-            x = Dense(self.n_patches3D * self.embed_dim)(flat)
-            x = Reshape((self.n_patches3D, self.embed_dim))(x)
-
-            first_l_shape = self.enc_model.layers[-3].output_shape[1:]
-            units = np.prod(first_l_shape)
-
-            model_first_up = Sequential()
-            model_first_up.add(Input(self.embed_dim))
-            model_first_up.add(Dense(units))
-            model_first_up.add(Reshape(first_l_shape))
-            if isinstance(self.enc_model.layers[-3], MaxPooling3D):
-                model_first_up.add(UpSampling3D((2, 2, 2)))
-
-            print(x.shape)
-            x = TimeDistributed(model_first_up)(x)  # we should have correct inputs for the next stage now
-
-            models_skip = [Model(self.enc_model.layers[0].input, x) for x in self.layer_data[0]]
-            outputs = [TimeDistributed(m)(layer_in) for m in models_skip]
-
-            result = Model(inputs=[layer_in], outputs=[x, *reversed(outputs)])
+            result, cleanup = prepare_encoder_3d_for_finetuning_w_patches(self.n_patches3D, self.embed_dim,
+                                                                          self.enc_model, self.layer_data, layer_in)
+            self.cleanup_models += cleanup
+            return result
 
         else:
             layer_in = Input(
@@ -214,12 +196,10 @@ class JigsawBuilder:
             self.cleanup_models.append(self.enc_model)
             self.cleanup_models.append(model_full)
 
-            result = Model(layer_in, x)
-
-        return result
+            return Model(layer_in, x)
 
     def purge(self):
-        for i in sorted(range(len(self.cleanup_models)), reverse=True):
+        for i in reversed(range(len(self.cleanup_models))):
             del self.cleanup_models[i]
         del self.cleanup_models
         self.cleanup_models = []

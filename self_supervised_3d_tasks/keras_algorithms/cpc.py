@@ -1,3 +1,5 @@
+import numpy as np
+
 import tensorflow.keras as keras
 import tensorflow.keras.backend as K
 
@@ -6,11 +8,11 @@ from tensorflow.keras.layers import Flatten, TimeDistributed
 
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import (
     preprocess_grid,
-    preprocess,
-    resize,
+    preprocess
 )
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess_3d import preprocess_3d, preprocess_grid_3d
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model_3d, apply_encoder_model
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model_3d, apply_encoder_model, \
+    prepare_encoder_3d_for_finetuning_w_patches
 
 
 def network_autoregressive(x):
@@ -50,6 +52,7 @@ class CPCLayer(keras.layers.Layer):
     def compute_output_shape(self, input_shape):
         return (input_shape[0][0], 1)
 
+
 class CPCBuilder:
     def __init__(
             self,
@@ -59,8 +62,6 @@ class CPCBuilder:
             split_per_side=7,
             code_size=128,
             lr=1e-3,
-            terms=9,
-            predict_terms=3,
             train3D=False,
             **kwargs,
     ):
@@ -73,8 +74,7 @@ class CPCBuilder:
         self.split_per_side = split_per_side
         self.code_size = code_size
         self.lr = lr
-        self.terms = terms
-        self.predict_terms = predict_terms
+
         self.image_size = int((data_dim / (split_per_side + 1)) * 2)
         self.image_size_3d = data_dim // split_per_side
         self.img_shape = (self.image_size, self.image_size, self.n_channels)
@@ -83,34 +83,40 @@ class CPCBuilder:
         self.train3D = train3D
         self.cleanup_models = []
 
+        self.enc_model = None
+        self.layer_data = None
+
+        prep_train = self.get_training_preprocessing()[0]
+        test_data = np.zeros((1, data_dim, data_dim, data_dim, n_channels)) if self.train3D \
+            else np.zeros((1, data_dim, data_dim, n_channels) + self.img_shape)
+        test_x = prep_train(test_data, test_data)[0]
+
+        self.terms = test_x[0].shape[1]
+        self.predict_terms = test_x[1].shape[1]
+
     def apply_model(self):
         if self.train3D:
-            print(self.img_shape_3d)
-            print(self.image_size)
-            print(self.predict_terms)
-            print(self.terms)
-            print(self.n_channels)
-
-            encoder_model, layer_data = apply_encoder_model_3d(self.img_shape_3d, self.code_size, **self.kwargs)
+            self.enc_model, self.layer_data = apply_encoder_model_3d(self.img_shape_3d, self.code_size, **self.kwargs)
             x_input = Input((self.terms, self.image_size_3d, self.image_size_3d, self.image_size_3d, self.n_channels))
-            y_input = keras.layers.Input((self.predict_terms, self.image_size_3d, self.image_size_3d, self.image_size_3d, self.n_channels))
+            y_input = keras.layers.Input(
+                (self.predict_terms, self.image_size_3d, self.image_size_3d, self.image_size_3d, self.n_channels))
         else:
-            encoder_model = apply_encoder_model(self.img_shape, self.code_size, **self.kwargs)
+            self.enc_model = apply_encoder_model(self.img_shape, self.code_size, **self.kwargs)
             x_input = Input((self.terms, self.image_size, self.image_size, self.n_channels))
             y_input = keras.layers.Input((self.predict_terms, self.image_size, self.image_size, self.n_channels))
 
-        x_encoded = TimeDistributed(encoder_model)(x_input)
+        x_encoded = TimeDistributed(self.enc_model)(x_input)
         context = network_autoregressive(x_encoded)
         preds = network_prediction(context, self.code_size, self.predict_terms)
 
-        y_encoded = keras.layers.TimeDistributed(encoder_model)(y_input)
+        y_encoded = keras.layers.TimeDistributed(self.enc_model)(y_input)
         dot_product_probs = CPCLayer()([preds, y_encoded])
         cpc_model = keras.models.Model(inputs=[x_input, y_input], outputs=dot_product_probs)
 
-        return cpc_model, encoder_model
+        return cpc_model
 
     def get_training_model(self):
-        model, enc_model = self.apply_model()
+        model = self.apply_model()
         model.compile(
             optimizer=keras.optimizers.Adam(lr=self.lr),
             loss='binary_crossentropy',
@@ -120,72 +126,57 @@ class CPCBuilder:
         return model
 
     def get_training_preprocessing(self):
-        def f_train(x, y):  # not using y here, as it gets generated
+        def f(x, y):  # not using y here, as it gets generated
             return preprocess_grid(preprocess(x, self.crop_size, self.split_per_side))
 
-        def f_val(x, y):
-            return preprocess_grid(
-                preprocess(x, self.crop_size, self.split_per_side, is_training=False)
-            )
-
-        def f_train_3d(x, y):  # not using y here, as it gets generated
+        def f_3d(x, y):  # not using y here, as it gets generated
             return preprocess_grid_3d(preprocess_3d(x, self.crop_size, self.split_per_side))
 
-        def f_val_3d(x, y):
-            return preprocess_grid(
-                preprocess_3d(x, self.crop_size, self.split_per_side, is_training=False)
-            )
-
         if self.train3D:
-            return f_train_3d, f_val_3d
+            return f_3d, f_3d
         else:
-            return f_train, f_val
+            return f, f
 
     def get_finetuning_preprocessing(self):
-        def f_train(x, y):
-            return (
-                preprocess(
-                    resize(x, self.data_dim),
-                    self.crop_size,
-                    self.split_per_side,
-                    is_training=False,
-                ),
-                y,
-            )
+        def f(x, y):  # not using y here, as it gets generated
+            return preprocess(x, self.crop_size, self.split_per_side, is_training=False), y
 
-        def f_val(x, y):
-            return (
-                preprocess(
-                    resize(x, self.data_dim),
-                    self.crop_size,
-                    self.split_per_side,
-                    is_training=False,
-                ),
-                y,
-            )
+        def f_3d(x, y):  # not using y here, as it gets generated
+            return preprocess_3d(x, self.crop_size, self.split_per_side, is_training=False), \
+                   preprocess_3d(y, self.crop_size, self.split_per_side, is_training=False)
 
-        return f_train, f_val
+        if self.train3D:
+            return f_3d, f_3d
+        else:
+            return f, f
 
     def get_finetuning_model(self, model_checkpoint=None):
-        cpc_model, encoder_model = self.apply_model()
+        cpc_model = self.apply_model()
 
         if model_checkpoint is not None:
             cpc_model.load_weights(model_checkpoint)
 
         if self.train3D:
-            layer_in = Input((self.split_per_side * self.split_per_side * self.split_per_side, ) + self.img_shape_3d)
+            assert self.layer_data is not None, "no layer data for 3D"
+
+            layer_in = Input((self.split_per_side * self.split_per_side * self.split_per_side,) + self.img_shape_3d)
+            result, cleanup = prepare_encoder_3d_for_finetuning_w_patches(
+                    self.split_per_side * self.split_per_side * self.split_per_side,
+                    self.code_size,
+                    self.enc_model, self.layer_data, layer_in)
+            self.cleanup_models += cleanup
+            return result
         else:
-            layer_in = Input((self.split_per_side * self.split_per_side * self.split_per_side, ) + self.img_shape)
+            layer_in = Input((self.split_per_side * self.split_per_side,) + self.img_shape)
+            layer_out = TimeDistributed(self.enc_model)(layer_in)
+            x = Flatten()(layer_out)
 
-        layer_out = TimeDistributed(encoder_model)(layer_in)
-        x = Flatten()(layer_out)
-
-        self.cleanup_models.append(encoder_model)
-        self.cleanup_models.append(cpc_model)
-        return Model(layer_in, x)
+            self.cleanup_models.append(self.enc_model)
+            self.cleanup_models.append(cpc_model)
+            return Model(layer_in, x)
 
     def purge(self):
-        for i in sorted(range(len(self.cleanup_models)), reverse=True):
+        for i in reversed(range(len(self.cleanup_models))):
             del self.cleanup_models[i]
         del self.cleanup_models
         self.cleanup_models = []

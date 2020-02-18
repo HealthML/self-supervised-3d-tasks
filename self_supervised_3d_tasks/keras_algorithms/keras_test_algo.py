@@ -160,10 +160,11 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     else:
         enc_model = algorithm_def.get_finetuning_model()
 
-    print(enc_model.outputs)
-
     pred_model = apply_prediction_model(input_shape=enc_model.outputs[0].shape[1:], algorithm_instance=algorithm_def,
                                         **kwargs)
+
+    enc_model.summary(positions=[.23, .65, .77, 1.])
+    pred_model.summary(positions=[.23, .65, .77, 1.])
 
     outputs = pred_model(enc_model.outputs)
     model = Model(inputs=enc_model.inputs[0], outputs=outputs)
