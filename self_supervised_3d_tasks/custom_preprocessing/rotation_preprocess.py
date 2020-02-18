@@ -22,10 +22,7 @@ def rotate_batch(x, y=None):
             image = ab.CenterCrop(height=square_size, width=square_size)(image=image)['image']
         # random transformation [0..3]
         rot = np.random.random_integers(4) - 1
-        # iterate over rotations
-        for i in range(0, rot):
-            # rotate the image
-            image = np.rot90(image)
+        image = np.rot90(image, rot)
         # set image
         rotated_batch.append(image)
         # set index
