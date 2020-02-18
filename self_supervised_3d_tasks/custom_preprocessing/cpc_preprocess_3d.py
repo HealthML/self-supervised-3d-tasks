@@ -8,9 +8,11 @@ from self_supervised_3d_tasks.custom_preprocessing.crop import crop, crop_patche
 def pad_to_final_size(volume, w):
     dim = volume.shape[0]
     f1 = int((w - dim) / 2)
-    f2 = w - f1
+    f2 = (w - dim) - f1
 
-    return np.pad(volume, (f1, f2), "edge")
+    result = np.pad(volume, ((f1, f2), (f1, f2), (f1, f2), (0, 0)), "edge")
+
+    return result
 
 
 def preprocess_volume_3d(volume, crop_size, split_per_side, patch_overlap, is_training=True):
@@ -48,11 +50,11 @@ def preprocess_3d(batch, crop_size, split_per_side, patch_overlap, is_training=T
     _, w, h, d, _ = batch.shape
     assert w == h and h == d, "accepting only cube volumes"
 
-    return np.stack([preprocess_volume_3d(volume, crop_size, split_per_side, patch_overlap, is_training=True)
+    return np.stack([preprocess_volume_3d(volume, crop_size, split_per_side, patch_overlap, is_training=is_training)
                      for volume in batch])
 
 
-def preprocess_grid_3d(image):
+def preprocess_grid_3d(image, skip_row=True):
     patches_enc = []
     patches_pred = []
     labels = []
@@ -136,12 +138,14 @@ def preprocess_grid_3d(image):
         return others
 
     end_patch_index = int(n_patches_one_dim / 2) - 1  # this is the last index of the terms
+    start_pred_patch_index = end_patch_index + 2 if skip_row else end_patch_index + 1  # skipping row or not
+
     for batch_index in range(batch_size):
         for col_index in range(n_patches_one_dim):
             for depth_index in range(n_patches_one_dim):
                 # positive example
                 terms = get_patches_for(batch_index, end_patch_index, col_index, depth_index)
-                predict_terms = get_following_patches(batch_index, end_patch_index + 2, col_index, depth_index)
+                predict_terms = get_following_patches(batch_index, start_pred_patch_index, col_index, depth_index)
                 patches_enc.append(np.stack(terms))
                 patches_pred.append(np.stack(predict_terms))
                 labels.append(1)
@@ -156,7 +160,7 @@ def preprocess_grid_3d(image):
                     r_col = np.random.randint(n_patches_one_dim)
                     r_dep = np.random.randint(n_patches_one_dim)
 
-                predict_terms = get_following_patches(r_batch, end_patch_index + 2, r_col, r_dep)
+                predict_terms = get_following_patches(r_batch, start_pred_patch_index, r_col, r_dep)
                 patches_enc.append(np.stack(terms))
                 patches_pred.append(np.stack(predict_terms))
                 labels.append(0)

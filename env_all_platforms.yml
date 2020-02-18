@@ -9,9 +9,12 @@ dependencies:
   - scikit-learn
   - scipy
   - tensorboard
-  - tensorflow-gpu=1.12
-  - tensorflow-base
   - requests
+  - cudatoolkit=10.1
+  - cudnn
   - pip
   - pip:
     - tensorflow_hub
+    - tensorflow==2.1
+    - tensorflow-gpu==2.1
+

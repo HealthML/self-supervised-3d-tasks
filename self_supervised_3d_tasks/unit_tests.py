@@ -1,5 +1,6 @@
 import functools
 import glob
+import os
 import time
 
 import absl.flags as flags
@@ -10,9 +11,12 @@ from PIL import Image
 
 from self_supervised_3d_tasks.algorithms.patch_model_preprocess import get_crop_patches_fn
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess, preprocess_grid
+from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess_3d import preprocess_grid_3d, preprocess_volume_3d, \
+    preprocess_3d
 from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import apply_to_x
 from self_supervised_3d_tasks.data.data_generator import get_data_generators
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
+from self_supervised_3d_tasks.data.numpy_3d_loader import DataGeneratorUnlabeled3D
 from self_supervised_3d_tasks.keras_algorithms import cpc
 from self_supervised_3d_tasks.keras_algorithms.jigsaw import JigsawBuilder
 from self_supervised_3d_tasks.keras_algorithms.rotation import RotationBuilder
@@ -329,7 +333,7 @@ def plot_3d(image, dim_to_animate):
             im = np.squeeze(img[idx], axis=2)
 
             if frame[i] is None:
-                frame[i] = ax[i].imshow(im, cmap="binary")
+                frame[i] = ax[i].imshow(im, cmap="jet")
             else:
                 frame[i].set_data(im)
 
@@ -388,14 +392,58 @@ def test_rotation():
     show_batch(xxx[0])
     print(xxx[1])
 
+def test_cpc3d():
+    train_gen = get_data_generators("/mnt/mpws2019cl1/Task07_Pancreas/imagesPt", train3D=True,
+                                    train_data_generator_args={"batch_size": 1, "data_dim": 128},
+                                    val_data_generator_args={"batch_size": 1, "data_dim": 128})[0]
+    batch = train_gen[0]
+    X_batch = batch[0]
+
+    print(X_batch.shape)
+
+    patches = preprocess_3d(X_batch, 118, 4, 2)
+
+    print(patches.shape)
+
+    result = preprocess_grid_3d(patches)
+    result_X = result[0]
+    result_perms = result_X[0]
+
+    print(result_perms.shape)
+
+def test_3d_croppingetc():
+    import nibabel as nib
+
+    image = np.load("/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128/pancreas_002.nii.gz.npy")
+    img = nib.load("/mnt/mpws2019cl1/Task07_Pancreas/imagesPt/pancreas_002.nii.gz")
+    img = img.get_fdata()
+
+    img = np.expand_dims(img, axis=-1)
+
+    #img = np.expand_dims(img, axis=0)
+    #image = np.expand_dims(image, axis=0)
+
+    print(image.shape)
+    print(img.shape)
+
+    plot_3d([img, image], 1)
 
 if __name__ == "__main__":
-    cube = np.ones((128,128,128,1))
-    print(cube.shape)
+    path="/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128"
+    gen = DataGeneratorUnlabeled3D(path, os.listdir(path), batch_size=9, data_dim=128,
+                                   pre_proc_func=lambda x,y: (np.repeat(x, 2, 0), np.repeat(y, 2, 0)))
 
-    cube = np.flip(cube, 1)
-    print(cube.shape)
+    print(gen.__len__())
 
-    volume = np.transpose(np.flip(x, 1), (0, 2, 1, 3))  # 90 deg X
-    volume = np.transpose(np.flip(cube, 1), (0, 2, 1, 3))
-    print(volume.shape)
+    i = 0
+    for batch in gen:
+        i+=1
+
+        X_batch = batch[0]
+        Y_batch = batch[1]
+
+        print(X_batch.shape)
+        #print(Y_batch.shape)
+
+    print("iterations")
+    print(i)

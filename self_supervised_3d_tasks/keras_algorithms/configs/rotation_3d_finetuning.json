@@ -1,0 +1,16 @@
+{
+  "algorithm": "rotation",
+  "data_dir": "/mnt/mpws2019cl1/Task07_Pancreas/imagesPt",
+  "dataset_name": "pancreas3d",
+  "train3D": true,
+  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_11/weights-improvement-125.hdf5",
+  "repetitions": 1,
+  "epochs": 6,
+  "epochs_warmup": 2,
+  "prediction_architecture": "big_fully",
+  "data_dim": 128,
+  "batch_size": 8,
+  "n_channels": 1,
+  "patch_jitter": 5,
+  "top_architecture": "big_fully"
+}
