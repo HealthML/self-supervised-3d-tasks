@@ -16,7 +16,7 @@ keras_algorithm_list = {
 
 dataset_dir_list = {
     "kaggle_retina": "/mnt/mpws2019cl1/kaggle_retina/train/resized_384",
-    "ukb_retina": "/mnt/mpws2019cl1/retinal_fundus/left/max_256/"
+    "ukb_retina": "/mnt/mpws2019cl1/retinal_fundus/left/max_256/",
     "rpl": relative_patch_location,
     "rotation": rotation
 }
