@@ -84,9 +84,9 @@ def downconv_model_3d(
     )
 
     if pooling == "max":
-        x = MaxPooling3D()(x)
+        x = MaxPooling3D((2, 2, 2))(x)
     elif pooling == "avg":
-        x = AveragePooling3D()(x)
+        x = AveragePooling3D((2, 2, 2))(x)
 
 
     model = Model(inputs=[inputs], outputs=[x])
@@ -105,6 +105,7 @@ def upconv_model_3d(
         down_layers=(),
         output_activation="sigmoid",  # 'sigmoid' or 'softmax'
 ):
+    print(input_shape)
     inp = Input(input_shape)
     inputs = [inp]
     x = inp
@@ -149,6 +150,7 @@ def custom_unet_3d(
         dropout_change_per_layer=dropout_change_per_layer,
         filters=filters,
         num_layers=num_layers,
+        pooling="avg"
     )
     upconv = upconv_model_3d(
         downconv.layers[-1].output_shape[1:],

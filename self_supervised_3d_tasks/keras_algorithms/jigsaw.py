@@ -27,6 +27,9 @@ class JigsawBuilder:
             train3D=False,
             **kwargs
     ):
+        if (not self.patch_jitter == 0) and train3D:
+            raise ValueError("patch_jitter is currently not supported in 3D")
+
         self.data_dim = data_dim
         self.split_per_side = split_per_side
         self.patch_jitter = patch_jitter
@@ -56,7 +59,7 @@ class JigsawBuilder:
                     self.n_channels,
                 )
             )
-            enc_model = apply_encoder_model_3d(
+            enc_model, layer_data = apply_encoder_model_3d(
                 (self.patch_dim, self.patch_dim, self.patch_dim, self.n_channels,),
                 self.embed_dim, **self.kwargs
             )

@@ -1,6 +1,13 @@
+import numpy as np
+
+from tensorflow.keras.layers import MaxPooling3D
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import Reshape
+from tensorflow.keras.models import load_model, Model
+from tensorflow.python.keras import Input
+from tensorflow.python.keras.layers import UpSampling3D
 
 from self_supervised_3d_tasks.custom_preprocessing.rotation_preprocess import (
     rotate_batch,
@@ -9,7 +16,6 @@ from self_supervised_3d_tasks.custom_preprocessing.rotation_preprocess import (
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     apply_encoder_model,
     apply_encoder_model_3d,
-    get_prediction_model,
     apply_prediction_model,
 )
 
@@ -42,9 +48,12 @@ class RotationBuilder:
         self.cleanup_models = []
         self.train3D = train3D
 
+        self.enc_model = None
+        self.layer_data = None
+
     def apply_model(self):
         if self.train3D:
-            enc_model = apply_encoder_model_3d(
+            self.enc_model, self.layer_data = apply_encoder_model_3d(
                 self.img_shape_3d, self.embed_dim, **self.kwargs
             )
             a = apply_prediction_model(
@@ -54,7 +63,7 @@ class RotationBuilder:
             )
             x = Dense(10, activation="softmax")
         else:
-            enc_model = apply_encoder_model(
+            self.enc_model = apply_encoder_model(
                 self.img_shape, self.embed_dim, **self.kwargs
             )
             a = apply_prediction_model(
@@ -64,14 +73,18 @@ class RotationBuilder:
             )
             x = Dense(4, activation="softmax")
 
-        model = Sequential([enc_model, a, x])
-        enc_model.summary()
+        if a is None:
+            model = Sequential([self.enc_model, x])
+        else:
+            model = Sequential([self.enc_model, a, x])
+
+        self.enc_model.summary()
         model.summary()
 
-        return model, enc_model
+        return model
 
     def get_training_model(self):
-        model, _ = self.apply_model()
+        model = self.apply_model()
 
         model.compile(
             optimizer=Adam(lr=self.lr),
@@ -100,14 +113,34 @@ class RotationBuilder:
         return f_identity, f_identity
 
     def get_finetuning_model(self, model_checkpoint=None):
-        org_model, enc_model = self.apply_model()
+        org_model = self.apply_model()
+
+        assert self.enc_model is not None, "no encoder model"
+
+        if self.train3D:
+            assert self.layer_data is not None, "no layer data for 3D"
+
+        if self.train3D:
+            first_l_shape = self.enc_model.layers[-3].output_shape[1:]
+            units = np.prod(first_l_shape)
+
+            x = Dense(units)(self.enc_model.layers[-1].output)
+            x = Reshape(first_l_shape)(x)
+
+            if isinstance(self.enc_model.layers[-3], MaxPooling3D):
+                x = UpSampling3D((2,2,2))(x)
+
+            self.enc_model = Model(inputs=[self.enc_model.layers[0].input], outputs=[x, *reversed(self.layer_data[0])])
 
         if model_checkpoint is not None:
+            model_x = load_model(model_checkpoint)
+            model_x.summary()
+
             org_model.load_weights(model_checkpoint)
 
         self.cleanup_models.append(org_model)
-        self.cleanup_models.append(enc_model)
-        return enc_model
+        self.cleanup_models.append(self.enc_model)
+        return self.enc_model
 
     def purge(self):
         for i in sorted(range(len(self.cleanup_models)), reverse=True):

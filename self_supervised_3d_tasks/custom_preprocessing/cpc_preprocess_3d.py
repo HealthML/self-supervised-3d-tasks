@@ -46,10 +46,11 @@ def preprocess_volume_3d(volume, crop_size, split_per_side, patch_overlap, is_tr
     return np.asarray(result)
 
 
-def preprocess_3d(batch, crop_size, split_per_side, patch_overlap, is_training=True):
+def preprocess_3d(batch, crop_size, split_per_side, is_training=True):
     _, w, h, d, _ = batch.shape
     assert w == h and h == d, "accepting only cube volumes"
 
+    patch_overlap = 0
     return np.stack([preprocess_volume_3d(volume, crop_size, split_per_side, patch_overlap, is_training=is_training)
                      for volume in batch])
 

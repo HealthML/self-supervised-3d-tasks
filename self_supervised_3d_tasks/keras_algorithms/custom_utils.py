@@ -16,7 +16,7 @@ from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
 from self_supervised_3d_tasks.keras_models.fully_connected import fully_connected_big
 from self_supervised_3d_tasks.keras_models.unet import downconv_model
-from self_supervised_3d_tasks.keras_models.unet3d import downconv_model_3d
+from self_supervised_3d_tasks.keras_models.unet3d import downconv_model_3d, upconv_model_3d
 
 
 def init(f, name="training", NGPUS=1):
@@ -53,11 +53,19 @@ def init(f, name="training", NGPUS=1):
             f(**args)
 
 
-def get_prediction_model(name, in_shape, include_top=True):
+def get_prediction_model(name, in_shape, include_top, algorithm_instance):
     if name == "big_fully":
         input_l = Input(in_shape)
         output_l = fully_connected_big(input_l, include_top=include_top)
         model = Model(input_l, output_l)
+    elif name == "unet_3d_upconv":
+        assert algorithm_instance is not None, "no algorithm instance for 3d skip connections found"
+        assert algorithm_instance.layer_data is not None, "no layer data for 3d skip connections found"
+
+        model = upconv_model_3d(in_shape, down_layers=algorithm_instance.layer_data[0],
+                        filters=algorithm_instance.layer_data[1])
+    elif name == "none":
+        return None
     else:
         raise ValueError("model " + name + " not found")
 
@@ -70,10 +78,11 @@ def apply_prediction_model(
         dim_prediction_layers=1024,
         prediction_architecture=None,
         include_top=True,
+        algorithm_instance=None,
         **kwargs
 ):
     if prediction_architecture is not None:
-        model = get_prediction_model(prediction_architecture, input_shape, include_top)
+        model = get_prediction_model(prediction_architecture, input_shape, include_top, algorithm_instance)
     else:
         layer_in = Input(input_shape)
         x = layer_in
@@ -136,9 +145,9 @@ def apply_encoder_model_3d(
         **kwargs
 ):
     if encoder_architecture is not None:
-        model = get_encoder_model_3d(encoder_architecture, input_shape)
+        model, layer_data = get_encoder_model_3d(encoder_architecture, input_shape)
     else:
-        model, _ = downconv_model_3d(
+        model, layer_data = downconv_model_3d(
             input_shape, num_layers=num_layers, pooling=pooling
         )
 
@@ -146,7 +155,7 @@ def apply_encoder_model_3d(
     x = Dense(code_size)(x)
 
     enc_model = Model(model.inputs[0], x, name="encoder")
-    return enc_model
+    return enc_model, layer_data
 
 
 def apply_encoder_model(

@@ -14,7 +14,7 @@ from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preproc
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess_3d import preprocess_grid_3d, preprocess_volume_3d, \
     preprocess_3d
 from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import apply_to_x
-from self_supervised_3d_tasks.data.data_generator import get_data_generators
+from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.data.numpy_3d_loader import DataGeneratorUnlabeled3D
 from self_supervised_3d_tasks.keras_algorithms import cpc
@@ -23,6 +23,7 @@ from self_supervised_3d_tasks.keras_algorithms.rotation import RotationBuilder
 from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
     get_pad
 
+import nibabel as nib
 
 def plot_sequences(x, y, labels=None, output_path=None):
     ''' Draws a plot where sequences of numbers can be studied conveniently '''
@@ -327,13 +328,15 @@ def plot_3d(image, dim_to_animate):
             ani[i] += 1
 
             if ani[i] >= img.shape[dim_to_animate]:
-                ani[i] = 0
+                ani[i] = -1
 
             idx = [ani[i] if dim == dim_to_animate else slice(None) for dim in range(img.ndim)]
             im = np.squeeze(img[idx], axis=2)
 
             if frame[i] is None:
-                frame[i] = ax[i].imshow(im, cmap="jet")
+                init = np.zeros(im.shape)
+                init[0,0]=1
+                frame[i] = ax[i].imshow(init, cmap="inferno")
             else:
                 frame[i].set_data(im)
 
@@ -412,7 +415,6 @@ def test_cpc3d():
     print(result_perms.shape)
 
 def test_3d_croppingetc():
-    import nibabel as nib
 
     image = np.load("/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128/pancreas_002.nii.gz.npy")
     img = nib.load("/mnt/mpws2019cl1/Task07_Pancreas/imagesPt/pancreas_002.nii.gz")
@@ -426,9 +428,22 @@ def test_3d_croppingetc():
     print(image.shape)
     print(img.shape)
 
-    plot_3d([img, image], 1)
+    img = (img - img.min()) / (img.max() - img.min())
 
-if __name__ == "__main__":
+    print(img.max())
+    print(img.min())
+    print(img.mean())
+
+    print(image.max())
+    print(image.min())
+    print(image.mean())
+
+    print(img.dtype)
+    print(img.shape)
+    # plot_3d([img], 2)
+    return img
+
+def test_XXXXX():
     path="/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128"
     gen = DataGeneratorUnlabeled3D(path, os.listdir(path), batch_size=9, data_dim=128,
                                    pre_proc_func=lambda x,y: (np.repeat(x, 2, 0), np.repeat(y, 2, 0)))
@@ -447,3 +462,24 @@ if __name__ == "__main__":
 
     print("iterations")
     print(i)
+
+def get_data_norm(path):
+    img = nib.load(path)
+    img = img.get_fdata()
+    img = np.expand_dims(img, axis=-1)
+
+    img = (img - img.min()) / (img.max() - img.min())
+
+    return img
+
+def get_data_norm_npy(path):
+    img = np.load(path)
+    img = (img - img.min()) / (img.max() - img.min())
+
+    return img
+
+if __name__ == "__main__":
+    p1 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/pancreas_175.npy"
+    p2 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/pancreas_175_label.npy"
+
+    plot_3d([get_data_norm_npy(p1),get_data_norm_npy(p2)], 2)

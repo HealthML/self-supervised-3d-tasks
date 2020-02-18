@@ -61,7 +61,6 @@ class CPCBuilder:
             lr=1e-3,
             terms=9,
             predict_terms=3,
-            patch_overlap_3d=2,
             train3D=False,
             **kwargs,
     ):
@@ -72,13 +71,12 @@ class CPCBuilder:
         self.n_channels = n_channels
         self.crop_size = crop_size
         self.split_per_side = split_per_side
-        self.patch_overlap_3d = patch_overlap_3d
         self.code_size = code_size
         self.lr = lr
         self.terms = terms
         self.predict_terms = predict_terms
         self.image_size = int((data_dim / (split_per_side + 1)) * 2)
-        self.image_size_3d = ((data_dim - patch_overlap_3d) // split_per_side) + patch_overlap_3d
+        self.image_size_3d = data_dim // split_per_side
         self.img_shape = (self.image_size, self.image_size, self.n_channels)
         self.img_shape_3d = (self.image_size_3d, self.image_size_3d, self.image_size_3d, self.n_channels)
         self.kwargs = kwargs
@@ -93,7 +91,7 @@ class CPCBuilder:
             print(self.terms)
             print(self.n_channels)
 
-            encoder_model = apply_encoder_model_3d(self.img_shape_3d, self.code_size, **self.kwargs)
+            encoder_model, layer_data = apply_encoder_model_3d(self.img_shape_3d, self.code_size, **self.kwargs)
             x_input = Input((self.terms, self.image_size_3d, self.image_size_3d, self.image_size_3d, self.n_channels))
             y_input = keras.layers.Input((self.predict_terms, self.image_size_3d, self.image_size_3d, self.image_size_3d, self.n_channels))
         else:
@@ -131,11 +129,11 @@ class CPCBuilder:
             )
 
         def f_train_3d(x, y):  # not using y here, as it gets generated
-            return preprocess_grid_3d(preprocess_3d(x, self.crop_size, self.split_per_side, self.patch_overlap_3d))
+            return preprocess_grid_3d(preprocess_3d(x, self.crop_size, self.split_per_side))
 
         def f_val_3d(x, y):
             return preprocess_grid(
-                preprocess_3d(x, self.crop_size, self.split_per_side, self.patch_overlap_3d, is_training=False)
+                preprocess_3d(x, self.crop_size, self.split_per_side, is_training=False)
             )
 
         if self.train3D:
