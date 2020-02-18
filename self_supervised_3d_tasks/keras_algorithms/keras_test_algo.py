@@ -2,16 +2,13 @@ import csv
 import gc
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas
-from tensorflow.keras.metrics import binary_accuracy
 from sklearn.metrics import cohen_kappa_score, jaccard_score
-from tensorflow.keras import Sequential
 from tensorflow.keras import backend as K
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import plot_model
 from tensorflow.python.keras import Model
+from tensorflow.python.keras.metrics import BinaryAccuracy, CategoricalAccuracy
 
 from self_supervised_3d_tasks.data.kaggle_retina_data import get_kaggle_generator
 from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
@@ -25,14 +22,20 @@ def score_kappa(y, y_pred):
 
 
 def score_bin_acc(y, y_pred):
-    return binary_accuracy(y, y_pred)
+    m = BinaryAccuracy()
+    m.update_state(y, y_pred)
+
+    return m.result().numpy()
 
 
 def score_cat_acc(y, y_pred):
     y = np.rint(y).flatten()
     y_pred = np.rint(y_pred).flatten()
 
-    return binary_accuracy(y, y_pred)
+    m = CategoricalAccuracy()
+    m.update_state(y, y_pred)
+
+    return m.result().numpy()
 
 
 def score_jaccard(y, y_pred):
@@ -157,6 +160,8 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     else:
         enc_model = algorithm_def.get_finetuning_model()
 
+    print(enc_model.outputs)
+
     pred_model = apply_prediction_model(input_shape=enc_model.outputs[0].shape[1:], algorithm_instance=algorithm_def,
                                         **kwargs)
 
@@ -167,28 +172,28 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     # debugging
     plot_model(model, to_file="/home/Winfried.Loetzsch/test_architecture.png", expand_nested=True)
 
-    # if freeze_weights or load_weights:
-    #     enc_model.trainable = False
-    #
-    # if load_weights:
-    #     assert epochs_warmup < epochs, "warmup epochs must be smaller than epochs"
-    #
-    #     print(("-" * 10) + "LOADING weights, encoder model is trainable after warm-up")
-    #     print(("-"*5) + " encoder model is frozen")
-    #     model.compile(optimizer=Adam(lr=lr), loss="mse", metrics=["mae"])
-    #     model.fit_generator(generator=gen, epochs=epochs_warmup) TODO: add gen_val here
-    #     epochs = epochs - epochs_warmup
-    #
-    #     enc_model.trainable = True
-    #     print(("-"*5) + " encoder model unfrozen")
-    # elif freeze_weights:
-    #     print(("-" * 10) + "LOADING weights, encoder model is completely frozen")
-    # else:
-    #     print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
-    #
-    # # recompile model
+    if freeze_weights or load_weights:
+        enc_model.trainable = False
+
+    if load_weights:
+        assert epochs_warmup < epochs, "warmup epochs must be smaller than epochs"
+
+        print(("-" * 10) + "LOADING weights, encoder model is trainable after warm-up")
+        print(("-"*5) + " encoder model is frozen")
+        model.compile(optimizer=Adam(lr=lr), loss="mse", metrics=["mae"])
+        model.fit(x=gen_train, validation_data=gen_val, epochs=epochs_warmup)
+        epochs = epochs - epochs_warmup
+
+        enc_model.trainable = True
+        print(("-"*5) + " encoder model unfrozen")
+    elif freeze_weights:
+        print(("-" * 10) + "LOADING weights, encoder model is completely frozen")
+    else:
+        print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
+
+    # recompile model
     model.compile(optimizer=Adam(lr=lr), loss="mse", metrics=["mae"])
-    # model.fit_generator(generator=gen, epochs=epochs) TODO: add gen_val here
+    model.fit(x=gen_train, validation_data=gen_val, epochs=epochs)
 
     y_pred = model.predict(x_test, batch_size=batch_size)
     scores_f = make_scores(y_test, y_pred, scores)

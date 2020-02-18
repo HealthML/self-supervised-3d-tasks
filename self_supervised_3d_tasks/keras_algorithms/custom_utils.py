@@ -7,10 +7,13 @@ from pathlib import Path
 
 import numpy as np
 import tensorflow as tf
+from tensorflow.keras.layers import Reshape
 from tensorflow.keras import Model, Input
 from tensorflow.keras.applications import InceptionV3, InceptionResNetV2, ResNet152
 from tensorflow.keras.applications import ResNet50, ResNet50V2, ResNet101, ResNet101V2
 from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.python.keras import Sequential
+from tensorflow.python.keras.layers import Lambda, Concatenate, TimeDistributed, MaxPooling3D, UpSampling3D
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
@@ -63,7 +66,33 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance):
         assert algorithm_instance.layer_data is not None, "no layer data for 3d skip connections found"
 
         model = upconv_model_3d(in_shape, down_layers=algorithm_instance.layer_data[0],
-                        filters=algorithm_instance.layer_data[1])
+                                filters=algorithm_instance.layer_data[1])
+    elif name == "unet_3d_upconv_patches":
+        assert algorithm_instance is not None, "no algorithm instance for 3d skip connections found"
+        assert algorithm_instance.layer_data is not None, "no layer data for 3d skip connections found"
+
+        model_up = upconv_model_3d(in_shape[1:], down_layers=algorithm_instance.layer_data[0],
+                                   filters=algorithm_instance.layer_data[1])
+
+        pred_patches = []
+        large_inputs = [Input(in_shape)]
+
+        for s in reversed(algorithm_instance.layer_data[0]):
+            large_inputs.append(Input(s.shape))
+
+        for p in range(in_shape[0]):
+            y = [Lambda(lambda x: x[:, p, :, :, :, :], output_shape=in_shape[2:])]
+            for s in reversed(algorithm_instance.layer_data[0]):
+                y.append(Lambda(lambda x: x[:, p, :, :, :, :], output_shape=s.shape[2:]))
+
+            test = [y[i](large_inputs[i]) for i in range(len(large_inputs))]
+            print(test)
+            pred_patches.append(model_up(test))
+
+        last_out = Concatenate(axis=0)(pred_patches)
+        last_out = Reshape((in_shape[0],) + model_up.layers[-1].output_shape[1:])(last_out)
+
+        model = Model(inputs=large_inputs, outputs=[last_out])
     elif name == "none":
         return None
     else:
@@ -237,3 +266,28 @@ def get_writing_path(working_dir, root_config_file):
     shutil.copy2(root_config_file, working_dir)
 
     return Path(working_dir)
+
+
+def prepare_encoder_3d_for_finetuning_w_patches(n_patches, embed_dim, enc_model, layer_data, layer_in):
+    x = TimeDistributed(enc_model)(layer_in)
+    flat = Flatten()(x)
+    x = Dense(n_patches * embed_dim)(flat)
+    x = Reshape((n_patches, embed_dim))(x)
+
+    first_l_shape = enc_model.layers[-3].output_shape[1:]
+    units = np.prod(first_l_shape)
+
+    model_first_up = Sequential()
+    model_first_up.add(Input(embed_dim))
+    model_first_up.add(Dense(units))
+    model_first_up.add(Reshape(first_l_shape))
+    if isinstance(enc_model.layers[-3], MaxPooling3D):
+        model_first_up.add(UpSampling3D((2, 2, 2)))
+
+    x = TimeDistributed(model_first_up)(x)
+
+    models_skip = [Model(enc_model.layers[0].input, x) for x in layer_data[0]]
+    outputs = [TimeDistributed(m)(layer_in) for m in models_skip]
+
+    result = Model(inputs=[layer_in], outputs=[x, *reversed(outputs)])
+    return result

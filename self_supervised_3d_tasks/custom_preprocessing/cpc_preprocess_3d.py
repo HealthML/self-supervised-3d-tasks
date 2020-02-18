@@ -1,18 +1,7 @@
-from math import sqrt
-
-import albumentations as ab
 import numpy as np
-from self_supervised_3d_tasks.custom_preprocessing.crop import crop, crop_patches, crop_patches_3d, crop_3d
 
-
-def pad_to_final_size(volume, w):
-    dim = volume.shape[0]
-    f1 = int((w - dim) / 2)
-    f2 = (w - dim) - f1
-
-    result = np.pad(volume, ((f1, f2), (f1, f2), (f1, f2), (0, 0)), "edge")
-
-    return result
+from self_supervised_3d_tasks.custom_preprocessing.crop import crop_patches_3d, crop_3d
+from self_supervised_3d_tasks.custom_preprocessing.pad import pad_to_final_size_3d
 
 
 def preprocess_volume_3d(volume, crop_size, split_per_side, patch_overlap, is_training=True):
@@ -21,7 +10,7 @@ def preprocess_volume_3d(volume, crop_size, split_per_side, patch_overlap, is_tr
 
     if is_training:
         volume = crop_3d(volume, is_training, (crop_size, crop_size, crop_size))
-        volume = pad_to_final_size(volume, w)
+        volume = pad_to_final_size_3d(volume, w)
 
     for patch in crop_patches_3d(volume, is_training, split_per_side, -patch_overlap):
         if is_training:
@@ -33,7 +22,7 @@ def preprocess_volume_3d(volume, crop_size, split_per_side, patch_overlap, is_tr
                 patch = np.flip(patch, 0)
 
             patch = crop_3d(patch, is_training, (patch_crop_size, patch_crop_size, patch_crop_size))
-            patch = pad_to_final_size(patch, normal_patch_size)
+            patch = pad_to_final_size_3d(patch, normal_patch_size)
 
         else:
             # patch = crop(patch, is_training, (patch_crop_size, patch_crop_size))  # center crop here
@@ -55,7 +44,7 @@ def preprocess_3d(batch, crop_size, split_per_side, is_training=True):
                      for volume in batch])
 
 
-def preprocess_grid_3d(image, skip_row=True):
+def preprocess_grid_3d(image, skip_row=False):
     patches_enc = []
     patches_pred = []
     labels = []

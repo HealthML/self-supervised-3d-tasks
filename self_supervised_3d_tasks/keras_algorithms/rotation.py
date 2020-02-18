@@ -56,23 +56,20 @@ class RotationBuilder:
             self.enc_model, self.layer_data = apply_encoder_model_3d(
                 self.img_shape_3d, self.embed_dim, **self.kwargs
             )
-            a = apply_prediction_model(
-                self.embed_dim,
-                prediction_architecture=self.top_architecture,
-                include_top=False,
-            )
             x = Dense(10, activation="softmax")
         else:
             self.enc_model = apply_encoder_model(
                 self.img_shape, self.embed_dim, **self.kwargs
             )
-            a = apply_prediction_model(
-                self.embed_dim,
-                prediction_architecture=self.top_architecture,
-                include_top=False,
-            )
             x = Dense(4, activation="softmax")
 
+        a = apply_prediction_model(
+            self.embed_dim,
+            prediction_architecture=self.top_architecture,
+            include_top=False,
+        )
+
+        # should we include additional layers for predicting
         if a is None:
             model = Sequential([self.enc_model, x])
         else:
@@ -85,7 +82,6 @@ class RotationBuilder:
 
     def get_training_model(self):
         model = self.apply_model()
-
         model.compile(
             optimizer=Adam(lr=self.lr),
             loss="categorical_crossentropy",
@@ -117,10 +113,12 @@ class RotationBuilder:
 
         assert self.enc_model is not None, "no encoder model"
 
+        if model_checkpoint is not None:
+            org_model.load_weights(model_checkpoint)
+
         if self.train3D:
             assert self.layer_data is not None, "no layer data for 3D"
 
-        if self.train3D:
             first_l_shape = self.enc_model.layers[-3].output_shape[1:]
             units = np.prod(first_l_shape)
 
@@ -130,13 +128,8 @@ class RotationBuilder:
             if isinstance(self.enc_model.layers[-3], MaxPooling3D):
                 x = UpSampling3D((2,2,2))(x)
 
+            self.cleanup_models.append(self.enc_model)
             self.enc_model = Model(inputs=[self.enc_model.layers[0].input], outputs=[x, *reversed(self.layer_data[0])])
-
-        if model_checkpoint is not None:
-            model_x = load_model(model_checkpoint)
-            model_x.summary()
-
-            org_model.load_weights(model_checkpoint)
 
         self.cleanup_models.append(org_model)
         self.cleanup_models.append(self.enc_model)

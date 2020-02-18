@@ -16,7 +16,6 @@ class DataGeneratorUnlabeled3D(DataGeneratorBase):
 
         for file_name in list_files_temp:
             path_to_image = "{}/{}".format(self.path_to_data, file_name)
-
             img = np.load(path_to_image)
 
             data_x.append(img)
