@@ -1,10 +1,11 @@
 {
-  "algorithm": "rotation",
-  "data_dir": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128",
+  "algorithm": "rpl",
+  "data_dir": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128/",
   "dataset_name": "pancreas3d",
   "train3D": true,
   "data_dim": 128,
   "batch_size": 8,
   "n_channels": 1,
+  "patch_jitter": 8,
   "top_architecture": "big_fully"
 }

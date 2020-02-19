@@ -4,7 +4,7 @@ import sys
 import tensorflow.keras as keras
 from os.path import join, expanduser
 
-from self_supervised_3d_tasks.data.data_generator import get_data_generators
+from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
 from self_supervised_3d_tasks.keras_models.res_net_2d import get_res_net_2d
 
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee

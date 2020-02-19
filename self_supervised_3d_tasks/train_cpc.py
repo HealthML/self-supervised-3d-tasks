@@ -7,7 +7,7 @@ import tensorflow.keras as keras
 
 from self_supervised_3d_tasks.algorithms.contrastive_predictive_coding import network_cpc
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess, preprocess_grid
-from self_supervised_3d_tasks.data.data_generator import get_data_generators
+from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
 from self_supervised_3d_tasks.data_util.cpc_utils import SortedNumberGenerator
 from self_supervised_3d_tasks.algorithms.contrastive_predictive_coding import network_cpc
 

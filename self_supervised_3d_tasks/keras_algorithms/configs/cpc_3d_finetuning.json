@@ -1,0 +1,19 @@
+{
+  "algorithm": "cpc",
+  "batch_size": 1,
+  "dataset_name": "pancreas3d",
+  "train3D": true,
+  "data_dim": 128,
+  "n_channels": 1,
+  "split_per_side": 4,
+  "data_dir_train": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train",
+  "data_dir_test": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/test",
+  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_pancreas3d_22/weights-improvement-001.hdf5",
+  "repetitions": 1,
+  "epochs": 6,
+  "epochs_warmup": 2,
+  "prediction_architecture": "unet_3d_upconv_patches",
+  "exp_splits": [90],
+  "scores": ["dice", "cat_accuracy"],
+  "patch_dim": 64
+}
