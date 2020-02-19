@@ -3,6 +3,7 @@ from tensorflow.keras.layers import Reshape
 from tensorflow.keras import Input, Model, Sequential
 from tensorflow.keras.layers import TimeDistributed, Flatten, Dense, MaxPooling3D, UpSampling3D
 from tensorflow.keras.optimizers import Adam
+from tensorflow.python.keras.layers.pooling import Pooling3D
 
 from self_supervised_3d_tasks.custom_preprocessing.jigsaw_preprocess import (
     preprocess,
@@ -13,7 +14,7 @@ from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     apply_encoder_model_3d,
     load_permutations,
     load_permutations_3d,
-    apply_prediction_model, prepare_encoder_3d_for_finetuning_w_patches)
+    apply_prediction_model)
 from self_supervised_3d_tasks.keras_models.fully_connected import fully_connected
 
 
@@ -175,9 +176,18 @@ class JigsawBuilder:
                 )
             )
 
-            result, cleanup = prepare_encoder_3d_for_finetuning_w_patches(self.n_patches3D, self.embed_dim,
-                                                                          self.enc_model, self.layer_data, layer_in)
-            self.cleanup_models += cleanup
+            out_one = TimeDistributed(self.enc_model)(layer_in)
+
+            models_skip = [Model(self.enc_model.layers[0].input, x) for x in self.layer_data[0]]
+            outputs = [TimeDistributed(m)(layer_in) for m in models_skip]
+
+            result = Model(inputs=[layer_in], outputs=[out_one, *reversed(outputs)])
+            # result.summary(positions=[.23, .65, .77, 1.])  # debug
+
+            self.layer_data.append((self.enc_model.layers[-3].output_shape[1:],
+                                    isinstance(self.enc_model.layers[-3], Pooling3D)))
+
+            self.cleanup_models += [*models_skip, result]
             return result
 
         else:
