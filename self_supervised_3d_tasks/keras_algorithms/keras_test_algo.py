@@ -163,9 +163,6 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     pred_model = apply_prediction_model(input_shape=enc_model.outputs[0].shape[1:], algorithm_instance=algorithm_def,
                                         **kwargs)
 
-    enc_model.summary(positions=[.23, .65, .77, 1.])
-    pred_model.summary(positions=[.23, .65, .77, 1.])
-
     outputs = pred_model(enc_model.outputs)
     model = Model(inputs=enc_model.inputs[0], outputs=outputs)
     model.summary()
@@ -207,7 +204,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     algorithm_def.purge()
     K.clear_session()
 
-    for i in range(5):
+    for i in range(15):
         gc.collect()
 
     for s in scores_f:

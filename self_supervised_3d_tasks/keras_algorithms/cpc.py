@@ -5,14 +5,14 @@ import tensorflow.keras.backend as K
 
 from tensorflow.keras import Model, Input
 from tensorflow.keras.layers import Flatten, TimeDistributed
+from tensorflow.python.keras.layers.pooling import Pooling3D
 
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import (
     preprocess_grid,
     preprocess
 )
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess_3d import preprocess_3d, preprocess_grid_3d
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model_3d, apply_encoder_model, \
-    prepare_encoder_3d_for_finetuning_w_patches
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model_3d, apply_encoder_model
 
 
 def network_autoregressive(x):
@@ -160,11 +160,19 @@ class CPCBuilder:
             assert self.layer_data is not None, "no layer data for 3D"
 
             layer_in = Input((self.split_per_side * self.split_per_side * self.split_per_side,) + self.img_shape_3d)
-            result, cleanup = prepare_encoder_3d_for_finetuning_w_patches(
-                    self.split_per_side * self.split_per_side * self.split_per_side,
-                    self.code_size,
-                    self.enc_model, self.layer_data, layer_in)
-            self.cleanup_models += cleanup
+
+            out_one = TimeDistributed(self.enc_model)(layer_in)
+
+            models_skip = [Model(self.enc_model.layers[0].input, x) for x in self.layer_data[0]]
+            outputs = [TimeDistributed(m)(layer_in) for m in models_skip]
+
+            result = Model(inputs=[layer_in], outputs=[out_one, *reversed(outputs)])
+            # result.summary(positions=[.23, .65, .77, 1.])  # debug
+
+            self.layer_data.append((self.enc_model.layers[-3].output_shape[1:],
+                                    isinstance(self.enc_model.layers[-3], Pooling3D)))
+
+            self.cleanup_models += [*models_skip, result]
             return result
         else:
             layer_in = Input((self.split_per_side * self.split_per_side,) + self.img_shape)
