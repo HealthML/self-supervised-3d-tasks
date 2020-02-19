@@ -22,6 +22,18 @@ class ExemplarBuilder:
             model_checkpoint=None,
             **kwargs
     ):
+        """
+        init
+        :param dim: int
+        :param number_channels: int
+        :param batch_size: int
+        :param dim_3d: bool
+        :param alpha_triplet: float for triplet loss
+        :param embedding_size: int
+        :param lr: float learningrate
+        :param model_checkpoint: Dir to model checkpoint
+        :param kwargs: ...
+        """
         self.number_channels = number_channels
         self.batch_size = batch_size
         self.dim_3d = dim_3d
@@ -55,18 +67,17 @@ class ExemplarBuilder:
         :param lr: learning rate
         :return: return the network (encoder) and the compiled model with concated output
         """
-        # defines encoder
+        # defines encoder for 3d / non 3d
         if self.dim_3d:
-            network = apply_encoder_model_3d((*self.dim, self.number_channels), self.embedding_size, **self.kwargs)
+            network, _ = apply_encoder_model_3d((*self.dim, self.number_channels), self.embedding_size, **self.kwargs)
         else:
             network = apply_encoder_model((*self.dim, self.number_channels), self.embedding_size, **self.kwargs)
 
         # Define the tensors for the three input images
-
-        input = Input((3, *input_shape), name="Input")
-        anchor_input = Lambda(lambda x: x[:, 0, :], name="anchor_input")(input)
-        positive_input = Lambda(lambda x: x[:, 1, :], name="positive_input")(input)
-        negative_input = Lambda(lambda x: x[:, 2, :], name="negative_input")(input)
+        input_layer = Input((3, *input_shape), name="Input")
+        anchor_input = Lambda(lambda x: x[:, 0, :], name="anchor_input")(input_layer)
+        positive_input = Lambda(lambda x: x[:, 1, :], name="positive_input")(input_layer)
+        negative_input = Lambda(lambda x: x[:, 2, :], name="negative_input")(input_layer)
 
         # Generate the encodings (feature vectors) for the three images
         encoded_a = Sequential(network, name="encoder_a")(anchor_input)
@@ -80,7 +91,7 @@ class ExemplarBuilder:
         optimizer = Adam(lr=self.lr)
 
         # Connect the inputs with the outputs
-        model = Model(inputs=input, outputs=output)
+        model = Model(inputs=input_layer, outputs=output)
         print(network.summary())
         # compile the model
         model.compile(loss=self.triplet_loss, optimizer=optimizer)
