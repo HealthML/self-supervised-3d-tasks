@@ -1,10 +1,11 @@
 import numpy as np
+from tensorflow.keras.utils import plot_model
 
 from self_supervised_3d_tasks.custom_preprocessing.preprocessing_exemplar import preprocessing_exemplar
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model_3d, apply_encoder_model
 
 from tensorflow.keras.layers import Concatenate, Lambda, Flatten, Input
-import tensorflow.python.keras.backend as K
+import tensorflow.keras.backend as K
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.models import load_model, Model, Sequential
 
@@ -15,7 +16,7 @@ class ExemplarBuilder:
             dim=384,
             number_channels=3,
             batch_size=10,
-            dim_3d=False,
+            train3D=False,
             alpha_triplet=0.2,
             embedding_size=10,
             lr=0.0006,
@@ -27,7 +28,7 @@ class ExemplarBuilder:
         :param dim: int
         :param number_channels: int
         :param batch_size: int
-        :param dim_3d: bool
+        :param train3D: bool
         :param alpha_triplet: float for triplet loss
         :param embedding_size: int
         :param lr: float learningrate
@@ -36,8 +37,8 @@ class ExemplarBuilder:
         """
         self.number_channels = number_channels
         self.batch_size = batch_size
-        self.dim_3d = dim_3d
-        self.dim = (dim, dim, dim) if self.dim_3d else (dim, dim)
+        self.train3D = train3D
+        self.dim = (dim, dim, dim) if self.train3D else (dim, dim)
         self.alpha_triplet = alpha_triplet
         self.embedding_size = embedding_size
         self.lr = lr
@@ -68,7 +69,7 @@ class ExemplarBuilder:
         :return: return the network (encoder) and the compiled model with concated output
         """
         # defines encoder for 3d / non 3d
-        if self.dim_3d:
+        if self.train3D:
             network, _ = apply_encoder_model_3d((*self.dim, self.number_channels), self.embedding_size, **self.kwargs)
         else:
             network = apply_encoder_model((*self.dim, self.number_channels), self.embedding_size, **self.kwargs)
@@ -80,9 +81,9 @@ class ExemplarBuilder:
         negative_input = Lambda(lambda x: x[:, 2, :], name="negative_input")(input_layer)
 
         # Generate the encodings (feature vectors) for the three images
-        encoded_a = Sequential(network, name="encoder_a")(anchor_input)
-        encoded_p = Sequential(network, name="encoder_p")(positive_input)
-        encoded_n = Sequential(network, name="encoder_n")(negative_input)
+        encoded_a = network(anchor_input)
+        encoded_p = network(positive_input)
+        encoded_n = network(negative_input)
 
         # Concat the outputs together
         output = Concatenate()([encoded_a, encoded_p, encoded_n])
@@ -95,6 +96,7 @@ class ExemplarBuilder:
         print(network.summary())
         # compile the model
         model.compile(loss=self.triplet_loss, optimizer=optimizer)
+        plot_model(model, to_file="exemplar_model.png", show_shapes=True, show_layer_names=True, expand_nested=True)
         return network, model
 
     def get_training_model(self):
@@ -102,19 +104,19 @@ class ExemplarBuilder:
 
     def get_training_preprocessing(self):
         def f_train(x, y):
-            return preprocessing_exemplar(x, y, self.dim_3d)
+            return preprocessing_exemplar(x, y, self.train3D)
 
         def f_val(x, y):
-            return preprocessing_exemplar(x, y, self.dim_3d)
+            return preprocessing_exemplar(x, y, self.train3D)
 
         return f_train, f_val
 
     def get_finetuning_preprocessing(self):
         def f_train(x, y):
-            return preprocessing_exemplar(x, y, self.dim_3d)
+            return preprocessing_exemplar(x, y, self.train3D)
 
         def f_val(x, y):
-            return preprocessing_exemplar(x, y, self.dim_3d)
+            return preprocessing_exemplar(x, y, self.train3D)
 
         return f_train, f_val
 
