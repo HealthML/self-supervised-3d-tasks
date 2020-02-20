@@ -188,6 +188,7 @@ class JigsawBuilder:
                                     isinstance(self.enc_model.layers[-3], Pooling3D)))
 
             self.cleanup_models += [*models_skip, result]
+            self.cleanup_models.append(model_full)
             return result
 
         else:

@@ -52,6 +52,9 @@ class RotationBuilder:
         self.layer_data = None
 
     def apply_model(self):
+        if self.embed_dim == -1:
+            self.embed_dim = None
+
         if self.train3D:
             self.enc_model, self.layer_data = apply_encoder_model_3d(
                 self.img_shape_3d, self.embed_dim, **self.kwargs
@@ -62,6 +65,10 @@ class RotationBuilder:
                 self.img_shape, self.embed_dim, **self.kwargs
             )
             x = Dense(4, activation="softmax")
+
+        if self.embed_dim is None:
+            self.embed_dim = self.enc_model.outputs[0].shape[1:]
+            print(self.embed_dim)
 
         a = apply_prediction_model(
             self.embed_dim,

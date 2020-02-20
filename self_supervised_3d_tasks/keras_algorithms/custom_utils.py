@@ -9,7 +9,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Reshape
 from tensorflow.keras import Model, Input
-from tensorflow.keras.applications import InceptionV3, InceptionResNetV2, ResNet152
+from tensorflow.keras.applications import InceptionV3, InceptionResNetV2, ResNet152, DenseNet121
 from tensorflow.keras.applications import ResNet50, ResNet50V2, ResNet101, ResNet101V2
 from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.python.keras import Sequential
@@ -17,7 +17,7 @@ from tensorflow.python.keras.layers import Lambda, Concatenate, TimeDistributed,
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
-from self_supervised_3d_tasks.keras_models.fully_connected import fully_connected_big
+from self_supervised_3d_tasks.keras_models.fully_connected import fully_connected_big, simple_multiclass
 from self_supervised_3d_tasks.keras_models.unet import downconv_model
 from self_supervised_3d_tasks.keras_models.unet3d import downconv_model_3d, upconv_model_3d
 
@@ -56,10 +56,14 @@ def init(f, name="training", NGPUS=1):
             f(**args)
 
 
-def get_prediction_model(name, in_shape, include_top, algorithm_instance):
+def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs):
     if name == "big_fully":
         input_l = Input(in_shape)
-        output_l = fully_connected_big(input_l, include_top=include_top)
+        output_l = fully_connected_big(input_l, include_top=include_top, **kwargs)
+        model = Model(input_l, output_l)
+    elif name == "simple_multiclass":
+        input_l = Input(in_shape)
+        output_l = simple_multiclass(input_l, include_top=include_top, **kwargs)
         model = Model(input_l, output_l)
     elif name == "unet_3d_upconv":
         assert algorithm_instance is not None, "no algorithm instance for 3d skip connections found"
@@ -141,7 +145,7 @@ def apply_prediction_model(
         **kwargs
 ):
     if prediction_architecture is not None:
-        model = get_prediction_model(prediction_architecture, input_shape, include_top, algorithm_instance)
+        model = get_prediction_model(prediction_architecture, input_shape, include_top, algorithm_instance, kwargs)
     else:
         layer_in = Input(input_shape)
         x = layer_in
@@ -185,6 +189,10 @@ def get_encoder_model(name, in_shape, pooling):
         model = InceptionResNetV2(
             include_top=False, input_shape=in_shape, weights=None, pooling=pooling
         )
+    elif name == "DenseNet121":
+        model = DenseNet121(
+            include_top=False, input_shape=in_shape, weights=None, pooling=pooling
+        )
     else:
         raise ValueError("model " + name + " not found")
 
@@ -203,6 +211,9 @@ def apply_encoder_model_3d(
         encoder_architecture=None,
         **kwargs
 ):
+    if pooling == "none":
+        pooling = None
+
     if encoder_architecture is not None:
         model, layer_data = get_encoder_model_3d(encoder_architecture, input_shape)
     else:
@@ -210,10 +221,13 @@ def apply_encoder_model_3d(
             input_shape, num_layers=num_layers, pooling=pooling
         )
 
-    x = Flatten()(model.outputs[0])
-    x = Dense(code_size)(x)
+    if code_size:
+        x = Flatten()(model.outputs[0])
+        x = Dense(code_size)(x)
 
-    enc_model = Model(model.inputs[0], x, name="encoder")
+        enc_model = Model(model.inputs[0], x, name="encoder")
+    else:
+        enc_model = model
     return enc_model, layer_data
 
 
@@ -230,10 +244,13 @@ def apply_encoder_model(
     else:
         model, _ = downconv_model(input_shape, num_layers=num_layers, pooling=pooling)
 
-    x = Flatten()(model.outputs[0])
-    x = Dense(code_size)(x)
+    if code_size:
+        x = Flatten()(model.outputs[0])
+        x = Dense(code_size)(x)
 
-    enc_model = Model(model.inputs[0], x, name="encoder")
+        enc_model = Model(model.inputs[0], x, name="encoder")
+    else:
+        enc_model = model
     return enc_model
 
 

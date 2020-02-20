@@ -173,6 +173,7 @@ class CPCBuilder:
                                     isinstance(self.enc_model.layers[-3], Pooling3D)))
 
             self.cleanup_models += [*models_skip, result]
+            self.cleanup_models.append(cpc_model)
             return result
         else:
             layer_in = Input((self.split_per_side * self.split_per_side,) + self.img_shape)

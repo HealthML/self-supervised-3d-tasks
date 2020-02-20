@@ -70,23 +70,30 @@ def make_scores(y, y_pred, scores):
     return scores_f
 
 
-def get_dataset_regular_train(batch_size, f_train, f_val, train_split, data_generator, data_dir_train, val_split=0.1, **kwargs):
+def get_dataset_regular_train(batch_size, f_train, f_val, train_split, data_generator, data_dir_train, val_split=0.1,
+                              train_data_generator_args={}, val_data_generator_args={}, **kwargs):
+    train_split = train_split * (1 - val_split)  # normalize train split
+
     train_data_generator, val_data_generator, _ = get_data_generators(
         data_generator=data_generator,
         data_path=data_dir_train,
         train_split=train_split,
         val_split=val_split,  # we are eventually not using the full dataset here
-        train_data_generator_args={"batch_size": batch_size, "pre_proc_func": f_train},
-        val_data_generator_args={"batch_size": batch_size, "pre_proc_func": f_val},
+        train_data_generator_args={**{"batch_size": batch_size, "pre_proc_func": f_train}, **train_data_generator_args},
+        val_data_generator_args={**{"batch_size": batch_size, "pre_proc_func": f_val}, **val_data_generator_args},
         **kwargs)
     return train_data_generator, val_data_generator
 
 
-def get_dataset_regular_test(batch_size, f_test, data_generator, data_dir_test, **kwargs):
+def get_dataset_regular_test(batch_size, f_test, data_generator, data_dir_test, train_data_generator_args={},
+                             test_data_generator_args={}, **kwargs):
+    if "val_split" in kwargs:
+        del kwargs["val_split"]
+
     return get_data_generators(
         data_generator=data_generator,
         data_path=data_dir_test,
-        train_data_generator_args={"batch_size": batch_size, "pre_proc_func": f_test},
+        train_data_generator_args={**{"batch_size": batch_size, "pre_proc_func": f_test}, **test_data_generator_args},
         **kwargs)
 
 
@@ -106,11 +113,13 @@ def get_dataset_kaggle_test(batch_size, f_test, csv_file_test, data_dir, **kwarg
     return get_kaggle_generator(
         data_path=data_dir,
         csv_file=csv_file_test,
-        train_data_generator_args={"batch_size": batch_size, "pre_proc_func": f_test},
+        train_data_generator_args={**{"batch_size": batch_size, "pre_proc_func": f_test}, **test_data_generator_args},
         **kwargs)
 
 
 def get_data_from_gen(gen):
+    print("Loading Test data")
+
     data = None
     labels = None
     max_iter = len(gen)
@@ -123,9 +132,12 @@ def get_data_from_gen(gen):
             data = np.concatenate((data, d), axis=0)
             labels = np.concatenate((labels, l), axis=0)
 
+        print(f"\r{(i*100.0)/max_iter:.2f}%", end="")
         i += 1
         if i == max_iter:
             break
+
+    print("")
 
     return data, labels
 
@@ -151,7 +163,7 @@ def get_dataset_test(dataset_name, batch_size, f_test, kwargs):
 
 
 def run_single_test(algorithm_def, dataset_name, train_split, load_weights, freeze_weights, x_test, y_test, lr,
-                    batch_size, epochs, epochs_warmup, model_checkpoint, scores, kwargs):
+                    batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, kwargs):
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     gen_train, gen_val = get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split, kwargs)
 
@@ -166,6 +178,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     outputs = pred_model(enc_model.outputs)
     model = Model(inputs=enc_model.inputs[0], outputs=outputs)
     model.summary()
+    pred_model.summary()
 
     # debugging
     plot_model(model, to_file="/home/Winfried.Loetzsch/test_architecture.png", expand_nested=True)
@@ -178,7 +191,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
 
         print(("-" * 10) + "LOADING weights, encoder model is trainable after warm-up")
         print(("-"*5) + " encoder model is frozen")
-        model.compile(optimizer=Adam(lr=lr), loss="mse", metrics=["mae"])
+        model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
         model.fit(x=gen_train, validation_data=gen_val, epochs=epochs_warmup)
         epochs = epochs - epochs_warmup
 
@@ -190,7 +203,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
         print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
 
     # recompile model
-    model.compile(optimizer=Adam(lr=lr), loss="mse", metrics=["mae"])
+    model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
     model.fit(x=gen_train, validation_data=gen_val, epochs=epochs)
 
     y_pred = model.predict(x_test, batch_size=batch_size)
@@ -220,7 +233,7 @@ def write_result(base_path, row):
 
 
 def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint, epochs=5, repetitions=2, batch_size=8,
-                     exp_splits=(90, 10, 1), lr=1e-3, epochs_warmup=2, scores=("qw_kappa",), **kwargs):
+                     exp_splits=(100, 10, 1), lr=1e-3, epochs_warmup=2, scores=("qw_kappa",), loss="mse", metrics=("mse", ), **kwargs):
     kwargs["model_checkpoint"] = model_checkpoint
     kwargs["root_config_file"] = root_config_file
 
@@ -250,13 +263,13 @@ def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint
 
         for i in range(repetitions):
             b = run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, kwargs)
+                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, kwargs)
 
             c = run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, kwargs)  # random
+                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, kwargs)  # random
 
             a = run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, kwargs)  # frozen
+                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, kwargs)  # frozen
 
             print("train split:{} model accuracy frozen: {}, initialized: {}, random: {}".format(percentage, a, b, c))
 
