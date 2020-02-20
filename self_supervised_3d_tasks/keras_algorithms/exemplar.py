@@ -13,8 +13,8 @@ from tensorflow.keras.models import load_model, Model, Sequential
 class ExemplarBuilder:
     def __init__(
             self,
-            dim=384,
-            number_channels=3,
+            data_dim=384,
+            n_channels=3,
             batch_size=10,
             train3D=False,
             alpha_triplet=0.2,
@@ -25,8 +25,8 @@ class ExemplarBuilder:
     ):
         """
         init
-        :param dim: int
-        :param number_channels: int
+        :param data_dim: int
+        :param n_channels: int
         :param batch_size: int
         :param train3D: bool
         :param alpha_triplet: float for triplet loss
@@ -35,10 +35,10 @@ class ExemplarBuilder:
         :param model_checkpoint: Dir to model checkpoint
         :param kwargs: ...
         """
-        self.number_channels = number_channels
+        self.n_channels = n_channels
         self.batch_size = batch_size
         self.train3D = train3D
-        self.dim = (dim, dim, dim) if self.train3D else (dim, dim)
+        self.dim = (data_dim, data_dim, data_dim) if self.train3D else (data_dim, data_dim)
         self.alpha_triplet = alpha_triplet
         self.embedding_size = embedding_size
         self.lr = lr
@@ -70,9 +70,9 @@ class ExemplarBuilder:
         """
         # defines encoder for 3d / non 3d
         if self.train3D:
-            network, _ = apply_encoder_model_3d((*self.dim, self.number_channels), self.embedding_size, **self.kwargs)
+            network, _ = apply_encoder_model_3d((*self.dim, self.n_channels), self.embedding_size, **self.kwargs)
         else:
-            network = apply_encoder_model((*self.dim, self.number_channels), self.embedding_size, **self.kwargs)
+            network = apply_encoder_model((*self.dim, self.n_channels), self.embedding_size, **self.kwargs)
 
         # Define the tensors for the three input images
         input_layer = Input((3, *input_shape), name="Input")
@@ -96,11 +96,10 @@ class ExemplarBuilder:
         print(network.summary())
         # compile the model
         model.compile(loss=self.triplet_loss, optimizer=optimizer)
-        plot_model(model, to_file="exemplar_model.png", show_shapes=True, show_layer_names=True, expand_nested=True)
         return network, model
 
     def get_training_model(self):
-        return self.apply_model((*self.dim, self.number_channels))[1]
+        return self.apply_model((*self.dim, self.n_channels))[1]
 
     def get_training_preprocessing(self):
         def f_train(x, y):
@@ -121,7 +120,7 @@ class ExemplarBuilder:
         return f_train, f_val
 
     def get_finetuning_layers(self, load_weights, freeze_weights):
-        enc_model, model_full = self.apply_model((*self.dim, self.number_channels))
+        enc_model, model_full = self.apply_model((*self.dim, self.n_channels))
 
         if load_weights:
             model_full.load_weights(self.model_checkpoint)
@@ -130,7 +129,7 @@ class ExemplarBuilder:
             # freeze the encoder weights
             enc_model.trainable = False
 
-        layer_in = Input((*self.dim, self.number_channels), name="anchor_input")
+        layer_in = Input((*self.dim, self.n_channels), name="anchor_input")
         layer_out = Sequential(enc_model)(layer_in)
 
         x = Flatten()(layer_out)
