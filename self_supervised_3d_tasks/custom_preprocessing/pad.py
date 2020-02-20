@@ -6,6 +6,6 @@ def pad_to_final_size_3d(volume, w):
     f1 = int((w - dim) / 2)
     f2 = (w - dim) - f1
 
-    result = np.pad(volume, ((f1, f2), (f1, f2), (f1, f2), (0, 0)), "edge")
+    result = np.pad(volume, ((f1, f2), (f1, f2), (f1, f2), (0, 0)), mode="constant", constant_values=0)
 
     return result

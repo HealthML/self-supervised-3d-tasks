@@ -1,14 +1,19 @@
 import csv
 import gc
 from pathlib import Path
+import pandas as pd
 
 import numpy as np
+from PIL import Image
 from sklearn.metrics import cohen_kappa_score, jaccard_score
+from sklearn.model_selection import train_test_split
 from tensorflow.keras import backend as K
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import plot_model
 from tensorflow.python.keras import Model
 from tensorflow.python.keras.metrics import BinaryAccuracy, CategoricalAccuracy
+from tensorflow.python.keras.preprocessing.image import ImageDataGenerator
+from tqdm import tqdm
 
 from self_supervised_3d_tasks.data.kaggle_retina_data import get_kaggle_generator
 from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
@@ -97,19 +102,25 @@ def get_dataset_regular_test(batch_size, f_test, data_generator, data_dir_test, 
         **kwargs)
 
 
-def get_dataset_kaggle_train(batch_size, f_train, f_val, train_split, csv_file_train, data_dir, val_split=0.1, **kwargs):
+def get_dataset_kaggle_train_original(batch_size, f_train, f_val, train_split, csv_file_train, data_dir, val_split=0.1,
+                             train_data_generator_args={}, val_data_generator_args={}, **kwargs):
+    train_split = train_split * (1 - val_split)  # normalize train split
     train_data_generator, val_data_generator, _ = get_kaggle_generator(
         data_path=data_dir,
         csv_file=csv_file_train,
         train_split=train_split,
         val_split=val_split,  # we are eventually not using the full dataset here
-        train_data_generator_args={"batch_size": batch_size, "pre_proc_func": f_train},
-        val_data_generator_args={"batch_size": batch_size, "pre_proc_func": f_val},
+        train_data_generator_args={**{"batch_size": batch_size, "pre_proc_func": f_train}, **train_data_generator_args},
+        val_data_generator_args={**{"batch_size": batch_size, "pre_proc_func": f_val}, **val_data_generator_args},
         **kwargs)
     return train_data_generator, val_data_generator
 
 
-def get_dataset_kaggle_test(batch_size, f_test, csv_file_test, data_dir, **kwargs):
+def get_dataset_kaggle_test(batch_size, f_test, csv_file_test, data_dir, train_data_generator_args={},
+                            test_data_generator_args={}, **kwargs):
+    if "val_split" in kwargs:
+        del kwargs["val_split"]
+
     return get_kaggle_generator(
         data_path=data_dir,
         csv_file=csv_file_test,
@@ -144,7 +155,7 @@ def get_data_from_gen(gen):
 
 def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split, kwargs):
     if dataset_name == "kaggle_retina":
-        return get_dataset_kaggle_train(batch_size, f_train, f_val, train_split, **kwargs)
+        return get_dataset_kaggle_train_original(batch_size, f_train, f_val, train_split, **kwargs)
     elif dataset_name == "pancreas3d":
         return get_dataset_regular_train(batch_size, f_train, f_val, train_split, data_generator=SegmentationGenerator3D, **kwargs)
     else:

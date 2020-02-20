@@ -82,9 +82,6 @@ class RotationBuilder:
         else:
             model = Sequential([self.enc_model, a, x])
 
-        self.enc_model.summary()
-        model.summary()
-
         return model
 
     def get_training_model(self):

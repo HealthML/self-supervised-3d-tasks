@@ -11,7 +11,6 @@ def resize(batch, new_size):
 
 def preprocess_image(image, patch_jitter, patch_crop_size, split_per_side, padding, crop_size, is_training=True):
     result = []
-
     w, h, _ = image.shape
 
     if is_training:
@@ -49,8 +48,9 @@ def preprocess(batch, crop_size, split_per_side, is_training=True):
     # TODO: check this
     padding = int((-2 * patch_jitter - patch_crop_size) / 2)
 
-    return np.array([preprocess_image(image, patch_jitter, patch_crop_size, split_per_side, padding, crop_size,
-                                      is_training) for image in batch])
+    return np.array([preprocess_image(image=image, patch_jitter=patch_jitter, patch_crop_size=patch_crop_size,
+                                      split_per_side=split_per_side, padding=padding, crop_size=crop_size,
+                                      is_training=is_training) for image in batch])
 
 
 def preprocess_grid(image):

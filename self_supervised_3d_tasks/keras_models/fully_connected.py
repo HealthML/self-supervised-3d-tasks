@@ -23,8 +23,10 @@ def fully_connected(
 def simple_multiclass(inputs, dropout_rate=0.5, include_top=True, **kwargs):
     net = inputs
 
-    net = GlobalAveragePooling2D()(net)
-    net = Dropout(dropout_rate)(net)
+    # net = GlobalAveragePooling2D()(net)
+
+    if dropout_rate > 0:
+        net = Dropout(dropout_rate)(net)
 
     if include_top:
         net = Dense(5, activation='sigmoid')(net)

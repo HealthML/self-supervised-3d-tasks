@@ -13,7 +13,8 @@ from tensorflow.keras.applications import InceptionV3, InceptionResNetV2, ResNet
 from tensorflow.keras.applications import ResNet50, ResNet50V2, ResNet101, ResNet101V2
 from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.python.keras import Sequential
-from tensorflow.python.keras.layers import Lambda, Concatenate, TimeDistributed, MaxPooling3D, UpSampling3D, Permute
+from tensorflow.python.keras.layers import Lambda, Concatenate, TimeDistributed, MaxPooling3D, UpSampling3D, Permute, \
+    Dropout
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
@@ -237,6 +238,7 @@ def apply_encoder_model(
         num_layers=4,
         pooling="max",
         encoder_architecture=None,
+        dropout_rate_before_embed_layer=0,
         **kwargs
 ):
     if encoder_architecture is not None:
@@ -244,13 +246,15 @@ def apply_encoder_model(
     else:
         model, _ = downconv_model(input_shape, num_layers=num_layers, pooling=pooling)
 
+    x = Flatten()(model.outputs[0])
+
+    if dropout_rate_before_embed_layer > 0:
+        x = Dropout(dropout_rate_before_embed_layer)(x)
+
     if code_size:
-        x = Flatten()(model.outputs[0])
         x = Dense(code_size)(x)
 
-        enc_model = Model(model.inputs[0], x, name="encoder")
-    else:
-        enc_model = model
+    enc_model = Model(model.inputs[0], x, name="encoder")
     return enc_model
 
 

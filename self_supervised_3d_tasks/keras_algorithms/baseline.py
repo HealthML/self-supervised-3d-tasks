@@ -3,7 +3,8 @@ from self_supervised_3d_tasks.keras_algorithms import keras_test_algo as ts
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
 
 
-def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-3, scores=("qw_kappa",), **kwargs):
+def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-3, scores=("qw_kappa",),
+          model_checkpoint=None, load_weights=False, **kwargs):
     algorithm_def = keras_algorithm_list[algorithm].create_instance(**kwargs)
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     x_test, y_test = ts.get_dataset_test(dataset_name, batch_size, f_val, kwargs)
@@ -12,7 +13,7 @@ def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-
         algorithm_def=algorithm_def,
         dataset_name=dataset_name,
         train_split=1,
-        load_weights=False,
+        load_weights=load_weights,
         freeze_weights=False,
         x_test=x_test,
         y_test=y_test,
@@ -20,7 +21,7 @@ def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-
         batch_size=batch_size,
         epochs=epochs,
         epochs_warmup=0,
-        model_checkpoint=None,
+        model_checkpoint=model_checkpoint,
         scores=scores,
         kwargs=kwargs,
         loss=loss,

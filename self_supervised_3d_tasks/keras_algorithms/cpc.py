@@ -75,6 +75,7 @@ class CPCBuilder:
         self.code_size = code_size
         self.lr = lr
 
+        print((data_dim / (split_per_side + 1)) * 2)
         self.image_size = int((data_dim / (split_per_side + 1)) * 2)
         self.image_size_3d = data_dim // split_per_side
         self.img_shape = (self.image_size, self.image_size, self.n_channels)
@@ -87,8 +88,8 @@ class CPCBuilder:
         self.layer_data = None
 
         prep_train = self.get_training_preprocessing()[0]
-        test_data = np.zeros((1, data_dim, data_dim, data_dim, n_channels)) if self.train3D \
-            else np.zeros((1, data_dim, data_dim, n_channels) + self.img_shape)
+        test_data = np.zeros((1, data_dim, data_dim, data_dim, n_channels), dtype=np.float32) if self.train3D \
+            else np.zeros((1, data_dim, data_dim, n_channels), dtype=np.float32)
         test_x = prep_train(test_data, test_data)[0]
 
         self.terms = test_x[0].shape[1]

@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import tensorflow.keras as keras
 
 
@@ -78,7 +79,7 @@ class DataGeneratorBase(keras.utils.Sequence):
     def on_epoch_end(self):
         if self.shuffle:
             # shuffle the files
-            np.random.shuffle(self.list_IDs)
+            random.shuffle(self.list_IDs)
 
     def data_generation(self, list_files_temp):
         raise NotImplementedError("should be implemented in subclass")

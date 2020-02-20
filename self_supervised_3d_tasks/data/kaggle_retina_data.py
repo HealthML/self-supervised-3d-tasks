@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import albumentations as ab
+import cv2
 import numpy as np
 import pandas as pd
 from PIL import Image
@@ -43,15 +44,16 @@ class KaggleGenerator(DataGeneratorBase):
 
         self.base_path = Path(base_path)
 
-        file_list = range(len(self.dataset))
+        file_list = list(range(len(self.dataset)))
         super().__init__(file_list, batch_size, shuffle)
 
     def load_image(self, index):
         path = self.base_path / self.dataset.iloc[index][0]
         image = Image.open(path.with_suffix(self.suffix))
 
-        arr = np.array(image)
-        return arr / 255.0
+        arr = np.array(image, dtype="float32")
+        arr = arr / 255.0
+        return arr
 
     def data_generation(self, list_files_temp):
         data_x = []
@@ -61,8 +63,9 @@ class KaggleGenerator(DataGeneratorBase):
             image = self.load_image(c)
             label = self.dataset.iloc[c][1]
 
+            # TODO: MOVE this to a separate preprocessing step
             if self.augment:
-                image = random_zoom(image, zoom_range=(0.15, 0.15), fill_mode='constant', cval=0.)
+                image = random_zoom(image, zoom_range=(0.85, 1.15), channel_axis=2, row_axis=0, col_axis=1, fill_mode='constant', cval=0.0)
                 image = ab.HorizontalFlip()(image=image)["image"]
                 image = ab.VerticalFlip()(image=image)["image"]
 
