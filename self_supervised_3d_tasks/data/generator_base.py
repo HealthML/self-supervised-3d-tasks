@@ -1,4 +1,5 @@
 import numpy as np
+import random
 import tensorflow.keras as keras
 
 
@@ -19,7 +20,7 @@ class DataGeneratorBase(keras.utils.Sequence):
 
     def get_multiplicator(self):
         # check how many examples preprocess produces for one file
-        self.index_multiplicator = len(self.data_generation([self.list_IDs[0]])[0])
+        self.index_multiplicator = DataGeneratorBase.get_batch_size(self.data_generation([self.list_IDs[0]])[0])
         assert self.index_multiplicator > 0, "invalid preprocessing"
 
     def __len__(self):
@@ -27,6 +28,13 @@ class DataGeneratorBase(keras.utils.Sequence):
             self.get_multiplicator()
 
         return int(np.ceil((len(self.list_IDs) * self.index_multiplicator) / self.batch_size))
+
+    @staticmethod
+    def get_batch_size(x):
+        if isinstance(x, list):
+            return len(x[0])
+        else:
+            return len(x)
 
     @staticmethod
     def slice_input(x, start, end):
@@ -71,7 +79,7 @@ class DataGeneratorBase(keras.utils.Sequence):
     def on_epoch_end(self):
         if self.shuffle:
             # shuffle the files
-            np.random.shuffle(self.list_IDs)
+            random.shuffle(self.list_IDs)
 
     def data_generation(self, list_files_temp):
         raise NotImplementedError("should be implemented in subclass")

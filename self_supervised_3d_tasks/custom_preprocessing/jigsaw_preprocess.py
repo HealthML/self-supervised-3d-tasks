@@ -1,6 +1,7 @@
 import random
 
 import albumentations as ab
+import cv2
 import numpy as np
 
 from self_supervised_3d_tasks.custom_preprocessing.crop import crop_patches, crop_patches_3d
@@ -61,7 +62,8 @@ def preprocess_image_pad(patches, patch_dim, mode3d):
         if mode3d:
             patch = pad_to_final_size_3d(patch, patch_dim)
         else:
-            patch = ab.PadIfNeeded(patch_dim, patch_dim)(image=patch)["image"]
+            # zero padding
+            patch = ab.PadIfNeeded(patch_dim, patch_dim, border_mode=cv2.BORDER_CONSTANT, value=0)(image=patch)["image"]
 
         result.append(patch)
 

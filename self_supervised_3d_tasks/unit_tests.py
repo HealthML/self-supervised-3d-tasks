@@ -19,11 +19,14 @@ from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.data.numpy_3d_loader import DataGeneratorUnlabeled3D
 from self_supervised_3d_tasks.keras_algorithms import cpc
 from self_supervised_3d_tasks.keras_algorithms.jigsaw import JigsawBuilder
+from self_supervised_3d_tasks.keras_algorithms.keras_test_algo import get_dataset_kaggle_train_original, \
+    get_dataset_kaggle_train, get_dataset_kaggle_test
 from self_supervised_3d_tasks.keras_algorithms.rotation import RotationBuilder
 from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
     get_pad
 
 import nibabel as nib
+
 
 def plot_sequences(x, y, labels=None, output_path=None):
     ''' Draws a plot where sequences of numbers can be studied conveniently '''
@@ -51,12 +54,13 @@ def get_lena_numpy():
     im_frame = Image.open('data_util/resources/lena.jpg')
 
     im_frame.load()
-    im_frame = im_frame.resize((300,300))
+    im_frame = im_frame.resize((300, 300))
 
     img = np.asarray(im_frame, dtype="float32")
     img /= 255
 
     return img
+
 
 def get_lena():
     img = img = tf.io.read_file('data_util/resources/lena.jpg')
@@ -66,6 +70,7 @@ def get_lena():
     img = tf.image.convert_image_dtype(img, tf.float32)
     # resize the image to the desired size.
     return {"image": tf.image.resize(img, [300, 300])}
+
 
 def test_brain():
     params = {
@@ -97,12 +102,14 @@ def test_brain():
             batch = sess.run(el)
             print("{} iteration, shape: {}".format(i, batch["image"].shape))
 
+
 def count_rec():
     tf.enable_eager_execution()
     files = glob.glob("/mnt/mpws2019cl1/brain_mri/tf_records/*.tfrecord*")
 
     for f in files:
-        print(f+str(sum(1 for _ in tf.data.TFRecordDataset(f))))
+        print(f + str(sum(1 for _ in tf.data.TFRecordDataset(f))))
+
 
 def test_records():
     tf.enable_eager_execution()
@@ -144,6 +151,7 @@ def test_records():
     for i in parsed_dataset:
         print(i)
     print("done")
+
 
 def test_kaggle_retina():
     params = {
@@ -213,6 +221,7 @@ def show_batch(image_batch):
 
     plt.show()
 
+
 def show_batch_numpy(image_batch):
     length = image_batch.shape[0]
 
@@ -224,7 +233,7 @@ def show_batch_numpy(image_batch):
 
     for n in range(length):
         ax = plt.subplot(dim, dim, n + 1)
-        plt.imshow(image_batch[n,:,:,:])
+        plt.imshow(image_batch[n, :, :, :])
         plt.axis('off')
 
     plt.show()
@@ -244,7 +253,7 @@ def chain(f, g):
 
 def test_preprocessing_baseline():
     gen = KaggleGenerator(batch_size=36, shuffle=False, categorical=False,
-                          pre_proc_func_train = apply_to_x)
+                          pre_proc_func_train=apply_to_x)
     show_batch(gen[0][0])
 
     # sns.distplot(img[:,:,0].flatten())
@@ -253,6 +262,7 @@ def test_preprocessing_baseline():
     # plt.show()
     # sns.distplot(img[:,:,2].flatten())
     # plt.show()
+
 
 def test_preprocessing_cpc():
     lena = get_lena_numpy()
@@ -269,6 +279,7 @@ def test_preprocessing_cpc():
 
     show_batch(patches[0][0][4])
 
+
 def test_cpc_gen():
     gen = cpc.get_training_generators(1, "kaggle_retina")
     data = gen[0][0][0][1]
@@ -278,6 +289,7 @@ def test_cpc_gen():
     print(data[0].min())
 
     show_batch(data[0])
+
 
 # def test_data_jigsaw():
 #     gen = get_training_generators(1, "kaggle_retina")
@@ -318,7 +330,7 @@ def plot_3d(image, dim_to_animate):
     ani = []
 
     for i in range(n):
-        ax.append(plt.subplot(n, 1, i+1))
+        ax.append(plt.subplot(n, 1, i + 1))
         frame.append(None)
         ani.append(-1)
 
@@ -335,7 +347,7 @@ def plot_3d(image, dim_to_animate):
 
             if frame[i] is None:
                 init = np.zeros(im.shape)
-                init[0,0]=1
+                init[0, 0] = 1
                 frame[i] = ax[i].imshow(init, cmap="inferno")
             else:
                 frame[i].set_data(im)
@@ -343,6 +355,7 @@ def plot_3d(image, dim_to_animate):
         time.sleep(0.05)
         plt.pause(.1)
         plt.draw()
+
 
 # def test_xxx():
 #     trainp, valp = get_training_preprocessing()
@@ -395,6 +408,7 @@ def test_rotation():
     show_batch(xxx[0])
     print(xxx[1])
 
+
 def test_cpc3d():
     train_gen = get_data_generators("/mnt/mpws2019cl1/Task07_Pancreas/imagesPt", train3D=True,
                                     train_data_generator_args={"batch_size": 1, "data_dim": 128},
@@ -414,16 +428,16 @@ def test_cpc3d():
 
     print(result_perms.shape)
 
-def test_3d_croppingetc():
 
+def test_3d_croppingetc():
     image = np.load("/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128/pancreas_002.nii.gz.npy")
     img = nib.load("/mnt/mpws2019cl1/Task07_Pancreas/imagesPt/pancreas_002.nii.gz")
     img = img.get_fdata()
 
     img = np.expand_dims(img, axis=-1)
 
-    #img = np.expand_dims(img, axis=0)
-    #image = np.expand_dims(image, axis=0)
+    # img = np.expand_dims(img, axis=0)
+    # image = np.expand_dims(image, axis=0)
 
     print(image.shape)
     print(img.shape)
@@ -443,25 +457,27 @@ def test_3d_croppingetc():
     # plot_3d([img], 2)
     return img
 
+
 def test_XXXXX():
-    path="/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128"
+    path = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128"
     gen = DataGeneratorUnlabeled3D(path, os.listdir(path), batch_size=9, data_dim=128,
-                                   pre_proc_func=lambda x,y: (np.repeat(x, 2, 0), np.repeat(y, 2, 0)))
+                                   pre_proc_func=lambda x, y: (np.repeat(x, 2, 0), np.repeat(y, 2, 0)))
 
     print(gen.__len__())
 
     i = 0
     for batch in gen:
-        i+=1
+        i += 1
 
         X_batch = batch[0]
         Y_batch = batch[1]
 
         print(X_batch.shape)
-        #print(Y_batch.shape)
+        # print(Y_batch.shape)
 
     print("iterations")
     print(i)
+
 
 def get_data_norm(path):
     img = nib.load(path)
@@ -472,14 +488,56 @@ def get_data_norm(path):
 
     return img
 
+
 def get_data_norm_npy(path):
     img = np.load(path)
     img = (img - img.min()) / (img.max() - img.min())
 
     return img
 
-if __name__ == "__main__":
+
+def test_XXXXXXX():
     p1 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/pancreas_175.npy"
     p2 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/pancreas_175_label.npy"
 
-    plot_3d([get_data_norm_npy(p1),get_data_norm_npy(p2)], 2)
+    plot_3d([get_data_norm_npy(p1), get_data_norm_npy(p2)], 2)
+
+
+if __name__ == "__main__":
+    batch_size = 1
+
+    csv_training = "/mnt/mpws2019cl1/kaggle_retina_2019/train.csv"
+    data_dir = "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224"
+
+
+    def identity(x, y):
+        return x, y
+
+
+    gen_train = get_dataset_kaggle_test(batch_size, identity, csv_training, data_dir,
+                                                 test_data_generator_args={"suffix": ".png", "multilabel": True,
+                                                                           "augment": True})
+
+    gen_train_NEW = get_dataset_kaggle_train(batch_size)
+
+    print(len(gen_train))
+    print(len(gen_train_NEW))
+
+    xx = 102
+
+    for i in range(50):
+        x_old, y_old = gen_train[xx]
+        x_new, y_new = gen_train_NEW[xx]
+
+        x_new /= 255.0
+
+        print(y_old)
+        print(y_new)
+
+        print(x_old.max())
+        print(x_old.min())
+
+        print(x_new.max())
+        print(x_new.min())
+
+        show_batch_numpy(np.concatenate([x_old, x_new]))

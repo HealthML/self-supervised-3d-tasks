@@ -1,8 +1,14 @@
 {
   "algorithm": "jigsaw",
-  "data_dir": "/mnt/mpws2019cl1/kaggle_retina/train/resized_384",
+  "data_dir": "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224",
+  "train_data_generator_args": {"augment": true, "shuffle": true},
+  "val_data_generator_args": {"augment": false},
+  "data_dim": 224,
   "dataset_name": "kaggle_retina",
   "train3D": false,
-  "batch_size": 16,
-  "patch_jitter": 10
+  "batch_size": 32,
+  "patch_jitter": 10,
+  "encoder_architecture": "DenseNet121",
+  "top_architecture": "big_fully",
+  "embed_dim": 1024
 }

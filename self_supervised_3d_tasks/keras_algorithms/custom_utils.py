@@ -9,15 +9,16 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Reshape
 from tensorflow.keras import Model, Input
-from tensorflow.keras.applications import InceptionV3, InceptionResNetV2, ResNet152
+from tensorflow.keras.applications import InceptionV3, InceptionResNetV2, ResNet152, DenseNet121
 from tensorflow.keras.applications import ResNet50, ResNet50V2, ResNet101, ResNet101V2
 from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.python.keras import Sequential
-from tensorflow.python.keras.layers import Lambda, Concatenate, TimeDistributed, MaxPooling3D, UpSampling3D, Permute
+from tensorflow.python.keras.layers import Lambda, Concatenate, TimeDistributed, MaxPooling3D, UpSampling3D, Permute, \
+    Dropout
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
-from self_supervised_3d_tasks.keras_models.fully_connected import fully_connected_big
+from self_supervised_3d_tasks.keras_models.fully_connected import fully_connected_big, simple_multiclass
 from self_supervised_3d_tasks.keras_models.unet import downconv_model
 from self_supervised_3d_tasks.keras_models.unet3d import downconv_model_3d, upconv_model_3d
 
@@ -56,10 +57,14 @@ def init(f, name="training", NGPUS=1):
             f(**args)
 
 
-def get_prediction_model(name, in_shape, include_top, algorithm_instance):
+def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs):
     if name == "big_fully":
         input_l = Input(in_shape)
-        output_l = fully_connected_big(input_l, include_top=include_top)
+        output_l = fully_connected_big(input_l, include_top=include_top, **kwargs)
+        model = Model(input_l, output_l)
+    elif name == "simple_multiclass":
+        input_l = Input(in_shape)
+        output_l = simple_multiclass(input_l, include_top=include_top, **kwargs)
         model = Model(input_l, output_l)
     elif name == "unet_3d_upconv":
         assert algorithm_instance is not None, "no algorithm instance for 3d skip connections found"
@@ -71,36 +76,56 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance):
         assert algorithm_instance is not None, "no algorithm instance for 3d skip connections found"
         assert algorithm_instance.layer_data is not None, "no layer data for 3d skip connections found"
 
-        model_up = upconv_model_3d(in_shape[1:], down_layers=algorithm_instance.layer_data[0],
+        n_patches = in_shape[0]
+        embed_dim = in_shape[1]
+
+        # combine all predictions from encoders to one layer and split up again
+        first_input = Input(in_shape)
+        flat = Flatten()(first_input)
+        processed_first_input = Dense(n_patches * embed_dim)(flat)
+        processed_first_input = Reshape((n_patches, embed_dim))(processed_first_input)
+
+        # get the first shape of the upconv from the encoder
+        # get whether the last layer is a pooling layer
+        first_l_shape = algorithm_instance.layer_data[2][0]
+        includes_pooling = algorithm_instance.layer_data[2][1]
+        units = np.prod(first_l_shape)
+
+        # build small model that selects a small shape from the unified predictions
+        model_first_up = Sequential()
+        model_first_up.add(Input(embed_dim))
+        model_first_up.add(Dense(units))
+        model_first_up.add(Reshape(first_l_shape))
+        if includes_pooling:
+            model_first_up.add(UpSampling3D((2, 2, 2)))
+
+        # apply selection to get input for decoder models
+        processed_first_input = TimeDistributed(model_first_up)(processed_first_input)
+
+        # prepare decoder
+        model_up = upconv_model_3d(processed_first_input.shape[2:], down_layers=algorithm_instance.layer_data[0],
                                    filters=algorithm_instance.layer_data[1])
 
         pred_patches = []
-        print("org shape")
-        print(in_shape)
-        large_inputs = [Input(in_shape)]
+        large_inputs = [first_input]
 
         for s in reversed(algorithm_instance.layer_data[0]):
-            print("big shapes")
-            print(s.shape)
-            print(in_shape[0] + s.shape[1:])
-            large_inputs.append(Input(in_shape[0] + s.shape[1:]))
+            large_inputs.append(Input(n_patches + s.shape[1:]))
 
-        for p in range(in_shape[0]):
-            print("reduced sizes now")
-            print(in_shape[2:])
-            y = [Lambda(lambda x: x[:, p, :, :, :, :], output_shape=in_shape[1:])]
+        for p in range(n_patches):
+            y = [Lambda(lambda x: x[:, p, :, :, :, :], output_shape=processed_first_input.shape[2:])]
             for s in reversed(algorithm_instance.layer_data[0]):
-                print("reduced sizes now")
-                print(s.shape[2:])
                 y.append(Lambda(lambda x: x[:, p, :, :, :, :], output_shape=s.shape[1:]))
 
-            test = [y[i](large_inputs[i]) for i in range(len(large_inputs))]
-            pred_patches.append(model_up(test))
+            small_inputs = [y[0](processed_first_input)]  # the first input has to be processed
+            for i in range(1, len(large_inputs)):
+                small_inputs.append(y[i](large_inputs[i]))  # we can take the rest as is
 
-        print(len(pred_patches))
+            pred_patches.append(model_up(small_inputs))
+
         last_out = Concatenate()(pred_patches)
         last_out = Permute((4, 1, 2, 3))(last_out)
-        last_out = Reshape((in_shape[0],) + model_up.layers[-1].output_shape[1:])(last_out)
+        last_out = Reshape((n_patches,) + model_up.layers[-1].output_shape[1:])(last_out)
 
         model = Model(inputs=large_inputs, outputs=[last_out])
     elif name == "none":
@@ -121,7 +146,7 @@ def apply_prediction_model(
         **kwargs
 ):
     if prediction_architecture is not None:
-        model = get_prediction_model(prediction_architecture, input_shape, include_top, algorithm_instance)
+        model = get_prediction_model(prediction_architecture, input_shape, include_top, algorithm_instance, kwargs)
     else:
         layer_in = Input(input_shape)
         x = layer_in
@@ -165,6 +190,10 @@ def get_encoder_model(name, in_shape, pooling):
         model = InceptionResNetV2(
             include_top=False, input_shape=in_shape, weights=None, pooling=pooling
         )
+    elif name == "DenseNet121":
+        model = DenseNet121(
+            include_top=False, input_shape=in_shape, weights=None, pooling=pooling
+        )
     else:
         raise ValueError("model " + name + " not found")
 
@@ -183,6 +212,9 @@ def apply_encoder_model_3d(
         encoder_architecture=None,
         **kwargs
 ):
+    if pooling == "none":
+        pooling = None
+
     if encoder_architecture is not None:
         model, layer_data = get_encoder_model_3d(encoder_architecture, input_shape)
     else:
@@ -190,10 +222,13 @@ def apply_encoder_model_3d(
             input_shape, num_layers=num_layers, pooling=pooling
         )
 
-    x = Flatten()(model.outputs[0])
-    x = Dense(code_size)(x)
+    if code_size:
+        x = Flatten()(model.outputs[0])
+        x = Dense(code_size)(x)
 
-    enc_model = Model(model.inputs[0], x, name="encoder")
+        enc_model = Model(model.inputs[0], x, name="encoder")
+    else:
+        enc_model = model
     return enc_model, layer_data
 
 
@@ -203,6 +238,7 @@ def apply_encoder_model(
         num_layers=4,
         pooling="max",
         encoder_architecture=None,
+        dropout_rate_before_embed_layer=0,
         **kwargs
 ):
     if encoder_architecture is not None:
@@ -211,7 +247,12 @@ def apply_encoder_model(
         model, _ = downconv_model(input_shape, num_layers=num_layers, pooling=pooling)
 
     x = Flatten()(model.outputs[0])
-    x = Dense(code_size)(x)
+
+    if dropout_rate_before_embed_layer > 0:
+        x = Dropout(dropout_rate_before_embed_layer)(x)
+
+    if code_size:
+        x = Dense(code_size)(x)
 
     enc_model = Model(model.inputs[0], x, name="encoder")
     return enc_model
@@ -276,29 +317,3 @@ def get_writing_path(working_dir, root_config_file):
     shutil.copy2(root_config_file, working_dir)
 
     return Path(working_dir)
-
-
-def prepare_encoder_3d_for_finetuning_w_patches(n_patches, embed_dim, enc_model, layer_data, layer_in):
-    x = TimeDistributed(enc_model)(layer_in)
-    flat = Flatten()(x)
-    x = Dense(n_patches * embed_dim)(flat)
-    x = Reshape((n_patches, embed_dim))(x)
-
-    first_l_shape = enc_model.layers[-3].output_shape[1:]
-    units = np.prod(first_l_shape)
-
-    model_first_up = Sequential()
-    model_first_up.add(Input(embed_dim))
-    model_first_up.add(Dense(units))
-    model_first_up.add(Reshape(first_l_shape))
-    if isinstance(enc_model.layers[-3], MaxPooling3D):
-        model_first_up.add(UpSampling3D((2, 2, 2)))
-
-    x = TimeDistributed(model_first_up)(x)
-
-    models_skip = [Model(enc_model.layers[0].input, x) for x in layer_data[0]]
-    outputs = [TimeDistributed(m)(layer_in) for m in models_skip]
-
-    result = Model(inputs=[layer_in], outputs=[x, *reversed(outputs)])
-    result.summary(positions=[.23, .65, .77, 1.])  # debug
-    return result, [*models_skip, model_first_up, result]

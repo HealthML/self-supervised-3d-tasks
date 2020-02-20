@@ -63,5 +63,5 @@ def get_data_generators(data_path, data_generator, train_split=None, val_split=N
         # Return generators
         return train_data_generator, val_data_generator
     else:
-        train_data_generator = SegmentationGenerator3D(data_path, files, **train_data_generator_args)
+        train_data_generator = data_generator(data_path, files, **train_data_generator_args)
         return train_data_generator
