@@ -1,0 +1,10 @@
+{
+  "algorithm": "rotation",
+  "dataset_name": "kaggle_retina",
+  "loss": "mse",
+  "metrics": [
+    "qw_kappa"
+  ],
+  "data_dir": "/mnt/mpws2019cl1/kaggle_retina_2019/test_images/",
+  "csv_file_test": "/mnt/mpws2019cl1/kaggle_retina_2019/labels_shuffled_test.csv"
+}

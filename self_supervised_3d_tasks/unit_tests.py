@@ -9,27 +9,44 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 
-from self_supervised_3d_tasks.algorithms.patch_model_preprocess import get_crop_patches_fn
-from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import preprocess, preprocess_grid
-from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess_3d import preprocess_grid_3d, preprocess_volume_3d, \
-    preprocess_3d
+from data.image_2d_loader import DataGeneratorUnlabeled2D
+from keras_algorithms.exemplar import ExemplarBuilder
+from self_supervised_3d_tasks.algorithms.patch_model_preprocess import (
+    get_crop_patches_fn,
+)
+from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import (
+    preprocess,
+    preprocess_grid,
+)
+from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess_3d import (
+    preprocess_grid_3d,
+    preprocess_volume_3d,
+    preprocess_3d,
+)
 from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import apply_to_x
 from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
 from self_supervised_3d_tasks.data.numpy_3d_loader import DataGeneratorUnlabeled3D
 from self_supervised_3d_tasks.keras_algorithms import cpc
 from self_supervised_3d_tasks.keras_algorithms.jigsaw import JigsawBuilder
-from self_supervised_3d_tasks.keras_algorithms.keras_test_algo import get_dataset_kaggle_train_original, \
-    get_dataset_kaggle_train, get_dataset_kaggle_test
+from self_supervised_3d_tasks.keras_algorithms.keras_test_algo import (
+    get_dataset_kaggle_train_original,
+    # get_dataset_kaggle_train,
+    get_dataset_kaggle_test,
+)
 from self_supervised_3d_tasks.keras_algorithms.rotation import RotationBuilder
-from self_supervised_3d_tasks.preprocess import get_crop, get_random_flip_ud, get_drop_all_channels_but_one_preprocess, \
-    get_pad
+from self_supervised_3d_tasks.preprocess import (
+    get_crop,
+    get_random_flip_ud,
+    get_drop_all_channels_but_one_preprocess,
+    get_pad,
+)
 
 import nibabel as nib
 
 
 def plot_sequences(x, y, labels=None, output_path=None):
-    ''' Draws a plot where sequences of numbers can be studied conveniently '''
+    """ Draws a plot where sequences of numbers can be studied conveniently """
 
     images = np.concatenate([x, y], axis=1)
     n_batches = images.shape[0]
@@ -39,10 +56,10 @@ def plot_sequences(x, y, labels=None, output_path=None):
         for n_t in range(n_terms):
             plt.subplot(n_batches, n_terms, counter)
             plt.imshow(images[n_b, n_t, :, :, :])
-            plt.axis('off')
+            plt.axis("off")
             counter += 1
         if labels is not None:
-            plt.title(labels[n_b], fontdict={'color': 'white'})
+            plt.title(labels[n_b], fontdict={"color": "white"})
 
     if output_path is not None:
         plt.savefig(output_path, dpi=600)
@@ -51,7 +68,7 @@ def plot_sequences(x, y, labels=None, output_path=None):
 
 
 def get_lena_numpy():
-    im_frame = Image.open('data_util/resources/lena.jpg')
+    im_frame = Image.open("data_util/resources/lena.jpg")
 
     im_frame.load()
     im_frame = im_frame.resize((300, 300))
@@ -63,7 +80,7 @@ def get_lena_numpy():
 
 
 def get_lena():
-    img = img = tf.io.read_file('data_util/resources/lena.jpg')
+    img = img = tf.io.read_file("data_util/resources/lena.jpg")
     # convert the compressed string to a 3D uint8 tensor
     img = tf.image.decode_jpeg(img, channels=3)
     # Use `convert_image_dtype` to convert to floats in the [0,1] range.
@@ -74,21 +91,22 @@ def get_lena():
 
 def test_brain():
     params = {
-        'dataset': 'ukb3d',
-        'preprocessing': [],
-        'dataset_dir': "/mnt/mpws2019cl1/brain_mri/tf_records",
+        "dataset": "ukb3d",
+        "preprocessing": [],
+        "dataset_dir": "/mnt/mpws2019cl1/brain_mri/tf_records",
     }
 
     f = functools.partial(
         get_data,
-        split_name='train',
+        split_name="train",
         is_training=True,
         num_epochs=1,
         shuffle=False,
         drop_remainder=True,
-        **params)
+        **params
+    )
 
-    result = f({'batch_size': 1})
+    result = f({"batch_size": 1})
     iterator = result.make_one_shot_iterator()
     i = 0
 
@@ -155,21 +173,22 @@ def test_records():
 
 def test_kaggle_retina():
     params = {
-        'dataset': 'kaggle_retina',
-        'preprocessing': [],
-        'dataset_dir': "/mnt/mpws2019cl1/kaggle_retina/tf_records",
+        "dataset": "kaggle_retina",
+        "preprocessing": [],
+        "dataset_dir": "/mnt/mpws2019cl1/kaggle_retina/tf_records",
     }
 
     f = functools.partial(
         get_data,
-        split_name='train',
+        split_name="train",
         is_training=True,
         num_epochs=1,
         shuffle=False,
         drop_remainder=True,
-        **params)
+        **params
+    )
 
-    result = f({'batch_size': 1})
+    result = f({"batch_size": 1})
     iterator = result.make_one_shot_iterator()
     el = iterator.get_next()
 
@@ -179,22 +198,26 @@ def test_kaggle_retina():
 
 
 def test_mnist_data_generator():
-    flags.DEFINE_string('dataset', 'cpc_test', 'Which dataset to use, typically '
-                                               '`imagenet`.')
+    flags.DEFINE_string(
+        "dataset", "cpc_test", "Which dataset to use, typically " "`imagenet`."
+    )
 
-    flags.DEFINE_string('dataset_dir', 'data_util/tf_records', 'Location of the dataset files.')
-    flags.DEFINE_string('preprocessing', None, "")
-    flags.DEFINE_integer('random_seed', 1, "")
+    flags.DEFINE_string(
+        "dataset_dir", "data_util/tf_records", "Location of the dataset files."
+    )
+    flags.DEFINE_string("preprocessing", None, "")
+    flags.DEFINE_integer("random_seed", 1, "")
 
     f = functools.partial(
         get_data,
-        split_name='train',
+        split_name="train",
         is_training=True,
         num_epochs=1,
         shuffle=False,
-        drop_remainder=True)
+        drop_remainder=True,
+    )
 
-    result = f({'batch_size': 8})
+    result = f({"batch_size": 8})
     print(result)
 
     iterator = result.make_one_shot_iterator()
@@ -203,8 +226,12 @@ def test_mnist_data_generator():
         batch = sess.run(el)
         print(batch["example"]["image/encoded"].shape)
 
-        plot_sequences(batch["example"]["image/encoded"], batch["example"]["image/encoded_pred"],
-                       batch["example"]["image/labels"], output_path=r'testXXX.png')
+        plot_sequences(
+            batch["example"]["image/encoded"],
+            batch["example"]["image/encoded_pred"],
+            batch["example"]["image/labels"],
+            output_path=r"testXXX.png",
+        )
 
 
 def show_batch(image_batch):
@@ -217,7 +244,7 @@ def show_batch(image_batch):
     for n in range(len(image_batch)):
         ax = plt.subplot(dim, dim, n + 1)
         plt.imshow(image_batch[n])
-        plt.axis('off')
+        plt.axis("off")
 
     plt.show()
 
@@ -234,7 +261,7 @@ def show_batch_numpy(image_batch):
     for n in range(length):
         ax = plt.subplot(dim, dim, n + 1)
         plt.imshow(image_batch[n, :, :, :])
-        plt.axis('off')
+        plt.axis("off")
 
     plt.show()
 
@@ -252,8 +279,9 @@ def chain(f, g):
 
 
 def test_preprocessing_baseline():
-    gen = KaggleGenerator(batch_size=36, shuffle=False, categorical=False,
-                          pre_proc_func_train=apply_to_x)
+    gen = KaggleGenerator(
+        batch_size=36, shuffle=False, categorical=False, pre_proc_func_train=apply_to_x
+    )
     show_batch(gen[0][0])
 
     # sns.distplot(img[:,:,0].flatten())
@@ -311,7 +339,9 @@ def test_preprocessing():
         f = get_crop(is_training=True, crop_size=(256, 256))
         # f = chain(f, get_random_flip_ud(is_training=True)) also for new version?
         # f = get_crop_patches_fn(is_training=True, split_per_side=7, patch_jitter=-32)
-        f = chain(f, get_crop_patches_fn(is_training=True, split_per_side=7, patch_jitter=-32))
+        f = chain(
+            f, get_crop_patches_fn(is_training=True, split_per_side=7, patch_jitter=-32)
+        )
 
         f = chain(f, get_random_flip_ud(is_training=True))
         f = chain(f, get_crop(is_training=True, crop_size=(56, 56)))
@@ -342,7 +372,10 @@ def plot_3d(image, dim_to_animate):
             if ani[i] >= img.shape[dim_to_animate]:
                 ani[i] = -1
 
-            idx = [ani[i] if dim == dim_to_animate else slice(None) for dim in range(img.ndim)]
+            idx = [
+                ani[i] if dim == dim_to_animate else slice(None)
+                for dim in range(img.ndim)
+            ]
             im = np.squeeze(img[idx], axis=2)
 
             if frame[i] is None:
@@ -353,7 +386,7 @@ def plot_3d(image, dim_to_animate):
                 frame[i].set_data(im)
 
         time.sleep(0.05)
-        plt.pause(.1)
+        plt.pause(0.1)
         plt.draw()
 
 
@@ -376,16 +409,58 @@ def test_jigsaw_fintuning_preprocess():
     batch_size = 16
     f_train, f_val = JigsawBuilder().get_finetuning_preprocessing()
 
-    train_data, validation_data = get_data_generators(path, shuffle_files=False, train_split=0.95,
-                                                      train_data_generator_args={"batch_size": batch_size,
-                                                                                 "pre_proc_func": f_train,
-                                                                                 "shuffle": False},
-                                                      test_data_generator_args={"batch_size": batch_size,
-                                                                                "pre_proc_func": f_val,
-                                                                                "shuffle": False})
+    train_data, validation_data = get_data_generators(
+        path,
+        shuffle_files=False,
+        train_split=0.95,
+        train_data_generator_args={
+            "batch_size": batch_size,
+            "pre_proc_func": f_train,
+            "shuffle": False,
+        },
+        test_data_generator_args={
+            "batch_size": batch_size,
+            "pre_proc_func": f_val,
+            "shuffle": False,
+        },
+    )
 
     print(validation_data[0][0].shape)
     show_batch(train_data[0][0][0])
+
+
+def test_exemplar_preprocess():
+    path = "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224"
+    batch_size = 30
+    f_train, f_val = ExemplarBuilder(
+        data_dim=224,
+        n_channels=3,
+        batch_size=batch_size,
+        train3D=False,
+        alpha_triplet=0.2,
+        embed_dim=10,
+    ).get_training_preprocessing()
+
+    train_data, validation_data = get_data_generators(
+        path,
+        DataGeneratorUnlabeled2D,
+        shuffle_files=False,
+        train_split=0.95,
+        train_data_generator_args={
+            "batch_size": batch_size,
+            "pre_proc_func": f_train,
+            "shuffle": False,
+        },
+        test_data_generator_args={
+            "batch_size": batch_size,
+            "pre_proc_func": f_val,
+            "shuffle": False,
+        },
+    )
+
+    print(train_data[0][0].shape)
+    for i in range(batch_size):
+        show_batch(train_data[0][0][i])
 
 
 def test_rotation():
@@ -393,13 +468,21 @@ def test_rotation():
     batch_size = 16
     f_train, f_val = RotationBuilder().get_training_preprocessing()
 
-    train_data, validation_data = get_data_generators(path, shuffle_files=False, train_split=0.95,
-                                                      train_data_generator_args={"batch_size": batch_size,
-                                                                                 "pre_proc_func": f_train,
-                                                                                 "shuffle": False},
-                                                      test_data_generator_args={"batch_size": batch_size,
-                                                                                "pre_proc_func": f_val,
-                                                                                "shuffle": False})
+    train_data, validation_data = get_data_generators(
+        path,
+        shuffle_files=False,
+        train_split=0.95,
+        train_data_generator_args={
+            "batch_size": batch_size,
+            "pre_proc_func": f_train,
+            "shuffle": False,
+        },
+        test_data_generator_args={
+            "batch_size": batch_size,
+            "pre_proc_func": f_val,
+            "shuffle": False,
+        },
+    )
 
     xxx = validation_data[0]
 
@@ -410,9 +493,12 @@ def test_rotation():
 
 
 def test_cpc3d():
-    train_gen = get_data_generators("/mnt/mpws2019cl1/Task07_Pancreas/imagesPt", train3D=True,
-                                    train_data_generator_args={"batch_size": 1, "data_dim": 128},
-                                    val_data_generator_args={"batch_size": 1, "data_dim": 128})[0]
+    train_gen = get_data_generators(
+        "/mnt/mpws2019cl1/Task07_Pancreas/imagesPt",
+        train3D=True,
+        train_data_generator_args={"batch_size": 1, "data_dim": 128},
+        val_data_generator_args={"batch_size": 1, "data_dim": 128},
+    )[0]
     batch = train_gen[0]
     X_batch = batch[0]
 
@@ -430,7 +516,9 @@ def test_cpc3d():
 
 
 def test_3d_croppingetc():
-    image = np.load("/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128/pancreas_002.nii.gz.npy")
+    image = np.load(
+        "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128/pancreas_002.nii.gz.npy"
+    )
     img = nib.load("/mnt/mpws2019cl1/Task07_Pancreas/imagesPt/pancreas_002.nii.gz")
     img = img.get_fdata()
 
@@ -460,8 +548,13 @@ def test_3d_croppingetc():
 
 def test_XXXXX():
     path = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128"
-    gen = DataGeneratorUnlabeled3D(path, os.listdir(path), batch_size=9, data_dim=128,
-                                   pre_proc_func=lambda x, y: (np.repeat(x, 2, 0), np.repeat(y, 2, 0)))
+    gen = DataGeneratorUnlabeled3D(
+        path,
+        os.listdir(path),
+        batch_size=9,
+        data_dim=128,
+        pre_proc_func=lambda x, y: (np.repeat(x, 2, 0), np.repeat(y, 2, 0)),
+    )
 
     print(gen.__len__())
 
@@ -504,6 +597,8 @@ def test_XXXXXXX():
 
 
 if __name__ == "__main__":
+    test_exemplar_preprocess()
+    exit(0)
     batch_size = 1
 
     csv_training = "/mnt/mpws2019cl1/kaggle_retina_2019/train.csv"
@@ -514,9 +609,17 @@ if __name__ == "__main__":
         return x, y
 
 
-    gen_train = get_dataset_kaggle_test(batch_size, identity, csv_training, data_dir,
-                                                 test_data_generator_args={"suffix": ".png", "multilabel": True,
-                                                                           "augment": True})
+    gen_train = get_dataset_kaggle_test(
+        batch_size,
+        identity,
+        csv_training,
+        data_dir,
+        test_data_generator_args={
+            "suffix": ".png",
+            "multilabel": True,
+            "augment": True,
+        },
+    )
 
     gen_train_NEW = get_dataset_kaggle_train(batch_size)
 

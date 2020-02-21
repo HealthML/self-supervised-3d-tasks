@@ -211,8 +211,8 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     pred_model.summary()
     model.summary()
 
-    # debugging
-    plot_model(model, to_file="/home/Winfried.Loetzsch/test_architecture.png", expand_nested=True)
+    # TODO: remove debugging
+    plot_model(model, to_file=Path("~/test_architecture.png").expanduser(), expand_nested=True)
 
     if epochs > 0:  # testing the scores
         if freeze_weights or load_weights:
@@ -270,6 +270,7 @@ def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint
                      metrics=("mse",), **kwargs):
     kwargs["model_checkpoint"] = model_checkpoint
     kwargs["root_config_file"] = root_config_file
+    metrics = list(metrics)  # TODO: this seems unnecessary... but tf expects this to be list or str not tuple -.-
 
     working_dir = get_writing_path(Path(model_checkpoint).expanduser().parent /
                                    (Path(model_checkpoint).expanduser().stem + "_test"),

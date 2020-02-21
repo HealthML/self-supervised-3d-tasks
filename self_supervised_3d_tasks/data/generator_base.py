@@ -77,6 +77,7 @@ class DataGeneratorBase(keras.utils.Sequence):
         return (X, Y)
 
     def on_epoch_end(self):
+        # TODO: see issue: https://github.com/tensorflow/tensorflow/issues/35911 -- in fixing
         super(DataGeneratorBase, self).on_epoch_end()
         if self.shuffle:
             # shuffle the files

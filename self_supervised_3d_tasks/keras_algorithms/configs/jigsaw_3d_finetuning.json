@@ -4,7 +4,7 @@
   "train3D": true,
   "data_dir_train": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train",
   "data_dir_test": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/test",
-  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_pancreas3d_10/weights-improvement-001.hdf5",
+  "model_checkpoint": "/home/Noel.Danz/workspace/test.hdf5",
   "repetitions": 1,
   "epochs": 6,
   "epochs_warmup": 2,
@@ -12,7 +12,13 @@
   "data_dim": 128,
   "batch_size": 1,
   "n_channels": 1,
-  "exp_splits": [90],
-  "scores": ["dice", "cat_accuracy"],
+  "exp_splits": [
+    5
+  ],
+  "scores": [
+    "qw_kappa",
+    "dice",
+    "cat_accuracy"
+  ],
   "patch_dim": 64
 }
