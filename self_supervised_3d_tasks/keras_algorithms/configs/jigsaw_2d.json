@@ -6,9 +6,9 @@
   "data_dim": 224,
   "dataset_name": "kaggle_retina",
   "train3D": false,
-  "batch_size": 32,
   "patch_jitter": 10,
   "encoder_architecture": "DenseNet121",
   "top_architecture": "big_fully",
-  "embed_dim": 1024
+  "embed_dim": 1024,
+  "batch_size": 32
 }

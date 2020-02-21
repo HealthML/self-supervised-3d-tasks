@@ -9,7 +9,7 @@
   "test_data_generator_args": {"suffix":  ".png", "multilabel": true, "augment": false},
   "dataset_name": "kaggle_retina",
   "train3D": false,
-  "batch_size": 32,
+  "batch_size": 16,
   "encoder_architecture": "DenseNet121",
   "lr": 0.00005,
   "metrics": ["accuracy"],

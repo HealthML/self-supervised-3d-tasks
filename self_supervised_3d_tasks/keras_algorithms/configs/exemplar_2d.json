@@ -1,8 +1,8 @@
 {
   "algorithm": "exemplar",
-  "data_dir": "/mnt/mpws2019cl1/kaggle_retina/train/resized_384",
+  "data_dir": "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224",
   "dataset_name": "kaggle_retina",
-  "data_dim": 384,
+  "data_dim": 224,
   "number_channels": 3,
   "batch_size": 10,
   "train_data_generator_args": {
@@ -13,6 +13,6 @@
     "augment": false
   },
   "alpha_triplet": 0.2,
-  "embedding_size": 10,
+  "embedding_size": 1024,
   "lr": 0.0006
 }

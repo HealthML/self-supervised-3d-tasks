@@ -19,7 +19,8 @@
   "embed_dim": 1024,
   "val_split": 0.05,
   "epochs": 15,
-  "dropout_rate_before_embed_layer": 0.5,
+  "epochs_warmup": 2,
   "load_weights": true,
-  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina_2/weights-improvement-015.hdf5"
+  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina_2/weights-improvement-183.hdf5",
+  "scores": ["qw_kappa_kaggle"]
 }
