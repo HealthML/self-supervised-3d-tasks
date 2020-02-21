@@ -2,11 +2,11 @@
   "algorithm": "rpl",
   "data_dir": "/mnt/mpws2019cl1/kaggle_retina/train/resized_384",
   "dataset_name": "kaggle_retina",
-  "encoder_architecture": "InceptionV3",
   "train3D": false,
   "batch_size": 16,
   "data_dim": 384,
   "n_channels": 3,
   "patches_per_side": 3,
-  "patch_jitter": 32
+  "patch_jitter": 32,
+  "encoder_architecture": "InceptionV3"
 }
