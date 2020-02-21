@@ -103,10 +103,10 @@ class ExemplarBuilder:
 
     def get_training_preprocessing(self):
         def f_train(x, y):
-            return preprocessing_exemplar(x, y, self.train3D)
+            return preprocessing_exemplar(x, y, self.train3D, self.embedding_size)
 
         def f_val(x, y):
-            return preprocessing_exemplar(x, y, self.train3D)
+            return preprocessing_exemplar(x, y, self.train3D, self.embedding_size)
 
         return f_train, f_val
 
