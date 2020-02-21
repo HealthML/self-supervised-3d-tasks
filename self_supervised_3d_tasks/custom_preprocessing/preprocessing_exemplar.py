@@ -1,6 +1,10 @@
-import numpy as np
+import random
 
-def preprocessing_exemplar(x, y, process_3d = False, embedding_layers=10):
+import numpy as np
+import albumentations as ab
+
+
+def augment_exemplar_3d(image):
     def _distort_color(scan):
         """
         This function is based on the distort_color function from the tf implementation.
@@ -20,65 +24,50 @@ def preprocessing_exemplar(x, y, process_3d = False, embedding_layers=10):
         scan = (contrast_factor * (scan - scan_mean)) + scan_mean
         return scan
 
-    """
-    This function preprocess a batch for relative patch location in a 2 dimensional space.
-    :param x: array of images
-    :param y: None
-    :return: x as np.array of images with random rotations, y np.array with one-hot encoded label
-    """
-    # get batch size
+    processed_image = image.copy()
+    for i in range(3):
+        if np.random.rand() < 0.5:
+            processed_image = np.flip(processed_image, i)
+    processed_image = np.rot90(processed_image, k=np.random.randint(0, 4), axes=(0, 1))
+    processed_image = np.rot90(processed_image, k=np.random.randint(0, 4), axes=(1, 2))
+    processed_image = np.rot90(processed_image, k=np.random.randint(0, 4), axes=(0, 2))
+    if np.random.rand() < 0.5:
+        # color distortion
+        processed_image = _distort_color(processed_image)
+    return processed_image
+
+
+def make_derangement(indices):
+    if len(indices) == 1:
+        return indices
+    for i in range(len(indices) - 1, 0, -1):
+        j = random.randrange(i)  # 0 <= j <= i-1
+        indices[j], indices[i] = indices[i], indices[j]
+    return indices
+
+
+def preprocessing_exemplar(x, y, process_3d=False, embedding_size=10):
     batch_size = len(y)
-    y = np.empty((batch_size, 3, embedding_layers))
-    if process_3d:
-        x_processed = np.empty(shape=(batch_size, 3, x.shape[-4], x.shape[-3], x.shape[-2], x.shape[-1]))
-    else:
-        x_processed = np.empty(shape=(batch_size, 3, x.shape[-3], x.shape[-2], x.shape[-1]))
-    # init patch array
-    if process_3d:
-        triplet = np.empty(shape=(3, x.shape[-4], x.shape[-3], x.shape[-2], x.shape[-1]))
-    else:
-        triplet = np.empty(shape=(3, x.shape[-3], x.shape[-2], x.shape[-1]))
-    # get negative examples
-    random_images = x
-    np.random.shuffle(random_images)
-    # loop over all images with index and image
-    for index, image in enumerate(x):
-        # random transformation [0..1]
-        random_lr_flip = np.random.randint(0, 2)
-        random_ud_flip = np.random.randint(0, 2)
-        random_flip3d = np.random.randint(0, 2) if process_3d else 0
-        distort_color = np.random.randint(0, 2)
-        processed_image = np.copy(image)
-        # flip up and down
-        if random_ud_flip == 1:
-            processed_image = np.flip(processed_image, 0)
-        # flip left and right
-        if random_lr_flip == 1:
-            processed_image = np.flip(processed_image, 1)
-        # flip left and right
-        if random_flip3d == 1:
-            processed_image = np.flip(processed_image, 2)
-        # distort_color
-        if distort_color == 1:
-            processed_image = _distort_color(processed_image)
-        # rotation
+    x_processed = np.empty(shape=(batch_size, 3, *x.shape[1:]))
+    triplet = np.empty(shape=(3, *x.shape[1:]))
+    derangement = make_derangement(list(range(len(x))))
+    random_shuffled = x.copy()[derangement]
+    if np.any(list(range(len(x))) == derangement):
+        print("[WARNING]: Derangement didnt work.")
+    for i, image in enumerate(x):
         if process_3d:
-            rotation = np.random.randint(0, 4)
-            processed_image = np.rot90(processed_image, k=rotation, axes=(0, 1))
-            rotation = np.random.randint(0, 4)
-            processed_image = np.rot90(processed_image, k=rotation, axes=(1, 2))
-            rotation = np.random.randint(0, 4)
-            processed_image = np.rot90(processed_image, k=rotation, axes=(0, 2))
+            processed_image = augment_exemplar_3d(image)
         else:
-            rotation = np.random.randint(0, 4)
-            processed_image = np.rot90(processed_image, k=rotation)
-        # Set Anchor Image
-        triplet[0] = processed_image
-        # Set Positiv Image
-        triplet[1] = image
-        # Set negativ Image
-        negativ_image = random_images[index]
-        triplet[2] = negativ_image
-        x_processed[index] = triplet
-    # return images and rotation
+            processed_image = ab.Compose(
+                [
+                    ab.RandomRotate90(p=1),
+                    ab.VerticalFlip(),
+                    ab.HorizontalFlip(),
+                    ab.RandomBrightnessContrast(p=1),
+                ]
+            )(image=image)["image"]
+        triplet[0] = processed_image  # augmented
+        triplet[1] = image.copy()  # original (pos.)
+        triplet[2] = random_shuffled[i].copy()  # negative
+        x_processed[i] = triplet.copy()
     return x_processed, y
