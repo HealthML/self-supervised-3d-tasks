@@ -77,9 +77,12 @@ class DataGeneratorBase(keras.utils.Sequence):
         return (X, Y)
 
     def on_epoch_end(self):
+        # TODO: see issue: https://github.com/tensorflow/tensorflow/issues/35911 -- in fixing
         if self.shuffle:
             # shuffle the files
             random.shuffle(self.list_IDs)
+        else:
+            pass
 
     def data_generation(self, list_files_temp):
         raise NotImplementedError("should be implemented in subclass")
