@@ -1,7 +1,7 @@
 import numpy as np
 from tensorflow.keras.utils import plot_model
 
-from self_supervised_3d_tasks.custom_preprocessing.preprocessing_exemplar import preprocessing_exemplar
+from self_supervised_3d_tasks.custom_preprocessing.preprocessing_exemplar import preprocessing_exemplar_training
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model_3d, apply_encoder_model
 
 from tensorflow.keras.layers import Concatenate, Lambda, Flatten, Input
@@ -18,7 +18,7 @@ class ExemplarBuilder:
             batch_size=10,
             train3D=False,
             alpha_triplet=0.2,
-            embedding_size=10,
+            embed_dim=10,
             lr=0.0006,
             model_checkpoint=None,
             **kwargs
@@ -30,7 +30,7 @@ class ExemplarBuilder:
         :param batch_size: int
         :param train3D: bool
         :param alpha_triplet: float for triplet loss
-        :param embedding_size: int
+        :param embed_dim: int
         :param lr: float learningrate
         :param model_checkpoint: Dir to model checkpoint
         :param kwargs: ...
@@ -40,10 +40,12 @@ class ExemplarBuilder:
         self.train3D = train3D
         self.dim = (data_dim, data_dim, data_dim) if self.train3D else (data_dim, data_dim)
         self.alpha_triplet = alpha_triplet
-        self.embedding_size = embedding_size
+        self.embed_dim = embed_dim
         self.lr = lr
         self.model_checkpoint = model_checkpoint
         self.kwargs = kwargs
+        self.enc_model = None
+        self.cleanup_models = []
 
     def triplet_loss(self, y_true, y_pred, _alpha=.5):
         """
@@ -54,7 +56,7 @@ class ExemplarBuilder:
         :param _alpha: defines the shift of the loss
         :return: calculated loss
         """
-        embeddings = K.reshape(y_pred, (-1, 3, self.embedding_size))
+        embeddings = K.reshape(y_pred, (-1, 3, self.embed_dim))
 
         positive_distance = K.mean(K.square(embeddings[:, 0] - embeddings[:, 1]), axis=-1)
         negative_distance = K.mean(K.square(embeddings[:, 0] - embeddings[:, 2]), axis=-1)
@@ -70,9 +72,9 @@ class ExemplarBuilder:
         """
         # defines encoder for 3d / non 3d
         if self.train3D:
-            network, _ = apply_encoder_model_3d((*self.dim, self.n_channels), self.embedding_size, **self.kwargs)
+            network, _ = apply_encoder_model_3d((*self.dim, self.n_channels), self.embed_dim, **self.kwargs)
         else:
-            network = apply_encoder_model((*self.dim, self.n_channels), self.embedding_size, **self.kwargs)
+            network = apply_encoder_model((*self.dim, self.n_channels), self.embed_dim, **self.kwargs)
 
         # Define the tensors for the three input images
         input_layer = Input((3, *input_shape), name="Input")
@@ -93,7 +95,6 @@ class ExemplarBuilder:
 
         # Connect the inputs with the outputs
         model = Model(inputs=input_layer, outputs=output)
-        print(network.summary())
         # compile the model
         model.compile(loss=self.triplet_loss, optimizer=optimizer)
         return network, model
@@ -103,21 +104,35 @@ class ExemplarBuilder:
 
     def get_training_preprocessing(self):
         def f_train(x, y):
-            return preprocessing_exemplar(x, y, self.train3D, self.embedding_size)
+            return preprocessing_exemplar_training(x, y, self.train3D, self.embed_dim)
 
         def f_val(x, y):
-            return preprocessing_exemplar(x, y, self.train3D, self.embedding_size)
+            return preprocessing_exemplar_training(x, y, self.train3D, self.embed_dim)
 
         return f_train, f_val
 
     def get_finetuning_preprocessing(self):
         def f_train(x, y):
-            return preprocessing_exemplar(x, y, self.train3D)
+            return x, y
 
         def f_val(x, y):
-            return preprocessing_exemplar(x, y, self.train3D)
+            return x, y
 
         return f_train, f_val
+
+    def get_finetuning_model(self, model_checkpoint=None):
+        self.enc_model, model_full = self.apply_model((*self.dim, self.n_channels))
+        if model_checkpoint is not None:
+            model_full.load_weights(model_checkpoint)
+        self.cleanup_models.append(model_full)
+        self.cleanup_models.append(self.enc_model)
+        return self.enc_model
+
+    def purge(self):
+        for i in reversed(range(len(self.cleanup_models))):
+            del self.cleanup_models[i]
+        del self.cleanup_models
+        self.cleanup_models = []
 
     def get_finetuning_layers(self, load_weights, freeze_weights):
         enc_model, model_full = self.apply_model((*self.dim, self.n_channels))

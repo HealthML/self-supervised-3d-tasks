@@ -1,0 +1,54 @@
+{
+  "algorithm": "exemplar",
+  "data_dir": "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224",
+  "csv_file_train": "/mnt/mpws2019cl1/kaggle_retina_2019/labels_shuffled_train.csv",
+  "csv_file_test": "/mnt/mpws2019cl1/kaggle_retina_2019/labels_shuffled_test.csv",
+  "dataset_name": "kaggle_retina",
+  "train3D": false,
+  "data_dim": 224,
+  "number_channels": 3,
+  "batch_size": 10,
+  "train_data_generator_args": {
+    "suffix": ".png",
+    "multilabel": true,
+    "augment": true,
+    "shuffle": true
+  },
+  "val_data_generator_args": {
+    "suffix": ".png",
+    "multilabel": true,
+    "augment": false
+  },
+  "test_data_generator_args": {
+    "suffix": ".png",
+    "multilabel": true,
+    "augment": false
+  },
+  "alpha_triplet": 0.2,
+  "embed_dim": 1024,
+  "val_split": 0.05,
+  "lr": 0.00005,
+  "metrics": [
+    "accuracy"
+  ],
+  "loss": "binary_crossentropy",
+  "prediction_architecture": "simple_multiclass",
+  "pooling": "avg",
+  "encoder_architecture": "DenseNet121",
+  "epochs": 12,
+  "epochs_warmup": 2,
+  "load_weights": true,
+  "model_checkpoint": "/home/Noel.Danz/workspace/self-supervised-transfer-learning/exemplar_kaggle_retina_15/weights-improvement-039.hdf5",
+  "scores": [
+    "qw_kappa_kaggle",
+    "cat_acc_kaggle"
+  ],
+  "repetitions": 3,
+  "exp_splits": [
+    100,
+    10,
+    1,
+    50,
+    25
+  ]
+}

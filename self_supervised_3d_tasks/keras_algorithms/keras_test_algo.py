@@ -23,6 +23,7 @@ from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_alg
 
 
 def score_kappa(y, y_pred):
+    # TODO: the kappa has to know the labels to work... but we can't expect that rn
     return cohen_kappa_score(y, y_pred, labels=[0, 1, 2, 3, 4], weights="quadratic")
 
 
@@ -191,8 +192,8 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     model.summary()
     pred_model.summary()
 
-    # debugging
-    plot_model(model, to_file="/home/Winfried.Loetzsch/test_architecture.png", expand_nested=True)
+    # TODO: remove debugging
+    plot_model(model, to_file=Path("~/test_architecture.png").expanduser(), expand_nested=True)
 
     if freeze_weights or load_weights:
         enc_model.trainable = False
@@ -201,7 +202,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
         assert epochs_warmup < epochs, "warmup epochs must be smaller than epochs"
 
         print(("-" * 10) + "LOADING weights, encoder model is trainable after warm-up")
-        print(("-"*5) + " encoder model is frozen")
+        print(("-" * 5) + " encoder model is frozen")
         model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
         model.fit(x=gen_train, validation_data=gen_val, epochs=epochs_warmup)
         epochs = epochs - epochs_warmup
@@ -247,6 +248,7 @@ def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint
                      exp_splits=(100, 10, 1), lr=1e-3, epochs_warmup=2, scores=("qw_kappa",), loss="mse", metrics=("mse", ), **kwargs):
     kwargs["model_checkpoint"] = model_checkpoint
     kwargs["root_config_file"] = root_config_file
+    metrics = list(metrics)  # TODO: this seems unnecessary... but tf expects this to be list or str not tuple -.-
 
     working_dir = get_writing_path(Path(model_checkpoint).expanduser().parent /
                                    (Path(model_checkpoint).expanduser().stem + "_test"),
