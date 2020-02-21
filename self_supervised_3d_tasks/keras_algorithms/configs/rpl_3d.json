@@ -8,4 +8,5 @@
   "n_channels": 1,
   "patch_jitter": 8,
   "top_architecture": "big_fully"
+
 }
