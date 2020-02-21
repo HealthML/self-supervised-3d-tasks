@@ -9,5 +9,5 @@
   "encoder_architecture": "DenseNet121",
   "top_architecture": "big_fully",
   "embed_dim": 128,
-  "batch_size": 4
+  "batch_size": 16
 }

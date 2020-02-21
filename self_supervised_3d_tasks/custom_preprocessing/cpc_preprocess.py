@@ -9,7 +9,7 @@ def resize(batch, new_size):
     return np.array([ab.Resize(new_size, new_size)(image=image)["image"] for image in batch])
 
 
-def preprocess_image(image, patch_jitter, patch_crop_size, split_per_side, padding, crop_size, is_training=True):
+def preprocess_image(image, patch_jitter, split_per_side, crop_size, is_training=True):
     result = []
     w, h, _ = image.shape
 
@@ -19,12 +19,15 @@ def preprocess_image(image, patch_jitter, patch_crop_size, split_per_side, paddi
 
     for patch in crop_patches(image, is_training, split_per_side, patch_jitter):
         if is_training:
+            normal_patch_size = patch.shape[0]
+            patch_crop_size = int(normal_patch_size * (7.0 / 8.0))
+
             patch = ab.Flip()(image=patch)["image"]
             patch = crop(patch, is_training, (patch_crop_size, patch_crop_size))
             patch = ab.ChannelDropout(p=1.0)(image=patch)["image"]
             patch = ab.ChannelDropout(p=1.0)(image=patch)["image"]
             patch = ab.ToGray(p=1.0)(image=patch)["image"]  # make use of all 3 channels again for training
-            patch = ab.PadIfNeeded(patch_crop_size + 2 * padding, patch_crop_size + 2 * padding)(image=patch)["image"]
+            patch = ab.PadIfNeeded(normal_patch_size, normal_patch_size)(image=patch)["image"]
 
         else:
             # patch = crop(patch, is_training, (patch_crop_size, patch_crop_size))  # center crop here
@@ -42,14 +45,8 @@ def preprocess(batch, crop_size, split_per_side, is_training=True):
     assert w == h, "accepting only squared images"
 
     patch_jitter = int(- w / (split_per_side + 1))  # overlap half of the patch size
-    patch_crop_size = int((w - patch_jitter * (split_per_side - 1)) / split_per_side * 7 / 8)
-    # print(patch_crop_size)
-    # print("Is this right?? for patch_crop size")
-    # TODO: check this
-    padding = int((-2 * patch_jitter - patch_crop_size) / 2)
-
-    return np.array([preprocess_image(image=image, patch_jitter=patch_jitter, patch_crop_size=patch_crop_size,
-                                      split_per_side=split_per_side, padding=padding, crop_size=crop_size,
+    return np.array([preprocess_image(image=image, patch_jitter=patch_jitter,
+                                      split_per_side=split_per_side, crop_size=crop_size,
                                       is_training=is_training) for image in batch])
 
 

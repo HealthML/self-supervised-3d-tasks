@@ -77,6 +77,7 @@ class DataGeneratorBase(keras.utils.Sequence):
         return (X, Y)
 
     def on_epoch_end(self):
+        super(DataGeneratorBase, self).on_epoch_end()
         if self.shuffle:
             # shuffle the files
             random.shuffle(self.list_IDs)

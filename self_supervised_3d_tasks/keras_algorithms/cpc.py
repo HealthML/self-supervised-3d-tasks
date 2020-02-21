@@ -60,7 +60,7 @@ class CPCBuilder:
             n_channels=3,
             crop_size=None,
             split_per_side=7,
-            code_size=128,
+            embed_dim=128,
             lr=1e-3,
             train3D=False,
             **kwargs,
@@ -72,35 +72,34 @@ class CPCBuilder:
         self.n_channels = n_channels
         self.crop_size = crop_size
         self.split_per_side = split_per_side
-        self.code_size = code_size
+        self.code_size = embed_dim
         self.lr = lr
-
-        print((data_dim / (split_per_side + 1)) * 2)
-        self.image_size = int((data_dim / (split_per_side + 1)) * 2)
-        self.image_size_3d = data_dim // split_per_side
-        self.img_shape = (self.image_size, self.image_size, self.n_channels)
-        self.img_shape_3d = (self.image_size_3d, self.image_size_3d, self.image_size_3d, self.n_channels)
         self.kwargs = kwargs
         self.train3D = train3D
-        self.cleanup_models = []
 
-        self.enc_model = None
-        self.layer_data = None
-
+        # run a test to obtain data sizes
         prep_train = self.get_training_preprocessing()[0]
         test_data = np.zeros((1, data_dim, data_dim, data_dim, n_channels), dtype=np.float32) if self.train3D \
             else np.zeros((1, data_dim, data_dim, n_channels), dtype=np.float32)
-        test_x = prep_train(test_data, test_data)[0]
 
+        test_x = prep_train(test_data, test_data)[0]
         self.terms = test_x[0].shape[1]
+        self.image_size = test_x[0].shape[2]
         self.predict_terms = test_x[1].shape[1]
+
+        self.img_shape = (self.image_size, self.image_size, self.n_channels)
+        self.img_shape_3d = (self.image_size, self.image_size, self.image_size, self.n_channels)
+
+        self.cleanup_models = []
+        self.enc_model = None
+        self.layer_data = None
 
     def apply_model(self):
         if self.train3D:
             self.enc_model, self.layer_data = apply_encoder_model_3d(self.img_shape_3d, self.code_size, **self.kwargs)
-            x_input = Input((self.terms, self.image_size_3d, self.image_size_3d, self.image_size_3d, self.n_channels))
+            x_input = Input((self.terms, self.image_size, self.image_size, self.image_size, self.n_channels))
             y_input = keras.layers.Input(
-                (self.predict_terms, self.image_size_3d, self.image_size_3d, self.image_size_3d, self.n_channels))
+                (self.predict_terms, self.image_size, self.image_size, self.image_size, self.n_channels))
         else:
             self.enc_model = apply_encoder_model(self.img_shape, self.code_size, **self.kwargs)
             x_input = Input((self.terms, self.image_size, self.image_size, self.n_channels))
