@@ -38,7 +38,7 @@
   "epochs": 12,
   "epochs_warmup": 2,
   "load_weights": true,
-  "model_checkpoint": "/home/Noel.Danz/workspace/self-supervised-transfer-learning/exemplar_kaggle_retina_15/weights-improvement-039.hdf5",
+  "model_checkpoint": "/home/Noel.Danz/workspace/self-supervised-transfer-learning/exemplar_kaggle_retina_23/weights-improvement-035.hdf5",
   "scores": [
     "qw_kappa_kaggle",
     "cat_acc_kaggle"
