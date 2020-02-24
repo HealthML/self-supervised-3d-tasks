@@ -47,6 +47,7 @@ def preprocess_batch(batch,  patches_per_side, patch_jitter=0, is_training=True)
     return np.array(patches), np.array(labels)
 
 def preprocess_image_3d(image, patches_per_side, patch_jitter, is_training):
+    patch_size = int(image.shape[0] / patches_per_side)
     patch_count = patches_per_side**2
     center_id = ceil(patch_count / 2)
 
@@ -58,6 +59,8 @@ def preprocess_image_3d(image, patches_per_side, patch_jitter, is_training):
         patch_id = class_id + 1
 
     cropped_image = crop_patches_3d(image, is_training, patches_per_side, patch_jitter)
+    cropped_image = preprocess_image_pad(cropped_image, patch_size, True)
+
     return np.array(cropped_image), class_id
 
 
