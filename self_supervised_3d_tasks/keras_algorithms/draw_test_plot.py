@@ -1,17 +1,21 @@
+import json
+from pathlib import Path
+
+import glob
 import matplotlib.pyplot as plt
 import pandas
 
 
-def draw_curve(path, name, metric):
+def draw_curve(path, name, metric, min_max_avg="avg", batch_size=32, repetitions=3, epochs=12):
     df = pandas.read_csv(path)
     df['split'] = [int(i[:-1]) for i in df['Train Split']]
     df = df.sort_values(by=['split'])
 
-    plt.plot(df["Train Split"], df["Weights_initialized_"+metric], label=name + ' - Encoder Trainable')
-    plt.plot(df["Train Split"], df["Weights_frozen_"+metric], label=name + ' - Encoder Frozen')
-    plt.plot(df["Train Split"], df["Weights_random_"+metric], label='Random')
+    plt.plot(df["Train Split"], df["Weights_initialized_"+metric+"_"+min_max_avg], label=name + ' - Encoder Trainable')
+    plt.plot(df["Train Split"], df["Weights_frozen_"+metric+"_"+min_max_avg], label=name + ' - Encoder Frozen')
+    plt.plot(df["Train Split"], df["Weights_random_"+metric+"_"+min_max_avg], label='Random')
 
-    plt.title(f"Comparison of averaged {metric} for kaggle retina 2019. \nbatch_size=32,repetitions=3,epochs=12", pad=30)
+    plt.title(f"Comparison of {min_max_avg} {metric} for kaggle retina 2019. \nbatch_size={batch_size},repetitions={repetitions},epochs={epochs}", pad=30)
 
     plt.legend()
     plt.show()
@@ -29,7 +33,14 @@ def draw_convergence():
     plt.show()
 
 if __name__ == "__main__":
-    path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina_2/weights-improvement-183_test_3/results.csv"
-    name = "Jigsaw"
+    path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_kaggle_retina_13/weights-improvement-004_test_1/results.csv"
+    name = "CPC"
     # draw_convergence()
-    draw_curve(path, name, "qw_kappa_kaggle")
+
+    args = {}
+    for filename in glob.glob(str(Path(path).parent) + "/*.json"):
+        with open(filename, "r") as file:
+            args = json.load(file)
+        break
+
+    draw_curve(path, name, "qw_kappa_kaggle", "avg", args["batch_size"],  args["repetitions"],  args["epochs"])
