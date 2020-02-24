@@ -54,11 +54,13 @@ class RelativePatchLocationBuilder:
                 self.image_shape, self.embed_dim, **self.kwargs
             )
             enc_model = enc_model[0]
+            enc_model.summary()
             a = apply_prediction_model(
                 2 * self.embed_dim,
                 prediction_architecture=self.top_architecture,
                 include_top=False,
             )
+            a.summary()
         else:
             enc_model = apply_encoder_model(
                 self.image_shape, self.embed_dim, **self.kwargs
