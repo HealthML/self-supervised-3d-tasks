@@ -34,7 +34,6 @@ def draw_convergence():
 
 if __name__ == "__main__":
     path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_kaggle_retina_13/weights-improvement-004_test_1/results.csv"
-    name = "CPC"
     # draw_convergence()
 
     args = {}
@@ -43,4 +42,4 @@ if __name__ == "__main__":
             args = json.load(file)
         break
 
-    draw_curve(path, name, "qw_kappa_kaggle", "avg", args["batch_size"],  args["repetitions"],  args["epochs"])
+    draw_curve(path, args["algorithm"], "qw_kappa_kaggle", "avg", args["batch_size"],  args["repetitions"],  args["epochs"])
