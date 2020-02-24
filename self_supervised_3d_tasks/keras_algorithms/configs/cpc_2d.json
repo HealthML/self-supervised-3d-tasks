@@ -4,10 +4,12 @@
   "train_data_generator_args": {"augment": true, "shuffle": true},
   "val_data_generator_args": {"augment": false},
   "data_dim": 224,
+  "crop_size": 224,
+  "split_pre_side": 5,
   "dataset_name": "kaggle_retina",
   "train3D": false,
   "encoder_architecture": "DenseNet121",
   "top_architecture": "big_fully",
   "embed_dim": 128,
-  "batch_size": 16
+  "batch_size": 8
 }

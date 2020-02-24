@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 
 from self_supervised_3d_tasks.custom_preprocessing.crop import crop_patches, crop_patches_3d
-from self_supervised_3d_tasks.custom_preprocessing.pad import pad_to_final_size_3d
+from self_supervised_3d_tasks.custom_preprocessing.pad import pad_to_final_size_3d, pad_to_final_size_2d
 
 
 def preprocess_image(image, is_training, split_per_side, patch_jitter, permutations, mode3d):
@@ -63,7 +63,7 @@ def preprocess_image_pad(patches, patch_dim, mode3d):
             patch = pad_to_final_size_3d(patch, patch_dim)
         else:
             # zero padding
-            patch = ab.PadIfNeeded(patch_dim, patch_dim, border_mode=cv2.BORDER_CONSTANT, value=0)(image=patch)["image"]
+            patch = pad_to_final_size_2d(patch, patch_dim)
 
         result.append(patch)
 

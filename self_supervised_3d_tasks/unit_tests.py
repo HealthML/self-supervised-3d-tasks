@@ -25,7 +25,7 @@ from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess_3d import (
 )
 from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import apply_to_x
 from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
-from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator
+from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator, get_kaggle_generator
 from self_supervised_3d_tasks.data.numpy_3d_loader import DataGeneratorUnlabeled3D
 from self_supervised_3d_tasks.keras_algorithms import cpc
 from self_supervised_3d_tasks.keras_algorithms.jigsaw import JigsawBuilder
@@ -234,7 +234,7 @@ def test_mnist_data_generator():
         )
 
 
-def show_batch(image_batch):
+def show_batch(image_batch, reverse_order=False):
     plt.figure(figsize=(10, 10))
     dim = int(np.sqrt(len(image_batch)))
 
@@ -243,6 +243,13 @@ def show_batch(image_batch):
 
     for n in range(len(image_batch)):
         ax = plt.subplot(dim, dim, n + 1)
+
+        if reverse_order:
+            row = n // dim
+            rest = n % dim
+
+            n = rest * dim + row
+
         plt.imshow(image_batch[n])
         plt.axis("off")
 
@@ -596,7 +603,7 @@ def test_XXXXXXX():
     plot_3d([get_data_norm_npy(p1), get_data_norm_npy(p2)], 2)
 
 
-if __name__ == "__main__":
+def exemplar_preprocess_XX():
     test_exemplar_preprocess()
     exit(0)
     batch_size = 1
@@ -604,10 +611,8 @@ if __name__ == "__main__":
     csv_training = "/mnt/mpws2019cl1/kaggle_retina_2019/train.csv"
     data_dir = "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224"
 
-
     def identity(x, y):
         return x, y
-
 
     gen_train = get_dataset_kaggle_test(
         batch_size,
@@ -644,3 +649,37 @@ if __name__ == "__main__":
         print(x_new.min())
 
         show_batch_numpy(np.concatenate([x_old, x_new]))
+
+
+if __name__ == "__main__":
+    import self_supervised_3d_tasks.keras_algorithms.cpc as cpc
+
+    csv_training = "/mnt/mpws2019cl1/kaggle_retina_2019/train.csv"
+    data_dir = "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224"
+
+    instance = cpc.create_instance(data_dim=224, crop_size=224, split_per_side=5)
+    gen_norm = get_kaggle_generator(data_dir, csv_training, train_data_generator_args={
+        "pre_proc_func": instance.get_finetuning_preprocessing()[0],
+        "batch_size": 1,
+        "suffix": ".png"
+    })
+    gen = get_kaggle_generator(data_dir, csv_training, train_data_generator_args={
+        "pre_proc_func": instance.get_training_preprocessing()[0],
+        "batch_size": 1,
+        "suffix": ".png"
+    })
+
+    batch = gen[0]
+    batch_x = batch[0]
+    batch_x_perm = batch_x[0]
+    batch_x_pred = batch_x[1]
+
+    el_x_perm = batch_x_perm[0]
+    print(el_x_perm.shape)
+
+    el_x_pred = batch_x_pred[0]
+    print(el_x_pred.shape)
+
+    show_batch(gen_norm[0][0][0], reverse_order=True)
+    show_batch(el_x_perm)
+    show_batch(el_x_pred)

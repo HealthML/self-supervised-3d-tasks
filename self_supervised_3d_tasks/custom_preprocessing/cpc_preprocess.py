@@ -3,6 +3,7 @@ from math import sqrt
 import albumentations as ab
 import numpy as np
 from self_supervised_3d_tasks.custom_preprocessing.crop import crop, crop_patches
+from self_supervised_3d_tasks.custom_preprocessing.pad import pad_to_final_size_2d
 
 
 def resize(batch, new_size):
@@ -15,19 +16,19 @@ def preprocess_image(image, patch_jitter, split_per_side, crop_size, is_training
 
     if is_training:
         image = crop(image, is_training, (crop_size, crop_size))
-        image = ab.PadIfNeeded(w, h)(image=image)["image"]
+        image = pad_to_final_size_2d(image, w)
 
     for patch in crop_patches(image, is_training, split_per_side, patch_jitter):
         if is_training:
             normal_patch_size = patch.shape[0]
-            patch_crop_size = int(normal_patch_size * (7.0 / 8.0))
+            patch_crop_size = int(normal_patch_size * (11.0 / 12.0))
 
-            patch = ab.Flip()(image=patch)["image"]
+            # patch = ab.Flip()(image=patch)["image"]
             patch = crop(patch, is_training, (patch_crop_size, patch_crop_size))
-            patch = ab.ChannelDropout(p=1.0)(image=patch)["image"]
-            patch = ab.ChannelDropout(p=1.0)(image=patch)["image"]
-            patch = ab.ToGray(p=1.0)(image=patch)["image"]  # make use of all 3 channels again for training
-            patch = ab.PadIfNeeded(normal_patch_size, normal_patch_size)(image=patch)["image"]
+            # patch = ab.ChannelDropout(p=1.0)(image=patch)["image"]
+            # patch = ab.ChannelDropout(p=1.0)(image=patch)["image"]
+            # patch = ab.ToGray(p=1.0)(image=patch)["image"]  # make use of all 3 channels again for training
+            patch = pad_to_final_size_2d(patch, normal_patch_size)
 
         else:
             # patch = crop(patch, is_training, (patch_crop_size, patch_crop_size))  # center crop here
@@ -59,30 +60,42 @@ def preprocess_grid(image):
     patch_size = int(sqrt(shape[1]))
     batch_size = shape[0]
 
-    def get_patch_at(batch, x, y, mirror=False):
+    def get_patch_at(batch, x, y, mirror=False, predict_zero_instead_mirror=True):
         if batch < 0 or batch >= batch_size:
             return None
 
         if x < 0:
             if mirror:
+                if predict_zero_instead_mirror:
+                    return np.zeros(image[0, 0].shape)
+
                 x = -x
             else:
                 return None
 
         if y < 0:
             if mirror:
+                if predict_zero_instead_mirror:
+                    return np.zeros(image[0, 0].shape)
+
                 y = -y
             else:
                 return None
 
         if x >= patch_size:
             if mirror:
+                if predict_zero_instead_mirror:
+                    return np.zeros(image[0, 0].shape)
+
                 x = 2 * (patch_size - 1) - x
             else:
                 return None
 
         if y >= patch_size:
             if mirror:
+                if predict_zero_instead_mirror:
+                    return np.zeros(image[0, 0].shape)
+
                 y = 2 * (patch_size - 1) - y
             else:
                 return None
