@@ -1,3 +1,4 @@
+
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
 
 import csv
@@ -11,6 +12,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.utils import plot_model
 from tensorflow.python.keras import Model
 from tensorflow.python.keras.metrics import BinaryAccuracy, CategoricalAccuracy
+from tensorflow.python.keras.callbacks import CSVLogger
 
 from self_supervised_3d_tasks.data.kaggle_retina_data import get_kaggle_generator
 from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
@@ -193,7 +195,7 @@ def get_dataset_test(dataset_name, batch_size, f_test, kwargs):
 
 
 def run_single_test(algorithm_def, dataset_name, train_split, load_weights, freeze_weights, x_test, y_test, lr,
-                    batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, kwargs):
+                    batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, logging_path, kwargs):
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     gen_train, gen_val = get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split, kwargs)
 
@@ -212,9 +214,13 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     model.summary()
 
     # TODO: remove debugging
-    plot_model(model, to_file=Path("~/test_architecture.png").expanduser(), expand_nested=True)
+    # plot_model(model, to_file=Path("~/test_architecture.png").expanduser(), expand_nested=True)
 
     if epochs > 0:  # testing the scores
+        callbacks = []
+        if logging_path is not None:
+            logging_path.parent.mkdir(exist_ok=True, parents=True)
+            callbacks.append(CSVLogger(str(logging_path), append=True))
         if freeze_weights or load_weights:
             enc_model.trainable = False
 
@@ -224,7 +230,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
             print(("-" * 10) + "LOADING weights, encoder model is trainable after warm-up")
             print(("-" * 5) + " encoder model is frozen")
             model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
-            model.fit(x=gen_train, validation_data=gen_val, epochs=epochs_warmup)
+            model.fit(x=gen_train, validation_data=gen_val, epochs=epochs_warmup, callbacks=callbacks)
             epochs = epochs - epochs_warmup
 
             enc_model.trainable = True
@@ -236,7 +242,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
 
         # recompile model
         model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
-        model.fit(x=gen_train, validation_data=gen_val, epochs=epochs)
+        model.fit(x=gen_train, validation_data=gen_val, epochs=epochs, callbacks=callbacks)
 
     model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
     y_pred = model.predict(x_test, batch_size=batch_size)
@@ -299,15 +305,19 @@ def run_complex_test(algorithm, dataset_name, root_config_file, model_checkpoint
         c_s = []
 
         for i in range(repetitions):
+            logging_base_path = working_dir / "logs"
+            logging_a_path = logging_base_path / f"frozen_rep{i}.log"
+            logging_b_path = logging_base_path / f"initialized_rep{i}.log"
+            logging_c_path = logging_base_path / f"random_rep{i}.log"
             b = run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, kwargs)
+                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, logging_b_path, kwargs)
 
             c = run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, logging_c_path,
                                 kwargs)  # random
 
             a = run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, logging_a_path,
                                 kwargs)  # frozen
 
             print("train split:{} model accuracy frozen: {}, initialized: {}, random: {}".format(percentage, a, b, c))

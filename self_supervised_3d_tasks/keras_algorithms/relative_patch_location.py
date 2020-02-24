@@ -4,7 +4,6 @@ from tensorflow.keras.optimizers import Adam
 
 from self_supervised_3d_tasks.custom_preprocessing.relative_patch_location import (
     preprocess_batch,
-    resize,
     preprocess_batch_3d
 )
 from self_supervised_3d_tasks.keras_models.res_net_2d import get_res_net_2d
@@ -28,6 +27,7 @@ class RelativePatchLocationBuilder:
             top_architecture="big_fully",
             **kwargs
     ):
+        self.cleanup_models = []
         self.data_dim = data_dim
         self.embed_dim = embed_dim
         self.n_channels = n_channels
@@ -38,7 +38,7 @@ class RelativePatchLocationBuilder:
         self.top_architecture = top_architecture
 
         self.patches_per_side = patches_per_side
-        self.image_size = int(data_dim / patches_per_side) - patch_jitter
+        self.image_size = int(data_dim / patches_per_side)
         self.image_shape = (self.image_size, self.image_size, n_channels)
         self.patch_count = patches_per_side**2
         if self.train3D:
@@ -55,7 +55,7 @@ class RelativePatchLocationBuilder:
             )
             enc_model = enc_model[0]
             a = apply_prediction_model(
-                self.embed_dim,
+                2 * self.embed_dim,
                 prediction_architecture=self.top_architecture,
                 include_top=False,
             )
@@ -63,15 +63,18 @@ class RelativePatchLocationBuilder:
             enc_model = apply_encoder_model(
                 self.image_shape, self.embed_dim, **self.kwargs
             )
+            enc_model.summary()
             a = apply_prediction_model(
-                self.embed_dim,
+                2 * self.embed_dim,
                 prediction_architecture=self.top_architecture,
                 include_top=False,
             )
+            a.summary()
 
         x_input = Input(self.images_shape)
         enc_out = TimeDistributed(enc_model)(x_input)
         enc_out = Flatten()(enc_out)
+        enc_out = a(enc_out)
         out = Dense(self.class_count, activation="softmax")(enc_out)
 
         model = Model(x_input, out)
@@ -106,7 +109,7 @@ class RelativePatchLocationBuilder:
         def f_train(x, y):
             return (
                 preprocess_batch(
-                    resize(x, self.data_dim),
+                    x,
                     self.patches_per_side,
                     0,
                     is_training=False,
@@ -117,7 +120,7 @@ class RelativePatchLocationBuilder:
         def f_val(x, y):
             return (
                 preprocess_batch(
-                    resize(x, self.data_dim),
+                    x,
                     self.patches_per_side,
                     0,
                     is_training=False,
@@ -128,23 +131,26 @@ class RelativePatchLocationBuilder:
         return f_train, f_val
 
     def get_finetuning_model(self, model_checkpoint=None):
-        model = get_res_net_2d(
-            input_shape=[self.image_size, self.image_size, self.n_channels],
-            classes=self.patches_per_side ** 2,
-            architecture="ResNet50",
-            learning_rate=self.lr,
-        )
+        model, enc_model = self.apply_model()
+
+        self.cleanup_models.append(model)
+        self.cleanup_models.append(enc_model)
 
         if model_checkpoint is not None:
             model.load_weights(model_checkpoint)
 
         layer_in = Input((self.patches_per_side * self.patches_per_side,) + self.image_shape)
-        layer_out = TimeDistributed(model)(layer_in)
+        layer_out = TimeDistributed(enc_model)(layer_in)
 
         x = Flatten()(layer_out)
 
-        return Model(layer_in, x), [model]
+        return Model(layer_in, x)
 
+    def purge(self):
+        for i in reversed(range(len(self.cleanup_models))):
+            del self.cleanup_models[i]
+        del self.cleanup_models
+        self.cleanup_models = []
 
 def create_instance(*params, **kwargs):
     return RelativePatchLocationBuilder(*params, **kwargs)
