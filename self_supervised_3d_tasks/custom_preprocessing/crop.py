@@ -65,21 +65,20 @@ def crop_patches(image, is_training, split_per_side, patch_jitter=0):
 
 def crop(image, is_training, crop_size):
     h, w, = crop_size[0], crop_size[1]
-    # c = image.shape[2]
-    # h_old, w_old = image.shape[0], image.shape[1]
+    h_old, w_old = image.shape[0], image.shape[1]
 
     if is_training:
-        return ab.RandomCrop(h, w)(image=image)["image"]
+        # return ab.RandomCrop(h, w)(image=image)["image"]
 
-        # x = np.random.randint(0, h_old-h)
-        # y = np.random.randint(0, w_old-w)
+        x = np.random.randint(0, 1+h_old-h)
+        y = np.random.randint(0, 1+w_old-w)
     else:
-        return ab.CenterCrop(h, w)(image=image)["image"]
+        # return ab.CenterCrop(h, w)(image=image)["image"]
 
-        # x = (h_old - h) / 2
-        # y = (w_old - w) / 2
+        x = (h_old - h) / 2
+        y = (w_old - w) / 2
 
-    # return do_crop(image, x, y, h, w)
+    return do_crop(image, x, y, h, w)
 
 
 def crop_3d(image, is_training, crop_size):
@@ -88,9 +87,9 @@ def crop_3d(image, is_training, crop_size):
 
     if is_training:
         # crop random
-        x = np.random.randint(0, h_old-h)
-        y = np.random.randint(0, w_old-w)
-        z = np.random.randint(0, d_old-d)
+        x = np.random.randint(0, 1+h_old-h)
+        y = np.random.randint(0, 1+w_old-w)
+        z = np.random.randint(0, 1+d_old-d)
     else:
         # crop center
         x = int((h_old - h) / 2)
@@ -101,8 +100,8 @@ def crop_3d(image, is_training, crop_size):
 
 
 def do_crop(image, x, y, h, w):
-    return ab.Crop(x, y, x + h, y + w)(image=image)["image"]
-    # return image[x:x + h, y:y + w, :]
+    # return ab.Crop(x, y, x + h, y + w)(image=image)["image"]
+    return image[x:x + h, y:y + w, :]
 
 
 def do_crop_3d(image, x, y, z, h, w, d):

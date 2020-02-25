@@ -23,6 +23,7 @@ from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess_3d import (
     preprocess_volume_3d,
     preprocess_3d,
 )
+from self_supervised_3d_tasks.custom_preprocessing.crop import crop_patches
 from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import apply_to_x
 from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator, get_kaggle_generator
@@ -713,11 +714,32 @@ def test_cpc_preprocess():
     print(el_x_pred.shape)
     print(gen_norm[0][0][0].shape)
 
-    show_batch(gen_norm[0][0][0][:-2])
+    print("label")
+    print(gen[0][1][0])
+
+    show_batch(gen_norm[0][0][0])
 
     show_batch(el_x_perm)
     show_batch(el_x_pred)
 
 
+def test_cropping():
+    im_frame = Image.open("/mnt/mpws2019cl1/kaggle_retina_2019/test_images/0a2b5e1a0be8.png")
+    img = np.asarray(im_frame, dtype="float32")
+    img /= 255
+
+    r = crop_patches(img, True, 3, 50)
+    print(np.array(r).shape)
+    show_batch(r)
+
+    r = crop_patches(img, True, 3, 50)
+    print(np.array(r).shape)
+    show_batch(r)
+
+    r = crop_patches(img, True, 3, 0)
+    print(np.array(r).shape)
+    show_batch(r)
+
+
 if __name__ == "__main__":
-    test_cpc_preprocess()
+    test_rpl_preprocess()
