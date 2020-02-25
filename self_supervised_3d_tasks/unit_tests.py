@@ -702,7 +702,7 @@ def test_cpc_preprocess():
         "suffix": ".png"
     })
 
-    batch = gen[1]
+    batch = gen[5]
     batch_x = batch[0]
     batch_x_perm = batch_x[0]
     batch_x_pred = batch_x[1]
@@ -715,7 +715,7 @@ def test_cpc_preprocess():
     print(gen_norm[0][0][0].shape)
 
     print("label")
-    print(gen[0][1][0])
+    print(batch[1][0])
 
     show_batch(gen_norm[0][0][0])
 
@@ -742,4 +742,4 @@ def test_cropping():
 
 
 if __name__ == "__main__":
-    test_rpl_preprocess()
+    test_cpc_preprocess()

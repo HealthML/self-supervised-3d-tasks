@@ -50,8 +50,8 @@ def crop_patches(image, is_training, split_per_side, patch_jitter=0):
         for j in range(split_per_side):
 
             p = do_crop(image,
-                        j * h_grid,
-                        i * w_grid,
+                        i * h_grid,
+                        j * w_grid,
                         h_grid + patch_overlap,
                         w_grid + patch_overlap)
 
@@ -68,13 +68,9 @@ def crop(image, is_training, crop_size):
     h_old, w_old = image.shape[0], image.shape[1]
 
     if is_training:
-        # return ab.RandomCrop(h, w)(image=image)["image"]
-
         x = np.random.randint(0, 1+h_old-h)
         y = np.random.randint(0, 1+w_old-w)
     else:
-        # return ab.CenterCrop(h, w)(image=image)["image"]
-
         x = (h_old - h) / 2
         y = (w_old - w) / 2
 
