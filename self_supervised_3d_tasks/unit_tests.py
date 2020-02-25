@@ -662,9 +662,10 @@ def test_rpl_preprocess():
     data_dir = "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224"
 
     instance = rpl.create_instance(data_dim=224)
-    gen_norm = get_data_generators(data_dir, DataGeneratorUnlabeled2D, train_data_generator_args={
+    gen_norm = get_kaggle_generator(data_dir, csv_training, train_data_generator_args={
         "pre_proc_func": instance.get_training_preprocessing()[0],
-        "batch_size": 1
+        "batch_size": 1,
+        "suffix": ".png"
     })
     gen = get_kaggle_generator(data_dir, csv_training, train_data_generator_args={
         "pre_proc_func": instance.get_finetuning_preprocessing()[0],
@@ -742,4 +743,4 @@ def test_cropping():
 
 
 if __name__ == "__main__":
-    test_cpc_preprocess()
+    test_rpl_preprocess()
