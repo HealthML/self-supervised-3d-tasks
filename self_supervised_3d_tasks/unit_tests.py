@@ -241,6 +241,9 @@ def show_batch(image_batch, reverse_order=False):
     if dim * dim < len(image_batch):
         dim += 1
 
+        if reverse_order:
+            raise ValueError("reverse order only for squared sizes")
+
     for n in range(len(image_batch)):
         ax = plt.subplot(dim, dim, n + 1)
 
@@ -651,7 +654,36 @@ def exemplar_preprocess_XX():
         show_batch_numpy(np.concatenate([x_old, x_new]))
 
 
-if __name__ == "__main__":
+def test_rpl_preprocess():
+    import self_supervised_3d_tasks.keras_algorithms.relative_patch_location as rpl
+
+    csv_training = "/mnt/mpws2019cl1/kaggle_retina_2019/train.csv"
+    data_dir = "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224"
+
+    instance = rpl.create_instance(data_dim=224)
+    gen_norm = get_data_generators(data_dir, DataGeneratorUnlabeled2D, train_data_generator_args={
+        "pre_proc_func": instance.get_training_preprocessing()[0],
+        "batch_size": 1
+    })
+    gen = get_kaggle_generator(data_dir, csv_training, train_data_generator_args={
+        "pre_proc_func": instance.get_finetuning_preprocessing()[0],
+        "batch_size": 1,
+        "suffix": ".png"
+    })
+
+    batch = gen_norm[0]
+    batch_x = batch[0]
+    el_x = batch_x[0]
+
+    print(batch_x.shape)
+    print(el_x.shape)
+    print("label: " + str(batch[1][0]))
+
+    show_batch(el_x)  # some patches
+    show_batch(gen[0][0][0])  # finetuning
+
+
+def test_cpc_preprocess():
     import self_supervised_3d_tasks.keras_algorithms.cpc as cpc
 
     csv_training = "/mnt/mpws2019cl1/kaggle_retina_2019/train.csv"
@@ -669,7 +701,7 @@ if __name__ == "__main__":
         "suffix": ".png"
     })
 
-    batch = gen[0]
+    batch = gen[1]
     batch_x = batch[0]
     batch_x_perm = batch_x[0]
     batch_x_pred = batch_x[1]
@@ -679,7 +711,13 @@ if __name__ == "__main__":
 
     el_x_pred = batch_x_pred[0]
     print(el_x_pred.shape)
+    print(gen_norm[0][0][0].shape)
 
-    show_batch(gen_norm[0][0][0], reverse_order=True)
+    show_batch(gen_norm[0][0][0][:-2])
+
     show_batch(el_x_perm)
     show_batch(el_x_pred)
+
+
+if __name__ == "__main__":
+    test_cpc_preprocess()
