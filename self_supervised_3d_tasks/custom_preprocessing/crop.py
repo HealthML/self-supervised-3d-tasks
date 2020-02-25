@@ -50,8 +50,8 @@ def crop_patches(image, is_training, split_per_side, patch_jitter=0):
         for j in range(split_per_side):
 
             p = do_crop(image,
-                        i * h_grid,
-                        j * w_grid,
+                        j * h_grid,
+                        i * w_grid,
                         h_grid + patch_overlap,
                         w_grid + patch_overlap)
 
