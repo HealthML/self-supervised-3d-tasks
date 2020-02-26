@@ -40,7 +40,7 @@ def get_dataset(data_dir, batch_size, f_train, f_val, train_val_split, dataset_n
 
 
 def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250, batch_size=2, train_val_split=0.9,
-                base_workspace="~/workspace/self-supervised-transfer-learning/", **kwargs):
+                base_workspace="~/workspace/self-supervised-transfer-learning/", save_checkpoint_every_n_epochs=25, **kwargs):
     kwargs["root_config_file"] = root_config_file
 
     working_dir = get_writing_path(Path(base_workspace).expanduser() / (algorithm + "_" + dataset_name),
@@ -58,7 +58,8 @@ def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250,
     tb_c = keras.callbacks.TensorBoard(log_dir=str(working_dir))
     mc_c = keras.callbacks.ModelCheckpoint(str(working_dir / "weights-improvement-{epoch:03d}.hdf5"), monitor="val_loss",
                                            mode="min", save_best_only=True)  # reduce storage space
-    callbacks = [tb_c, mc_c]
+    mc_c_epochs = keras.callbacks.ModelCheckpoint(str(working_dir / "weights-{epoch:03d}.hdf5"), period=save_checkpoint_every_n_epochs)  # reduce storage space
+    callbacks = [tb_c, mc_c, mc_c_epochs]
 
     # Trains the model
     model.fit_generator(
