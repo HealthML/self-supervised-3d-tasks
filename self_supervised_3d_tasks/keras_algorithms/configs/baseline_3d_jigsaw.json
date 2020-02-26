@@ -1,0 +1,20 @@
+{
+  "algorithm": "jigsaw",
+  "data_dir_train": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train",
+  "data_dir_test": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/test",
+  "train_data_generator_args": {"shuffle": true},
+  "dataset_name": "pancreas3d",
+  "data_dim": 128,
+  "n_channels": 1,
+  "train3D": true,
+  "batch_size": 1,
+  "prediction_architecture": "unet_3d_upconv_patches",
+  "scores": ["dice"],
+  "metrics": ["accuracy"],
+  "loss": "binary_crossentropy",
+  "pooling": "none",
+  "embed_dim": 64,
+  "val_split": 0.05,
+  "epochs": 5,
+  "patch_dim": 48
+}

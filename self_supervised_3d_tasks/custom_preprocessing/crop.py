@@ -71,8 +71,8 @@ def crop(image, is_training, crop_size):
         x = np.random.randint(0, 1+h_old-h)
         y = np.random.randint(0, 1+w_old-w)
     else:
-        x = (h_old - h) / 2
-        y = (w_old - w) / 2
+        x = int((h_old - h) / 2)
+        y = int((w_old - w) / 2)
 
     return do_crop(image, x, y, h, w)
 

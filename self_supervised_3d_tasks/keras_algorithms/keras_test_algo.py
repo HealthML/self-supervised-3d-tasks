@@ -1,5 +1,5 @@
 
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long
 
 import csv
 import gc
@@ -195,7 +195,8 @@ def get_dataset_test(dataset_name, batch_size, f_test, kwargs):
 
 
 def run_single_test(algorithm_def, dataset_name, train_split, load_weights, freeze_weights, x_test, y_test, lr,
-                    batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, logging_path, kwargs):
+                    batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, logging_path, kwargs,
+                    model_callback=None):
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     gen_train, gen_val = get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split, kwargs)
 
@@ -204,14 +205,17 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     else:
         enc_model = algorithm_def.get_finetuning_model()
 
+    model_summary_long(enc_model)
+
     pred_model = apply_prediction_model(input_shape=enc_model.outputs[0].shape[1:], algorithm_instance=algorithm_def,
                                         **kwargs)
+
+    model_summary_long(pred_model)
 
     outputs = pred_model(enc_model.outputs)
     model = Model(inputs=enc_model.inputs[0], outputs=outputs)
 
-    pred_model.summary()
-    model.summary()
+    model_summary_long(model)
 
     # TODO: remove debugging
     # plot_model(model, to_file=Path("~/test_architecture.png").expanduser(), expand_nested=True)
@@ -241,12 +245,17 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
             print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
 
         # recompile model
+        print("COMPILE MODEL")
         model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
+        print("NOW TRAINING")
         model.fit(x=gen_train, validation_data=gen_val, epochs=epochs, callbacks=callbacks)
 
     model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
     y_pred = model.predict(x_test, batch_size=batch_size)
     scores_f = make_scores(y_test, y_pred, scores)
+
+    if model_callback:
+        model_callback(model)
 
     # cleanup
     del pred_model

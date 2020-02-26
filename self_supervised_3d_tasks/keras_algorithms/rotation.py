@@ -8,6 +8,7 @@ from tensorflow.keras.layers import Reshape
 from tensorflow.keras.models import load_model, Model
 from tensorflow.python.keras import Input
 from tensorflow.python.keras.layers import UpSampling3D
+from tensorflow.python.keras.layers.pooling import Pooling3D
 
 from self_supervised_3d_tasks.custom_preprocessing.rotation_preprocess import (
     rotate_batch,
@@ -123,17 +124,12 @@ class RotationBuilder:
         if self.train3D:
             assert self.layer_data is not None, "no layer data for 3D"
 
-            first_l_shape = self.enc_model.layers[-3].output_shape[1:]
-            units = np.prod(first_l_shape)
-
-            x = Dense(units)(self.enc_model.layers[-1].output)
-            x = Reshape(first_l_shape)(x)
-
-            if isinstance(self.enc_model.layers[-3], MaxPooling3D):
-                x = UpSampling3D((2,2,2))(x)
+            self.layer_data.append((self.enc_model.layers[-3].output_shape[1:],
+                                    isinstance(self.enc_model.layers[-3], Pooling3D)))
 
             self.cleanup_models.append(self.enc_model)
-            self.enc_model = Model(inputs=[self.enc_model.layers[0].input], outputs=[x, *reversed(self.layer_data[0])])
+            self.enc_model = Model(inputs=[self.enc_model.layers[0].input], outputs=[self.enc_model.layers[-1].output,
+                                                                                     *reversed(self.layer_data[0])])
 
         self.cleanup_models.append(org_model)
         self.cleanup_models.append(self.enc_model)

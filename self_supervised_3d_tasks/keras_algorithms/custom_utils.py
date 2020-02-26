@@ -73,8 +73,29 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         assert algorithm_instance is not None, "no algorithm instance for 3d skip connections found"
         assert algorithm_instance.layer_data is not None, "no layer data for 3d skip connections found"
 
-        model = upconv_model_3d(in_shape, down_layers=algorithm_instance.layer_data[0],
-                                filters=algorithm_instance.layer_data[1])
+        print(in_shape)
+        first_input = Input(in_shape)
+
+        first_l_shape = algorithm_instance.layer_data[2][0]
+        includes_pooling = algorithm_instance.layer_data[2][1]
+        units = np.prod(first_l_shape)
+
+        x = Dense(units)(first_input)
+        x = Reshape(first_l_shape)(x)
+
+        if includes_pooling:
+            x = UpSampling3D((2, 2, 2))(x)
+
+        inputs_skip = [Input(x.shape[1:]) for x in reversed(algorithm_instance.layer_data[0])]
+        inputs_up = [x] + inputs_skip
+
+        print(x)
+        print(x.shape)
+
+        model_up_out = upconv_model_3d(x.shape[1:], down_layers=algorithm_instance.layer_data[0],
+                                filters=algorithm_instance.layer_data[1])(inputs_up)
+
+        return Model(inputs=[first_input, *inputs_skip], outputs=model_up_out)
     elif name == "unet_3d_upconv_patches":
         assert algorithm_instance is not None, "no algorithm instance for 3d skip connections found"
         assert algorithm_instance.layer_data is not None, "no layer data for 3d skip connections found"
@@ -213,6 +234,7 @@ def apply_encoder_model_3d(
         num_layers=4,
         pooling="max",
         encoder_architecture=None,
+        enc_filters=8,
         **kwargs
 ):
     if pooling == "none":
@@ -222,7 +244,7 @@ def apply_encoder_model_3d(
         model, layer_data = get_encoder_model_3d(encoder_architecture, input_shape)
     else:
         model, layer_data = downconv_model_3d(
-            input_shape, num_layers=num_layers, pooling=pooling
+            input_shape, num_layers=num_layers, pooling=pooling, filters=enc_filters
         )
 
     if code_size:
@@ -320,3 +342,7 @@ def get_writing_path(working_dir, root_config_file):
     shutil.copy2(root_config_file, working_dir)
 
     return Path(working_dir)
+
+
+def model_summary_long(model):
+    model.summary(positions=[0.2,0.65,0.75,1.0])

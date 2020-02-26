@@ -15,7 +15,6 @@ from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     load_permutations,
     load_permutations_3d,
     apply_prediction_model)
-from self_supervised_3d_tasks.keras_models.fully_connected import fully_connected
 
 
 class JigsawBuilder:
@@ -96,6 +95,7 @@ class JigsawBuilder:
             out = a(x)
             out = last_layer(out)
 
+        self.enc_model.summary()
         model = Model(inputs=input_x, outputs=out, name="jigsaw_complete")
         return model
 
