@@ -9,8 +9,6 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 
-from data.image_2d_loader import DataGeneratorUnlabeled2D
-from keras_algorithms.exemplar import ExemplarBuilder
 from self_supervised_3d_tasks.algorithms.patch_model_preprocess import (
     get_crop_patches_fn,
 )
@@ -362,6 +360,22 @@ def test_preprocessing():
         patches = sess.run(f(get_lena()))
         print(patches["image"].shape)
         show_batch(patches["image"])
+
+
+def display_slice(image, dim_to_slice, slice_idx):
+    n = len(image)
+
+    for i in range(n):
+        img = image[i]
+        ax = plt.subplot(n, 1, i + 1)
+        idx = [
+            slice_idx if dim == dim_to_slice else slice(None)
+            for dim in range(img.ndim)
+        ]
+        im = np.squeeze(img[idx], axis=2)
+        ax.imshow(im, cmap="inferno")
+
+    plt.show()
 
 
 def plot_3d(image, dim_to_animate):
@@ -741,6 +755,32 @@ def test_cropping():
     print(np.array(r).shape)
     show_batch(r)
 
+def test_prediction_3d():
+    p1 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train/pancreas_052.npy"
+    l1 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train_labels/pancreas_052_label.npy"
+
+    label = get_data_norm_npy(l1)
+    data = get_data_norm_npy(p1)
+    prediction = np.load("keras_algorithms/prediction.npy")
+    prediction = np.squeeze(prediction, axis=0)
+
+    print(data.shape)
+    print(prediction.shape)
+
+    plot_3d([data, prediction, label], 2)
+
+def display_3d_slice():
+    p1 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train/pancreas_052.npy"
+    l1 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train_labels/pancreas_052_label.npy"
+
+    label = get_data_norm_npy(l1)
+    data = get_data_norm_npy(p1)
+
+    axis_to_slice = 2  # can be 0,1, or 2
+    slice_index = 78  # between 0 and 127
+
+    display_slice([data, label], axis_to_slice, slice_index)
+
 
 if __name__ == "__main__":
-    test_rpl_preprocess()
+    display_3d_slice()
