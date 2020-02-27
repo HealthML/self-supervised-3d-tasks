@@ -13,6 +13,12 @@
   "data_dim": 128,
   "batch_size": 1,
   "n_channels": 1,
-  "exp_splits": [90],
-  "scores": ["dice", "cat_accuracy"]
+  "exp_splits": [
+    90
+  ],
+  "scores": [
+    "dice",
+    "cat_accuracy"
+  ],
+  "loss": "weighted_sum_loss"
 }
