@@ -1,4 +1,4 @@
-from keras_algorithms.losses import weighted_sum_loss
+from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long
 
 import csv
