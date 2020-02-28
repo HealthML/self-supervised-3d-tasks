@@ -10,5 +10,6 @@
   "patch_jitter": 10,
   "encoder_architecture": "DenseNet121",
   "top_architecture": "big_fully",
-  "embed_dim": 1024
+  "embed_dim": 1024,
+  "lr": 1e-5
 }

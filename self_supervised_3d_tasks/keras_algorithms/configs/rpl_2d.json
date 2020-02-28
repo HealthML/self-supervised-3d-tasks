@@ -7,6 +7,7 @@
   "data_dim": 224,
   "n_channels": 3,
   "patches_per_side": 3,
-  "patch_jitter": 16,
-  "encoder_architecture": "DenseNet121"
+  "patch_jitter": 8,
+  "encoder_architecture": "DenseNet121",
+  "lr": 1e-5
 }

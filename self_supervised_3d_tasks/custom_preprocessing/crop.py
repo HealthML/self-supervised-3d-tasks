@@ -38,7 +38,7 @@ def crop_patches_3d(image, is_training, split_per_side, patch_jitter=0):
 def crop_patches(image, is_training, split_per_side, patch_jitter=0):
     h, w, _ = image.shape
 
-    patch_overlap = -patch_jitter if patch_jitter < 0 else 0
+    patch_overlap = - patch_jitter if patch_jitter < 0 else 0
 
     h_grid = (h - patch_overlap) // split_per_side
     w_grid = (w - patch_overlap) // split_per_side
