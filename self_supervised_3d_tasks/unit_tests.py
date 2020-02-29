@@ -373,6 +373,7 @@ def display_slice(image, dim_to_slice, slice_idx):
             for dim in range(img.ndim)
         ]
         im = np.squeeze(img[idx], axis=2)
+        ax.axis('off')
         ax.imshow(im, cmap="inferno")
 
     plt.show()
@@ -777,7 +778,7 @@ def display_3d_slice():
     data = get_data_norm_npy(p1)
 
     axis_to_slice = 2  # can be 0,1, or 2
-    slice_index = 78  # between 0 and 127
+    slice_index = 60  # between 0 and 127
 
     display_slice([data, label], axis_to_slice, slice_index)
 

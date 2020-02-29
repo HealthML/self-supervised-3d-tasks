@@ -6,7 +6,8 @@
   "data_dim": 128,
   "batch_size": 8,
   "n_channels": 1,
-  "patch_jitter": 8,
+  "patch_jitter": 4,
+  "lr": 1e-5,
   "top_architecture": "big_fully"
 
 }
