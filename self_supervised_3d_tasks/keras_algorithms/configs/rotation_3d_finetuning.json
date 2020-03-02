@@ -14,10 +14,18 @@
   "batch_size": 1,
   "n_channels": 1,
   "exp_splits": [
-    100,10,1,50,25
+    100,
+    10,
+    1,
+    50,
+    25
   ],
   "scores": [
     "dice"
+  ],
+  "metrics": [
+    "mse",
+    "hinge"
   ],
   "loss": "weighted_sum_loss",
   "embed_dim": 1024,

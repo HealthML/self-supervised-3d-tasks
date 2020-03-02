@@ -49,6 +49,7 @@ def jaccard_distance(y_true, y_pred, smooth=100):
     The loss has been modified to have a smooth gradient as it converges on zero.
     This has been shifted so it converges on 0 and is smoothed to avoid exploding
     or disappearing gradient.
+    This loss expects one hot encoded labels!
     Jaccard = (|X & Y|)/ (|X|+ |Y| - |X & Y|)
             = sum(|A*B|)/(sum(|A|)+sum(|B|)-sum(|A*B|))
     # Arguments
@@ -63,13 +64,15 @@ def jaccard_distance(y_true, y_pred, smooth=100):
     @url:https://github.com/keras-team/keras-contrib/blob/master/keras_contrib/losses/jaccard.py
     @author: wassname, ahundt
     """
+    intersection_mask = K.cast_to_floatx(K.equal(y_true, y_pred))
     intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
     sum_ = K.sum(K.abs(y_true) + K.abs(y_pred), axis=-1)
-    jac = (intersection + smooth) / (sum_ - intersection + smooth)
+    jac = (intersection + smooth) / (sum_ - intersection + smooth + K.epsilon())
+    jac = jac
     return (1 - jac) * smooth
 
 
-def weighted_sum_loss(alpha=.5, beta=.5, weights=(1, 1)):
+def weighted_sum_loss(alpha=1, beta=1, weights=(1, 5, 10)):
     w_cross_entropy = weighted_categorical_crossentropy(weights)
 
     def loss(y_true, y_pred):
