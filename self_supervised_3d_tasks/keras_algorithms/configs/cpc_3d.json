@@ -6,5 +6,7 @@
   "train3D": true,
   "data_dim": 128,
   "n_channels": 1,
-  "split_per_side": 4
+  "split_per_side": 4,
+  "lr": 0.00005,
+  "epochs": 500
 }

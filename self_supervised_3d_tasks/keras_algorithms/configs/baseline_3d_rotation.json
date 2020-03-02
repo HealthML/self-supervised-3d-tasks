@@ -9,11 +9,11 @@
   "train3D": true,
   "batch_size": 2,
   "prediction_architecture": "unet_3d_upconv",
-  "scores": ["dice"],
-  "metrics": ["accuracy"],
-  "loss": "binary_crossentropy",
+  "scores": ["jaccard"],
+  "metrics": ["accuracy", "mse"],
+  "loss": "weighted_sum_loss",
   "pooling": "avg",
   "embed_dim": 1024,
   "val_split": 0.05,
-  "epochs": 5
+  "epochs": 0
 }

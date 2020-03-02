@@ -285,6 +285,16 @@ def apply_encoder_model(
 
 def load_permutations_3d(
         permutation_path=str(
+            Path(__file__).parent.parent / "permutations" / "permutations3d_100_27.npy"
+        ),
+):
+    with open(permutation_path, "rb") as f:
+        perms = np.load(f)
+
+    return perms, len(perms)
+
+def load_permutations_3d_old(
+        permutation_path=str(
             Path(__file__).parent.parent / "permutations" / "permutations3d_100_max.bin"
         ),
 ):

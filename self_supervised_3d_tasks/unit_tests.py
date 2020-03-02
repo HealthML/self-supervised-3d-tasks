@@ -22,11 +22,13 @@ from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess_3d import (
     preprocess_3d,
 )
 from self_supervised_3d_tasks.custom_preprocessing.crop import crop_patches
+from self_supervised_3d_tasks.custom_preprocessing.jigsaw_preprocess import preprocess_pad, preprocess_crop_only
 from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import apply_to_x
 from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
 from self_supervised_3d_tasks.data.kaggle_retina_data import KaggleGenerator, get_kaggle_generator
 from self_supervised_3d_tasks.data.numpy_3d_loader import DataGeneratorUnlabeled3D
 from self_supervised_3d_tasks.keras_algorithms import cpc
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import load_permutations_3d, load_permutations
 from self_supervised_3d_tasks.keras_algorithms.jigsaw import JigsawBuilder
 from self_supervised_3d_tasks.keras_algorithms.keras_test_algo import (
     get_dataset_kaggle_train_original,
@@ -362,12 +364,20 @@ def test_preprocessing():
         show_batch(patches["image"])
 
 
-def display_slice(image, dim_to_slice, slice_idx):
+def display_slice(image, dim_to_slice, slice_idx, plot_square=False):
     n = len(image)
 
     for i in range(n):
         img = image[i]
-        ax = plt.subplot(n, 1, i + 1)
+        if plot_square:
+            dim = int(np.sqrt(n))
+            if dim * dim < n:
+                dim += 1
+
+            ax = plt.subplot(dim, dim, i + 1)
+        else:
+            ax = plt.subplot(n, 1, i + 1)
+
         idx = [
             slice_idx if dim == dim_to_slice else slice(None)
             for dim in range(img.ndim)
@@ -379,14 +389,24 @@ def display_slice(image, dim_to_slice, slice_idx):
     plt.show()
 
 
-def plot_3d(image, dim_to_animate):
+def plot_3d(image, dim_to_animate, plot_square=False, max_value=1):
+    plt.figure(figsize=(10, 10))
+
     n = len(image)
     ax = []
     frame = []
     ani = []
 
     for i in range(n):
-        ax.append(plt.subplot(n, 1, i + 1))
+        if plot_square:
+            dim = int(np.sqrt(n))
+            if dim * dim < n:
+                dim += 1
+
+            ax.append(plt.subplot(dim, dim, i + 1))
+        else:
+            ax.append(plt.subplot(n, 1, i + 1))
+
         frame.append(None)
         ani.append(-1)
 
@@ -406,7 +426,7 @@ def plot_3d(image, dim_to_animate):
 
             if frame[i] is None:
                 init = np.zeros(im.shape)
-                init[0, 0] = 1
+                init[0, 0] = max_value
                 frame[i] = ax[i].imshow(init, cmap="inferno")
             else:
                 frame[i].set_data(im)
@@ -608,6 +628,11 @@ def get_data_norm(path):
     return img
 
 
+def get_data_npy(path):
+    img = np.load(path)
+    return img
+
+
 def get_data_norm_npy(path):
     img = np.load(path)
     img = (img - img.min()) / (img.max() - img.min())
@@ -756,19 +781,25 @@ def test_cropping():
     print(np.array(r).shape)
     show_batch(r)
 
+
 def test_prediction_3d():
     p1 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train/pancreas_052.npy"
     l1 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train_labels/pancreas_052_label.npy"
 
-    label = get_data_norm_npy(l1)
+    label = get_data_npy(l1)
     data = get_data_norm_npy(p1)
     prediction = np.load("keras_algorithms/prediction.npy")
+    prediction = np.argmax(prediction, axis=-1)
+    prediction = np.expand_dims(prediction, axis=-1)
     prediction = np.squeeze(prediction, axis=0)
+    print(np.unique(prediction, return_counts=True))
+    print(np.unique(label.astype(np.int), return_counts=True))
 
     print(data.shape)
     print(prediction.shape)
 
-    plot_3d([data, prediction, label], 2)
+    plot_3d([data, prediction, label], 2, max_value=2)
+
 
 def display_3d_slice():
     p1 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train/pancreas_052.npy"
@@ -783,5 +814,39 @@ def display_3d_slice():
     display_slice([data, label], axis_to_slice, slice_index)
 
 
+def test_jigsaw_3d():
+    import self_supervised_3d_tasks.keras_algorithms.jigsaw as jig
+    data_dir = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128"
+
+    instance = jig.create_instance(train3D=True, data_dim=128, patch_dim=64, split_per_side=2)
+    gen_norm = get_data_generators(data_dir, DataGeneratorUnlabeled3D, train_data_generator_args={
+        "pre_proc_func": instance.get_training_preprocessing()[0],
+        "batch_size": 1,
+        "shuffle": False
+    })
+    gen_org = get_data_generators(data_dir, DataGeneratorUnlabeled3D, train_data_generator_args={
+        "batch_size": 32
+    })
+
+    for sssss in range(100):
+        idx = 0
+
+        batch = gen_norm[0]
+        batch_x = batch[0]
+        batch_y = batch[1]
+        label = batch_y[idx]
+        patches = batch_x[idx]
+
+        print(label)
+        display_slice(patches, 2, 30, plot_square=True)
+
+    org_batch = gen_org[2][0]
+
+    f_x = lambda x: preprocess_crop_only(x, 3, False, True)
+    print(org_batch.shape)
+    processed = f_x(org_batch)
+    print(processed.shape)
+
+
 if __name__ == "__main__":
-    display_3d_slice()
+    test_prediction_3d()

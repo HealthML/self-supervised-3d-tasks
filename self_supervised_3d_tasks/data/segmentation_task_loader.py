@@ -37,14 +37,19 @@ class SegmentationGenerator3D(DataGeneratorBase):
             path_label = Path("{}/{}".format(self.label_dir, file_name))
             path_label = path_label.with_name(path_label.stem + "_label").with_suffix(path_label.suffix)
 
-            data_x.append(np.load(path))
+            img = np.load(path)
+            img = (img - img.min()) / (img.max() - img.min())
+            data_x.append(img)
             data_y.append(np.load(path_label))
 
         data_x = np.stack(data_x)
         data_y = np.stack(data_y)
-        data_y = to_categorical(data_y, num_classes=3)
 
         if self.pre_proc_func:
             data_x, data_y = self.pre_proc_func(data_x, data_y)
+
+        data_y = data_y.astype(np.int)
+        data_y = np.eye(3)[data_y]
+        data_y = np.squeeze(data_y, axis=-2)  # remove second last axis, which is still 1
 
         return data_x, data_y

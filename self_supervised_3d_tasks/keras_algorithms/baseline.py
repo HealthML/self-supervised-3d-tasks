@@ -47,7 +47,7 @@ def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-
         metrics=metrics,
         logging_path=None,
         kwargs=kwargs,
-        model_callback=None
+        model_callback=model_callback
     )
 
 

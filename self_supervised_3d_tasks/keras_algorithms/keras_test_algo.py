@@ -67,10 +67,12 @@ def score_cat_acc(y, y_pred):
 
 
 def score_jaccard(y, y_pred):
-    y = np.rint(y).flatten()
-    y_pred = np.rint(y_pred).flatten()
+    # return jaccard_distance(y, y_pred)
 
-    return jaccard_score(y, y_pred, average="micro")
+    y = np.argmax(y, axis=-1).flatten()
+    y_pred = np.argmax(y_pred, axis=-1).flatten()
+
+    return jaccard_score(y, y_pred, average="weighted")
 
 
 def score_dice(y, y_pred):
@@ -280,13 +282,6 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     else:
         enc_model = algorithm_def.get_finetuning_model()
 
-    pred_model = apply_prediction_model(
-        input_shape=enc_model.outputs[0].shape[1:],
-        algorithm_instance=algorithm_def,
-        **kwargs,
-    )
-    model_summary_long(enc_model)
-
     pred_model = apply_prediction_model(input_shape=enc_model.outputs[0].shape[1:], algorithm_instance=algorithm_def,
                                         **kwargs)
 
@@ -300,12 +295,14 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     # TODO: remove debugging
     # plot_model(model, to_file=Path("~/test_architecture.png").expanduser(), expand_nested=True)
 
+    if loss == "weighted_sum_loss":
+        loss = weighted_sum_loss(alpha=1, beta=1, weights=(1, 5, 10))
+    elif loss == "jaccard_distance":
+        loss = jaccard_distance
+
     if epochs > 0:  # testing the scores
         callbacks = []
-        if loss == "weighted_sum_loss":
-            loss = weighted_sum_loss(alpha=0.5, beta=0.5, weights=(1, 5, 10))
-        elif loss == "jaccard_distance":
-            loss = jaccard_distance
+
         if logging_path is not None:
             logging_path.parent.mkdir(exist_ok=True, parents=True)
             callbacks.append(CSVLogger(str(logging_path), append=True))
@@ -319,7 +316,6 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
                 ("-" * 10) + "LOADING weights, encoder model is trainable after warm-up"
             )
             print(("-" * 5) + " encoder model is frozen")
-            # model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
             model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
             model.fit(
                 x=gen_train,
@@ -337,10 +333,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
             print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
 
         # recompile model
-        print("COMPILE MODEL")
-        # model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
         model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
-        print("NOW TRAINING")
         model.fit(
             x=gen_train, validation_data=gen_val, epochs=epochs, callbacks=callbacks
         )
