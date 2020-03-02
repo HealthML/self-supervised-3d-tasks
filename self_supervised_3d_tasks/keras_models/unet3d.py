@@ -95,7 +95,7 @@ def downconv_model_3d(
 
 def upconv_model_3d(
         input_shape,
-        num_classes=1,
+        num_classes=3,
         use_batch_norm=True,
         upsample_mode="deconv",  # 'deconv' or 'simple'
         use_dropout_on_upsampling=False,
@@ -103,7 +103,7 @@ def upconv_model_3d(
         dropout_change_per_layer=0.0,
         filters=128,
         down_layers=(),
-        output_activation="sigmoid",  # 'sigmoid' or 'softmax'
+        output_activation="softmax",  # 'sigmoid' or 'softmax'
 ):
     inp = Input(input_shape)
     inputs = [inp]

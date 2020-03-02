@@ -1,6 +1,8 @@
 from pathlib import Path
 
 import numpy as np
+from tensorflow.keras.utils import to_categorical
+
 from self_supervised_3d_tasks.data.generator_base import DataGeneratorBase
 
 
@@ -40,6 +42,7 @@ class SegmentationGenerator3D(DataGeneratorBase):
 
         data_x = np.stack(data_x)
         data_y = np.stack(data_y)
+        data_y = to_categorical(data_y, num_classes=3)
 
         if self.pre_proc_func:
             data_x, data_y = self.pre_proc_func(data_x, data_y)

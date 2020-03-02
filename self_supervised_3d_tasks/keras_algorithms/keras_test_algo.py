@@ -1,4 +1,4 @@
-from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss
+from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long
 
 import csv
@@ -304,6 +304,8 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
         callbacks = []
         if loss == "weighted_sum_loss":
             loss = weighted_sum_loss(alpha=0.5, beta=0.5, weights=(1, 5, 10))
+        elif loss == "jaccard_distance":
+            loss = jaccard_distance
         if logging_path is not None:
             logging_path.parent.mkdir(exist_ok=True, parents=True)
             callbacks.append(CSVLogger(str(logging_path), append=True))
