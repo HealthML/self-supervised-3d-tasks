@@ -1,7 +1,7 @@
 {
   "algorithm": "rotation",
-  "data_dir_train": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train",
-  "data_dir_test": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/test",
+  "data_dir_train": "/home/Shared.Workspace/data/pancreas/images_resized_128_labeled/train",
+  "data_dir_test": "/home/Shared.Workspace/data/pancreas/images_resized_128_labeled/test",
   "dataset_name": "pancreas3d",
   "train3D": true,
   "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_14/weights-improvement-248.hdf5",
@@ -21,7 +21,7 @@
     25
   ],
   "scores": [
-    "dice"
+    "jaccard"
   ],
   "metrics": [
     "mse",

@@ -1,7 +1,7 @@
 {
   "algorithm": "rotation",
-  "data_dir_train": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train",
-  "data_dir_test": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/test",
+  "data_dir_train": "/home/Shared.Workspace/data/pancreas/images_resized_128_labeled/train",
+  "data_dir_test": "/home/Shared.Workspace/data/pancreas/images_resized_128_labeled/test",
   "train_data_generator_args": {"shuffle": true},
   "dataset_name": "pancreas3d",
   "data_dim": 128,
@@ -15,5 +15,5 @@
   "pooling": "avg",
   "embed_dim": 1024,
   "val_split": 0.05,
-  "epochs": 0
+  "epochs": 1
 }

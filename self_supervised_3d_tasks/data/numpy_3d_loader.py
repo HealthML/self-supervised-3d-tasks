@@ -17,6 +17,7 @@ class DataGeneratorUnlabeled3D(DataGeneratorBase):
         for file_name in list_files_temp:
             path_to_image = "{}/{}".format(self.path_to_data, file_name)
             img = np.load(path_to_image)
+            img = (img - img.min()) / (img.max() - img.min())
 
             data_x.append(img)
             data_y.append(0)  # just to keep the dims right
