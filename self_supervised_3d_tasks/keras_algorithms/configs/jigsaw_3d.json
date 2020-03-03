@@ -7,5 +7,7 @@
   "batch_size": 8,
   "n_channels": 1,
   "split_per_side": 3,
+  "patch_dim": 48,
+  "pooling": "none",
   "lr": 0.00005
 }

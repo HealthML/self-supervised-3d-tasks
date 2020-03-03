@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from PIL import Image
+from sklearn.metrics import jaccard_score
 
 from self_supervised_3d_tasks.algorithms.patch_model_preprocess import (
     get_crop_patches_fn,
@@ -789,6 +790,11 @@ def test_prediction_3d():
     label = get_data_npy(l1)
     data = get_data_norm_npy(p1)
     prediction = np.load("keras_algorithms/prediction.npy")
+
+    print(prediction.max())
+    print(prediction.min())
+    print(prediction[0])
+
     prediction = np.argmax(prediction, axis=-1)
     prediction = np.expand_dims(prediction, axis=-1)
     prediction = np.squeeze(prediction, axis=0)
@@ -846,6 +852,18 @@ def test_jigsaw_3d():
     print(org_batch.shape)
     processed = f_x(org_batch)
     print(processed.shape)
+
+
+def test_scores():
+    y = np.zeros((1000,))
+    y_pred = np.zeros((1000,))
+    y_pred[:100] = 1
+    y_pred[100:200] = 2
+
+    print(np.unique(y, return_counts=True))
+    print(np.unique(y_pred.astype(np.int), return_counts=True))
+
+    print(jaccard_score(y, y_pred, labels=[0,1,2], average="macro"))
 
 
 if __name__ == "__main__":
