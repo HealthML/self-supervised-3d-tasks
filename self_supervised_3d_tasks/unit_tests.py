@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from PIL import Image
+from self_supervised_3d_tasks.keras_algorithms.exemplar import ExemplarBuilder
 
 from self_supervised_3d_tasks.algorithms.patch_model_preprocess import (
     get_crop_patches_fn,
@@ -475,9 +476,9 @@ def test_jigsaw_fintuning_preprocess():
     show_batch(train_data[0][0][0])
 
 
-def test_exemplar_preprocess():
-    path = "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224"
-    batch_size = 30
+def test_exemplar_preprocess_3d():
+    path = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128/"
+    batch_size = 10
     f_train, f_val = ExemplarBuilder(
         data_dim=224,
         n_channels=3,
@@ -489,7 +490,7 @@ def test_exemplar_preprocess():
 
     train_data, validation_data = get_data_generators(
         path,
-        DataGeneratorUnlabeled2D,
+        DataGeneratorUnlabeled3D,
         shuffle_files=False,
         train_split=0.95,
         train_data_generator_args={
@@ -504,9 +505,8 @@ def test_exemplar_preprocess():
         },
     )
 
-    print(train_data[0][0].shape)
-    for i in range(batch_size):
-        show_batch(train_data[0][0][i])
+    print(train_data[0][0][0].shape)
+    plot_3d(train_data[0][0][0], 0, max_value=1)
 
 
 def test_rotation():
@@ -849,4 +849,5 @@ def test_jigsaw_3d():
 
 
 if __name__ == "__main__":
-    test_prediction_3d()
+    test_exemplar_preprocess_3d()
+    # test_prediction_3d()

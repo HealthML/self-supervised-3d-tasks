@@ -12,7 +12,7 @@ def augment_exemplar_3d(image):
         :return: processed image as np.array
         """
         # adjust brightness
-        max_delta = 32.0 / 255.0
+        max_delta = 0.125
         delta = np.random.uniform(-max_delta, max_delta)
         scan += delta
 
