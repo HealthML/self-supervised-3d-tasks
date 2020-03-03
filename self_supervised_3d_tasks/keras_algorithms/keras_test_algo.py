@@ -294,7 +294,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     # plot_model(model, to_file=Path("~/test_architecture.png").expanduser(), expand_nested=True)
 
     if loss == "weighted_sum_loss":
-        loss = weighted_sum_loss(alpha=0.25, beta=0.75, weights=(0.1, 100, 250))
+        loss = weighted_sum_loss(alpha=0.25, beta=0.75, weights=(0.1, 100, 150))
     elif loss == "jaccard_distance":
         loss = jaccard_distance
 
