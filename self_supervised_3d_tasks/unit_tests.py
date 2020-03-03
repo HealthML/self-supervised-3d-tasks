@@ -9,6 +9,7 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 from self_supervised_3d_tasks.keras_algorithms.exemplar import ExemplarBuilder
+from sklearn.metrics import jaccard_score
 
 from self_supervised_3d_tasks.algorithms.patch_model_preprocess import (
     get_crop_patches_fn,
@@ -846,6 +847,18 @@ def test_jigsaw_3d():
     print(org_batch.shape)
     processed = f_x(org_batch)
     print(processed.shape)
+
+
+def test_scores():
+    y = np.zeros((1000,))
+    y_pred = np.zeros((1000,))
+    y_pred[:100] = 1
+    y_pred[100:200] = 2
+
+    print(np.unique(y, return_counts=True))
+    print(np.unique(y_pred.astype(np.int), return_counts=True))
+
+    print(jaccard_score(y, y_pred, labels=[0,1,2], average="macro"))
 
 
 if __name__ == "__main__":

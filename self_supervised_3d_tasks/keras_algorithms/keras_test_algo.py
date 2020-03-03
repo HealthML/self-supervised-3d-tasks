@@ -67,12 +67,10 @@ def score_cat_acc(y, y_pred):
 
 
 def score_jaccard(y, y_pred):
-    # return jaccard_distance(y, y_pred)
-
     y = np.argmax(y, axis=-1).flatten()
     y_pred = np.argmax(y_pred, axis=-1).flatten()
 
-    return jaccard_score(y, y_pred, average="weighted")
+    return jaccard_score(y, y_pred, average="macro")
 
 
 def score_dice(y, y_pred):
@@ -296,7 +294,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     # plot_model(model, to_file=Path("~/test_architecture.png").expanduser(), expand_nested=True)
 
     if loss == "weighted_sum_loss":
-        loss = weighted_sum_loss(alpha=1, beta=1, weights=(1, 5, 10))
+        loss = weighted_sum_loss(alpha=0.25, beta=0.75, weights=(0.1, 100, 150))
     elif loss == "jaccard_distance":
         loss = jaccard_distance
 
