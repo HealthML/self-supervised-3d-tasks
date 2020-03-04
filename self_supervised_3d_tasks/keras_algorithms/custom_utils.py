@@ -26,6 +26,26 @@ from self_supervised_3d_tasks.keras_models.unet import downconv_model
 from self_supervised_3d_tasks.keras_models.unet3d import downconv_model_3d, upconv_model_3d
 
 
+def print_flat_summary(model):
+    flatten_model(model).summary()
+
+
+def flatten_model(model_nested):
+    def get_layers(layers):
+        layers_flat = []
+        for layer in layers:
+            try:
+                layers_flat.extend(get_layers(layer.layers))
+            except AttributeError:
+                layers_flat.append(layer)
+        return layers_flat
+
+    model_flat = Sequential(
+        get_layers(model_nested.layers)
+    )
+    return model_flat
+
+
 def init(f, name="training", NGPUS=1):
     config_filename = Path(__file__).parent / "config.json"
 
@@ -46,18 +66,21 @@ def init(f, name="training", NGPUS=1):
     print("###########################################")
 
     aquire_free_gpus(amount=NGPUS, **args)
-    (
-        c_stdout,
-        c_stderr,
-    ) = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
+    f(**args)
 
-    with redirect_stdout(
-            Tee(c_stdout, sys.stdout)
-    ):  # needed to actually capture stdout
-        with redirect_stderr(
-                Tee(c_stderr, sys.stderr)
-        ):  # needed to actually capture stderr
-            f(**args)
+    # skip telegram notification
+    # (
+    #     c_stdout,
+    #     c_stderr,
+    # ) = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
+    #
+    # with redirect_stdout(
+    #         Tee(c_stdout, sys.stdout)
+    # ):  # needed to actually capture stdout
+    #     with redirect_stderr(
+    #             Tee(c_stderr, sys.stderr)
+    #     ):  # needed to actually capture stderr
+    #         f(**args)
 
 
 def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs):
