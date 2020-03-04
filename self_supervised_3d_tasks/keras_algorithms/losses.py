@@ -23,7 +23,7 @@ def weighted_categorical_crossentropy(weights):
 
     def wcc_loss(y_true, y_pred):
         # scale predictions so that the class probas of each sample sum to 1
-        y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
+        y_pred /= (K.sum(y_pred, axis=-1, keepdims=True) + K.epsilon())
         # clip to prevent NaN's and Inf's
         y_pred = K.clip(y_pred, K.epsilon(), 1 - K.epsilon())
         # calc
@@ -36,7 +36,7 @@ def weighted_categorical_crossentropy(weights):
     return wcc_loss
 
 
-def jaccard_distance(y_true, y_pred, smooth=25):
+def jaccard_distance(y_true, y_pred, smooth=5):
     """Jaccard distance for semantic segmentation.
     Also known as the intersection-over-union loss.
     This loss is useful when you have unbalanced numbers of pixels within an image
