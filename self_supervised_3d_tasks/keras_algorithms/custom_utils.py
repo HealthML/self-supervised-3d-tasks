@@ -170,8 +170,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
 
             pred_patches.append(model_up(small_inputs))
 
-        last_out = Concatenate()(pred_patches)
-        last_out = Permute((4, 1, 2, 3))(last_out)
+        last_out = Concatenate(axis=1)(pred_patches)
         last_out = Reshape((n_patches,) + model_up.layers[-1].output_shape[1:])(last_out)
 
         model = Model(inputs=large_inputs, outputs=[last_out])

@@ -30,6 +30,7 @@ from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import (
     keras_algorithm_list,
 )
 
+CLIPVALUE = 100
 
 def transform_multilabel_to_continuous(y, threshold):
     assert isinstance(y, np.ndarray), "invalid y"
@@ -322,7 +323,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
                 ("-" * 10) + "LOADING weights, encoder model is trainable after warm-up"
             )
             print(("-" * 5) + " encoder model is frozen")
-            model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
+            model.compile(optimizer=Adam(lr=lr, clipvalue=CLIPVALUE), loss=loss, metrics=metrics)
             model.fit(
                 x=gen_train,
                 validation_data=gen_val,
@@ -339,12 +340,12 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
             print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
 
         # recompile model
-        model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
+        model.compile(optimizer=Adam(lr=lr, clipvalue=CLIPVALUE), loss=loss, metrics=metrics)
         model.fit(
             x=gen_train, validation_data=gen_val, epochs=epochs, callbacks=callbacks
         )
 
-    model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
+    model.compile(optimizer=Adam(lr=lr, clipvalue=CLIPVALUE), loss=loss, metrics=metrics)
     y_pred = model.predict(x_test, batch_size=batch_size)
     scores_f = make_scores(y_test, y_pred, scores)
 

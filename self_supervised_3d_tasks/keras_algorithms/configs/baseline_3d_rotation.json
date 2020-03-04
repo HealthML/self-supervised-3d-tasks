@@ -9,7 +9,7 @@
   "train3D": true,
   "batch_size": 2,
   "prediction_architecture": "unet_3d_upconv",
-  "scores": ["dice"],
+  "scores": ["dice", "jaccard"],
   "metrics": ["accuracy", "mse"],
   "loss": "weighted_sum_loss",
   "pooling": "avg",

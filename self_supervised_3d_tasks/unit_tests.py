@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from PIL import Image
+from self_supervised_3d_tasks.data.segmentation_task_loader import SegmentationGenerator3D
+
 from self_supervised_3d_tasks.keras_algorithms.exemplar import ExemplarBuilder
 from sklearn.metrics import jaccard_score
 
@@ -861,6 +863,51 @@ def test_scores():
     print(jaccard_score(y, y_pred, labels=[0,1,2], average="macro"))
 
 
+def test_nans():
+    path = "/home/Shared.Workspace/data/pancreas/images_resized_128_labeled/train"
+
+    import self_supervised_3d_tasks.keras_algorithms.jigsaw as jig
+
+    instance = jig.create_instance(train3D=True, data_dim=128, patch_dim=48, split_per_side=3)
+    gen = get_data_generators(path, SegmentationGenerator3D, train_data_generator_args=
+    {
+        "pre_proc_func": instance.get_finetuning_preprocessing()[0],
+        "shuffle": True
+    })
+
+    for i in range(3):
+        for x,y in gen:
+            # print(x.shape)
+            # print(y.shape)
+            #
+            # print(x.max())
+            # print(x.min())
+            #
+            # print(y.max())
+            # print(y.min())
+
+            if np.isnan(x).any():
+                print("ERROR! x")
+            if np.isnan(y).any():
+                print("ERROR! y")
+
+    print("done")
+
+
 if __name__ == "__main__":
+    a = np.zeros((2,48,48,48,3))
+    b = np.zeros((2,48,48,48,3)) + 1
+    c = np.zeros((2,48,48,48,3)) + 2
+
+    conc = np.concatenate([a, b, c], axis=1)
+    resh = np.reshape(conc, newshape=(2,3,48,48,48,3))
+
+    x_a = resh[:, 0, :, :, :, :]
+    x_b = resh[:, 1, :, :, :, :]
+    x_c = resh[:, 2, :, :, :, :]
+
+    print((x_a==np.zeros(x_a.shape)).all())
+
     # test_exemplar_preprocess_3d()
-    test_prediction_3d()
+    # test_nans()
+    #test_prediction_3d()
