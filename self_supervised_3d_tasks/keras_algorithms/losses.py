@@ -21,7 +21,7 @@ def weighted_categorical_crossentropy(weights):
         weights = np.array(weights)
     weights = K.variable(weights)
 
-    def loss(y_true, y_pred):
+    def wcc_loss(y_true, y_pred):
         # scale predictions so that the class probas of each sample sum to 1
         y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
         # clip to prevent NaN's and Inf's
@@ -29,9 +29,11 @@ def weighted_categorical_crossentropy(weights):
         # calc
         loss = y_true * K.log(y_pred) * weights
         loss = -K.sum(loss, -1)
+        loss = K.mean(loss)
+
         return loss
 
-    return loss
+    return wcc_loss
 
 
 def jaccard_distance(y_true, y_pred, smooth=25):
