@@ -862,5 +862,5 @@ def test_scores():
 
 
 if __name__ == "__main__":
-    test_exemplar_preprocess_3d()
-    # test_prediction_3d()
+    # test_exemplar_preprocess_3d()
+    test_prediction_3d()

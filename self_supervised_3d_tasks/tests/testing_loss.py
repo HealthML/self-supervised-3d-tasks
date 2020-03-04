@@ -43,6 +43,8 @@ def weighted_categorical_crossentropy(weights):
         # calc
         loss = y_true * np.log(y_pred) * weights
         loss = -np.sum(loss, -1)
+        loss = np.mean(loss)
+
         return loss
 
     return loss
@@ -84,7 +86,7 @@ def jaccard_distance_XX(y_true, y_pred, smooth=100):
     return (1 - jac) * smooth
 
 
-def jaccard_distance(y_true, y_pred, smooth=0.1):
+def jaccard_distance(y_true, y_pred, smooth=25):
     """ Calculates mean of Jaccard distance as a loss function """
     intersection = np.sum(np.abs(y_true * y_pred), axis=tuple(range(y_pred.ndim - 1)))
     sum_ = np.sum(np.abs(y_true) + np.abs(y_pred), axis=tuple(range(y_pred.ndim - 1)))
@@ -111,7 +113,7 @@ if __name__ == "__main__":
     path = "/home/Shared.Workspace/data/pancreas/images_resized_128_labeled/train"
     gen = get_data_generators(path, SegmentationGenerator3D)
 
-    loss = weighted_categorical_crossentropy([0.1,100,1000])
+    loss = weighted_categorical_crossentropy([0.1,100,125])
 
     y_batch = gen[0][1]
     y_pred = np.zeros(y_batch.shape)
@@ -122,6 +124,7 @@ if __name__ == "__main__":
     #print(np.sum(np.abs(y_pred - y_batch)))
 
     xx = loss(y_batch, y_pred)
+    xxxxx = weighted_sum_loss()(y_batch, y_pred)
 
     #print(xx.shape)
     #print(xx.max())

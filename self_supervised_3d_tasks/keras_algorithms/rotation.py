@@ -18,7 +18,7 @@ from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     apply_encoder_model,
     apply_encoder_model_3d,
     apply_prediction_model,
-)
+    flatten_model)
 
 
 class RotationBuilder:

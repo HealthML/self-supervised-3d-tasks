@@ -1,8 +1,11 @@
-from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance
+from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance, \
+    weighted_categorical_crossentropy
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long
 
 import csv
 import gc
+import tensorflow_addons as tfa
+
 from pathlib import Path
 
 import numpy as np
@@ -293,10 +296,15 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     # TODO: remove debugging
     # plot_model(model, to_file=Path("~/test_architecture.png").expanduser(), expand_nested=True)
 
+    weights = (0.1, 100, 150)
     if loss == "weighted_sum_loss":
-        loss = weighted_sum_loss(alpha=0.25, beta=0.75, weights=(0.1, 100, 150))
+        loss = weighted_sum_loss(alpha=0.25, beta=0.75, weights=weights)
     elif loss == "jaccard_distance":
         loss = jaccard_distance
+    elif loss == "weighted_categorical_crossentropy":
+        loss = weighted_categorical_crossentropy(weights)
+    elif loss == "tfa_giou":
+        loss = tfa.losses.GIoULoss()
 
     if epochs > 0:  # testing the scores
         callbacks = []
