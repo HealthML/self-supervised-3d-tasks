@@ -1,6 +1,7 @@
 from tensorflow.keras import Model, Input, Sequential
 from tensorflow.keras.layers import Flatten, TimeDistributed, Dense
 from tensorflow.keras.optimizers import Adam
+from tensorflow.python.keras.layers.pooling import Pooling3D
 
 from self_supervised_3d_tasks.custom_preprocessing.relative_patch_location import (
     preprocess_batch,
@@ -48,13 +49,16 @@ class RelativePatchLocationBuilder:
         self.images_shape = (2, ) + self.image_shape
         self.class_count = self.patch_count - 1
 
+        self.enc_model = None
+        self.layer_data = None
+
+
     def apply_model(self):
         if self.train3D:
-            enc_model = apply_encoder_model_3d(
+            self.enc_model, self.layer_data = apply_encoder_model_3d(
                 self.image_shape, self.embed_dim, **self.kwargs
             )
-            enc_model = enc_model[0]
-            enc_model.summary()
+            self.enc_model.summary()
             a = apply_prediction_model(
                 2 * self.embed_dim,
                 prediction_architecture=self.top_architecture,
@@ -62,10 +66,10 @@ class RelativePatchLocationBuilder:
             )
             a.summary()
         else:
-            enc_model = apply_encoder_model(
+            self.enc_model = apply_encoder_model(
                 self.image_shape, self.embed_dim, **self.kwargs
             )
-            enc_model.summary()
+            self.enc_model.summary()
             a = apply_prediction_model(
                 2 * self.embed_dim,
                 prediction_architecture=self.top_architecture,
@@ -74,7 +78,7 @@ class RelativePatchLocationBuilder:
             a.summary()
 
         x_input = Input(self.images_shape)
-        enc_out = TimeDistributed(enc_model)(x_input)
+        enc_out = TimeDistributed(self.enc_model)(x_input)
         enc_out = Flatten()(enc_out)
         enc_out = a(enc_out)
         out = Dense(self.class_count, activation="softmax")(enc_out)
@@ -82,7 +86,7 @@ class RelativePatchLocationBuilder:
         model = Model(x_input, out)
         model.summary()
 
-        return model, enc_model
+        return model, self.enc_model
 
     def get_training_model(self):
         model, _ = self.apply_model()
@@ -108,29 +112,16 @@ class RelativePatchLocationBuilder:
         return f, f
 
     def get_finetuning_preprocessing(self):
-        def f_train(x, y):
-            return (
-                preprocess_batch(
-                    x,
-                    self.patches_per_side,
-                    0,
-                    is_training=False,
-                )[0],
-                y,
-            )
+        def f(x, y):  # not using y here, as it gets generated
+            return preprocess_batch(x, self.patches_per_side, 0, is_training=False)[0], y
 
-        def f_val(x, y):
-            return (
-                preprocess_batch(
-                    x,
-                    self.patches_per_side,
-                    0,
-                    is_training=False,
-                )[0],
-                y,
-            )
+        def f_3d(x, y):
+            return preprocess_batch_3d(x, self.patches_per_side, 0, is_training=False)[0], y
 
-        return f_train, f_val
+        if self.train3D:
+            return f_3d, f_3d
+
+        return f, f
 
     def get_finetuning_model(self, model_checkpoint=None):
         model, enc_model = self.apply_model()
@@ -141,7 +132,20 @@ class RelativePatchLocationBuilder:
         if model_checkpoint is not None:
             model.load_weights(model_checkpoint)
 
-        layer_in = Input((self.patches_per_side * self.patches_per_side,) + self.image_shape)
+        #####
+        if self.train3D:
+            assert self.layer_data is not None, "no layer data for 3D"
+
+            self.layer_data.append((self.enc_model.layers[-3].output_shape[1:],
+                                    isinstance(self.enc_model.layers[-3], Pooling3D)))
+
+            # self.cleanup_models.append(self.enc_model)
+            self.enc_model = Model(inputs=[self.enc_model.layers[0].input],
+                                   outputs=[self.enc_model.layers[-1].output,
+                                   *reversed(self.layer_data[0])])
+        #####
+
+        layer_in = Input((self.patch_count,) + self.image_shape)
         layer_out = TimeDistributed(enc_model)(layer_in)
 
         x = Flatten()(layer_out)

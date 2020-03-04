@@ -14,6 +14,6 @@
   "epochs_warmup": 2,
   "prediction_architecture": "unet_3d_upconv_patches",
   "exp_splits": [90],
-  "scores": ["dice", "cat_accuracy"],
+  "scores": ["dice"],
   "patch_dim": 64
 }
