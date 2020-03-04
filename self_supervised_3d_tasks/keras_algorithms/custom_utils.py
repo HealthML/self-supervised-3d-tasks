@@ -103,7 +103,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         includes_pooling = algorithm_instance.layer_data[2][1]
         units = np.prod(first_l_shape)
 
-        x = Dense(units)(first_input)
+        x = Dense(units, activation="relu")(first_input)
         x = Reshape(first_l_shape)(x)
 
         if includes_pooling:
@@ -129,7 +129,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         # combine all predictions from encoders to one layer and split up again
         first_input = Input(in_shape)
         flat = Flatten()(first_input)
-        processed_first_input = Dense(n_patches * embed_dim)(flat)
+        processed_first_input = Dense(n_patches * embed_dim, activation="relu")(flat)
         processed_first_input = Reshape((n_patches, embed_dim))(processed_first_input)
 
         # get the first shape of the upconv from the encoder
@@ -141,7 +141,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         # build small model that selects a small shape from the unified predictions
         model_first_up = Sequential()
         model_first_up.add(Input(embed_dim))
-        model_first_up.add(Dense(units))
+        model_first_up.add(Dense(units, activation="relu"))
         model_first_up.add(Reshape(first_l_shape))
         if includes_pooling:
             model_first_up.add(UpSampling3D((2, 2, 2)))
