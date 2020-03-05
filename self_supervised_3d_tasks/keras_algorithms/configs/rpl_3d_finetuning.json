@@ -4,28 +4,24 @@
   "dataset_name": "pancreas3d",
   "data_dir_train": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train",
   "data_dir_test": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/test",
-  "model_checkpoint": "/home/Julius.Severin/workspace/self-supervised-transfer-learning/rpl_pancreas3d_11/weights-improvement-113.hdf5",
+  "model_checkpoint": "/home/Julius.Severin/workspace/self-supervised-transfer-learning/rpl_pancreas3d_20/weights-improvement-479.hdf5",
   "data_dim": 128,
+  "embed_dim": 1024,
   "n_channels": 1,
+  "val_split": 0.05,
   "patches_per_side": 2,
-  "patch_dim": 64,
   "exp_splits": [
     100,10,1,50,25
   ],
+  "prediction_architecture": "unet_3d_upconv_patches",
+  "enc_filters": 8,
   "repetitions": 3,
-  "epochs": 3,
-  "epochs_warmup": 2,
-  "batch_size": 1,
+  "epochs": 30,
+  "epochs_warmup": 5,
+  "batch_size": 4,
   "top_architecture": "big_fully",
-  "prediction_architecture": "unet_3d_upconv",
-  "scores": [
-    "jaccard"
-  ],
-  "metrics": [
-    "mse",
-    "hinge"
-  ],
+  "scores": ["dice", "jaccard"],
+  "metrics": ["accuracy", "mse"],
   "loss": "weighted_sum_loss",
-  "embed_dim": 1024,
-  "enc_filters": 16
+  "lr": 5e-6
 }

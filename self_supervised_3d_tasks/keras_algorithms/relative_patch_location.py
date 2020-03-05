@@ -39,14 +39,14 @@ class RelativePatchLocationBuilder:
         self.top_architecture = top_architecture
 
         self.patches_per_side = patches_per_side
-        self.image_size = int(data_dim / patches_per_side)
-        self.image_shape = (self.image_size, self.image_size, n_channels)
+        self.patch_size = int(data_dim / patches_per_side)
+        self.patch_shape = (self.patch_size, self.patch_size, n_channels)
         self.patch_count = patches_per_side**2
         if self.train3D:
-            self.image_shape = (self.image_size, ) + self.image_shape
+            self.patch_shape = (self.patch_size,) + self.patch_shape
             self.patch_count = self.patches_per_side**3
 
-        self.images_shape = (2, ) + self.image_shape
+        self.images_shape = (2, ) + self.patch_shape
         self.class_count = self.patch_count - 1
 
         self.enc_model = None
@@ -56,7 +56,7 @@ class RelativePatchLocationBuilder:
     def apply_model(self):
         if self.train3D:
             self.enc_model, self.layer_data = apply_encoder_model_3d(
-                self.image_shape, self.embed_dim, **self.kwargs
+                self.patch_shape, self.embed_dim, **self.kwargs
             )
             self.enc_model.summary()
             a = apply_prediction_model(
@@ -67,7 +67,7 @@ class RelativePatchLocationBuilder:
             a.summary()
         else:
             self.enc_model = apply_encoder_model(
-                self.image_shape, self.embed_dim, **self.kwargs
+                self.patch_shape, self.embed_dim, **self.kwargs
             )
             self.enc_model.summary()
             a = apply_prediction_model(
@@ -116,7 +116,9 @@ class RelativePatchLocationBuilder:
             return preprocess_batch(x, self.patches_per_side, 0, is_training=False)[0], y
 
         def f_3d(x, y):
-            return preprocess_batch_3d(x, self.patches_per_side, 0, is_training=False)[0], y
+            x = preprocess_batch_3d(x, self.patches_per_side, 0, is_training=False)[0]
+            y = preprocess_batch_3d(y, self.patches_per_side, 0, is_training=False)[0]
+            return x, y
 
         if self.train3D:
             return f_3d, f_3d
@@ -136,21 +138,46 @@ class RelativePatchLocationBuilder:
         if self.train3D:
             assert self.layer_data is not None, "no layer data for 3D"
 
+            layer_in = Input(
+                (
+                    self.patch_count,
+                    self.patch_size,
+                    self.patch_size,
+                    self.patch_size,
+                    self.n_channels,
+                )
+            )
+            out_one = TimeDistributed(self.enc_model)(layer_in)
+            models_skip = [Model(self.enc_model.layers[0].input, x) for x in self.layer_data[0]]
+            outputs = [TimeDistributed(m)(layer_in) for m in models_skip]
+
+            result = Model(inputs=[layer_in], outputs=[out_one, *reversed(outputs)])
+
             self.layer_data.append((self.enc_model.layers[-3].output_shape[1:],
                                     isinstance(self.enc_model.layers[-3], Pooling3D)))
 
-            # self.cleanup_models.append(self.enc_model)
-            self.enc_model = Model(inputs=[self.enc_model.layers[0].input],
-                                   outputs=[self.enc_model.layers[-1].output,
-                                   *reversed(self.layer_data[0])])
-        #####
+            self.cleanup_models += [*models_skip, result]
+            self.cleanup_models.append(model)
 
-        layer_in = Input((self.patch_count,) + self.image_shape)
-        layer_out = TimeDistributed(enc_model)(layer_in)
+            return result
+        else:
+            layer_in = Input(
+                (
+                    self.patch_count,
+                    self.patch_size,
+                    self.patch_size,
+                    self.n_channels,
+                )
+            )
 
-        x = Flatten()(layer_out)
+            layer_out = TimeDistributed(self.enc_model)(layer_in)
+            x = Flatten()(layer_out)
 
-        return Model(layer_in, x)
+            self.cleanup_models.append(self.enc_model)
+            self.cleanup_models.append(model)
+
+            return Model(layer_in, x)
+
 
     def purge(self):
         for i in reversed(range(len(self.cleanup_models))):
