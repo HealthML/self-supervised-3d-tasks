@@ -7,6 +7,7 @@
   "batch_size": 5,
   "train3D": true,
   "alpha_triplet": 0.2,
-  "embedding_size": 1024,
-  "lr": 0.0006
+  "embed_dim": 1024,
+  "lr": 0.0006,
+  "enc_filters": 8
 }

@@ -1,8 +1,14 @@
 import numpy as np
 from tensorflow.keras.utils import plot_model
+from tensorflow.python.keras.layers.pooling import Pooling3D
 
-from self_supervised_3d_tasks.custom_preprocessing.preprocessing_exemplar import preprocessing_exemplar_training
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model_3d, apply_encoder_model
+from self_supervised_3d_tasks.custom_preprocessing.preprocessing_exemplar import (
+    preprocessing_exemplar_training,
+)
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
+    apply_encoder_model_3d,
+    apply_encoder_model,
+)
 
 from tensorflow.keras.layers import Concatenate, Lambda, Flatten, Input
 import tensorflow.keras.backend as K
@@ -38,7 +44,9 @@ class ExemplarBuilder:
         self.n_channels = n_channels
         self.batch_size = batch_size
         self.train3D = train3D
-        self.dim = (data_dim, data_dim, data_dim) if self.train3D else (data_dim, data_dim)
+        self.dim = (
+            (data_dim, data_dim, data_dim) if self.train3D else (data_dim, data_dim)
+        )
         self.alpha_triplet = alpha_triplet
         self.embed_dim = embed_dim
         self.lr = lr
@@ -46,8 +54,9 @@ class ExemplarBuilder:
         self.kwargs = kwargs
         self.enc_model = None
         self.cleanup_models = []
+        self.layer_data = []
 
-    def triplet_loss(self, y_true, y_pred, _alpha=.5):
+    def triplet_loss(self, y_true, y_pred, _alpha=0.5):
         """
         This function returns the calculated triplet loss for y_pred
         :param y_true: not needed
@@ -58,49 +67,58 @@ class ExemplarBuilder:
         """
         embeddings = K.reshape(y_pred, (-1, 3, self.embed_dim))
 
-        positive_distance = K.mean(K.square(embeddings[:, 0] - embeddings[:, 1]), axis=-1)
-        negative_distance = K.mean(K.square(embeddings[:, 0] - embeddings[:, 2]), axis=-1)
+        positive_distance = K.mean(
+            K.square(embeddings[:, 0] - embeddings[:, 1]), axis=-1
+        )
+        negative_distance = K.mean(
+            K.square(embeddings[:, 0] - embeddings[:, 2]), axis=-1
+        )
         return K.mean(K.maximum(0.0, positive_distance - negative_distance + _alpha))
 
-    def apply_model(self, input_shape, **kwargs):
+    def apply_model(self):
         """
         apply model function to apply the model
         :param input_shape: defines the input shape (dim last)
-        :param embedding_size: number of embedded layers
-        :param lr: learning rate
+        :param embed_dim: size of embedding vector
         :return: return the network (encoder) and the compiled model with concated output
         """
         # defines encoder for 3d / non 3d
         if self.train3D:
-            network, _ = apply_encoder_model_3d((*self.dim, self.n_channels), self.embed_dim, **self.kwargs)
+            self.enc_model, self.layer_data = apply_encoder_model_3d(
+                (*self.dim, self.n_channels), self.embed_dim, **self.kwargs
+            )
         else:
-            network = apply_encoder_model((*self.dim, self.n_channels), self.embed_dim, **self.kwargs)
+            self.enc_model = apply_encoder_model(
+                (*self.dim, self.n_channels), self.embed_dim, **self.kwargs
+            )
 
         # Define the tensors for the three input images
-        input_layer = Input((3, *input_shape), name="Input")
+        input_layer = Input((3, *self.dim, self.n_channels), name="Input")
         anchor_input = Lambda(lambda x: x[:, 0, :], name="anchor_input")(input_layer)
-        positive_input = Lambda(lambda x: x[:, 1, :], name="positive_input")(input_layer)
-        negative_input = Lambda(lambda x: x[:, 2, :], name="negative_input")(input_layer)
+        positive_input = Lambda(lambda x: x[:, 1, :], name="positive_input")(
+            input_layer
+        )
+        negative_input = Lambda(lambda x: x[:, 2, :], name="negative_input")(
+            input_layer
+        )
 
         # Generate the encodings (feature vectors) for the three images
-        encoded_a = network(anchor_input)
-        encoded_p = network(positive_input)
-        encoded_n = network(negative_input)
+        encoded_a = self.enc_model(anchor_input)
+        encoded_p = self.enc_model(positive_input)
+        encoded_n = self.enc_model(negative_input)
 
         # Concat the outputs together
         output = Concatenate()([encoded_a, encoded_p, encoded_n])
 
-        # set optimizer
-        optimizer = Adam(lr=self.lr)
-
         # Connect the inputs with the outputs
         model = Model(inputs=input_layer, outputs=output)
-        # compile the model
-        model.compile(loss=self.triplet_loss, optimizer=optimizer)
-        return network, model
+        return model
 
     def get_training_model(self):
-        return self.apply_model((*self.dim, self.n_channels))[1]
+        model = self.apply_model()
+        # compile with correct triplet loss!
+        model.compile(loss=self.triplet_loss, optimizer=Adam(lr=self.lr))
+        return model
 
     def get_training_preprocessing(self):
         def f_train(x, y):
@@ -120,8 +138,8 @@ class ExemplarBuilder:
 
         return f_train, f_val
 
-    def get_finetuning_model(self, model_checkpoint=None):
-        self.enc_model, model_full = self.apply_model((*self.dim, self.n_channels))
+    def get_finetuning_model_old(self, model_checkpoint=None):
+        self.enc_model, model_full = self.apply_model()
         if model_checkpoint is not None:
             model_full.load_weights(model_checkpoint)
         self.cleanup_models.append(model_full)
@@ -134,8 +152,39 @@ class ExemplarBuilder:
         del self.cleanup_models
         self.cleanup_models = []
 
-    def get_finetuning_layers(self, load_weights, freeze_weights):
-        enc_model, model_full = self.apply_model((*self.dim, self.n_channels))
+    def get_finetuning_model(self, model_checkpoint=None):
+        org_model = self.apply_model()
+
+        assert self.enc_model is not None, "no encoder model"
+
+        if model_checkpoint is not None:
+            org_model.load_weights(model_checkpoint)
+
+        if self.train3D:
+            assert self.layer_data is not None, "no layer data for 3D"
+
+            self.layer_data.append(
+                (
+                    self.enc_model.layers[-3].output_shape[1:],
+                    isinstance(self.enc_model.layers[-3], Pooling3D),
+                )
+            )
+
+            self.cleanup_models.append(self.enc_model)
+            self.enc_model = Model(
+                inputs=[self.enc_model.layers[0].input],
+                outputs=[
+                    self.enc_model.layers[-1].output,
+                    *reversed(self.layer_data[0]),
+                ],
+            )
+
+        self.cleanup_models.append(org_model)
+        self.cleanup_models.append(self.enc_model)
+        return self.enc_model
+
+    def get_finetuning_layers_old(self, load_weights, freeze_weights):
+        enc_model, model_full = self.apply_model()
 
         if load_weights:
             model_full.load_weights(self.model_checkpoint)
