@@ -30,8 +30,8 @@ from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import (
     keras_algorithm_list,
 )
 
-CLIPVALUE = 10.0
-CLIPNORM = 10.0
+CLIPVALUE = 1.0
+CLIPNORM = 1.0
 
 def transform_multilabel_to_continuous(y, threshold):
     assert isinstance(y, np.ndarray), "invalid y"
@@ -298,9 +298,9 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     # TODO: remove debugging
     # plot_model(model, to_file=Path("~/test_architecture.png").expanduser(), expand_nested=True)
 
-    weights = (0.1, 100, 150)
+    weights = (0.01, 10, 15)
     if loss == "weighted_sum_loss":
-        loss = weighted_sum_loss(alpha=0.25, beta=0.75, weights=weights)
+        loss = weighted_sum_loss(alpha=0.85, beta=0.15, weights=weights)
     elif loss == "jaccard_distance":
         loss = jaccard_distance
     elif loss == "weighted_categorical_crossentropy":
@@ -317,14 +317,16 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
         if freeze_weights or load_weights:
             enc_model.trainable = False
 
-        if load_weights:
+        if freeze_weights:
+            print(("-" * 10) + "LOADING weights, encoder model is completely frozen")
+        elif load_weights:
             assert epochs_warmup < epochs, "warmup epochs must be smaller than epochs"
 
             print(
                 ("-" * 10) + "LOADING weights, encoder model is trainable after warm-up"
             )
             print(("-" * 5) + " encoder model is frozen")
-            model.compile(optimizer=Adam(lr=lr, clipvalue=CLIPVALUE), loss=loss, metrics=metrics)
+            model.compile(optimizer=Adam(lr=lr, clipvalue=CLIPVALUE, clipnorm=CLIPNORM), loss=loss, metrics=metrics)
             model.fit(
                 x=gen_train,
                 validation_data=gen_val,
@@ -335,8 +337,6 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
 
             enc_model.trainable = True
             print(("-" * 5) + " encoder model unfrozen")
-        elif freeze_weights:
-            print(("-" * 10) + "LOADING weights, encoder model is completely frozen")
         else:
             print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
 

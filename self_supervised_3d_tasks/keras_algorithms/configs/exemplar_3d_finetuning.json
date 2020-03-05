@@ -8,11 +8,7 @@
   "train3D": true,
   "batch_size": 5,
   "exp_splits": [
-    100,
-    10,
-    1,
-    50,
-    25
+    100
   ],
   "prediction_architecture": "unet_3d_upconv",
   "scores": ["dice", "jaccard"],
@@ -20,11 +16,11 @@
   "loss": "weighted_sum_loss",
   "embed_dim": 1024,
   "val_split": 0.05,
-  "epochs": 30,
-  "epochs_warmup": 5,
-  "lr": 5e-6,
-  "model_checkpoint": "/home/Noel.Danz/workspace/self-supervised-transfer-learning/exemplar_pancreas3d_15/weights-improvement-098.hdf5",
-  "repetitions": 3,
+  "epochs": 80,
+  "epochs_warmup": 10,
+  "lr": 3e-5,
+  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/exemplar/weights-improvement-098.hdf5",
+  "repetitions": 1,
   "enc_filters": 8
 }
 

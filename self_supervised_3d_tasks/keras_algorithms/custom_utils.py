@@ -1,5 +1,5 @@
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 
 import json
 import shutil
@@ -15,7 +15,7 @@ from tensorflow.keras import Model, Input
 from tensorflow.keras.applications import InceptionV3, InceptionResNetV2, ResNet152, DenseNet121
 from tensorflow.keras.applications import ResNet50, ResNet50V2, ResNet101, ResNet101V2
 from tensorflow.keras.layers import Dense, Flatten
-from tensorflow.python.keras import Sequential
+from tensorflow.python.keras import Sequential, regularizers
 from tensorflow.python.keras.layers import Lambda, Concatenate, TimeDistributed, MaxPooling3D, UpSampling3D, Permute, \
     Dropout
 
@@ -103,7 +103,9 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         includes_pooling = algorithm_instance.layer_data[2][1]
         units = np.prod(first_l_shape)
 
-        x = Dense(units, activation="relu")(first_input)
+        x = Dense(units, activation="relu",
+                  kernel_regularizer=regularizers.l2(0.01),
+                  bias_regularizer=regularizers.l2(0.01))(first_input)
         x = Reshape(first_l_shape)(x)
 
         if includes_pooling:
@@ -116,7 +118,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         print(x.shape)
 
         model_up_out = upconv_model_3d(x.shape[1:], down_layers=algorithm_instance.layer_data[0],
-                                filters=algorithm_instance.layer_data[1])(inputs_up)
+                                       filters=algorithm_instance.layer_data[1])(inputs_up)
 
         return Model(inputs=[first_input, *inputs_skip], outputs=model_up_out)
     elif name == "unet_3d_upconv_patches":
@@ -129,7 +131,9 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         # combine all predictions from encoders to one layer and split up again
         first_input = Input(in_shape)
         flat = Flatten()(first_input)
-        processed_first_input = Dense(n_patches * embed_dim, activation="relu")(flat)
+        processed_first_input = Dense(n_patches * embed_dim, activation="relu",
+                                      kernel_regularizer=regularizers.l2(0.01),
+                                      bias_regularizer=regularizers.l2(0.01))(flat)
         processed_first_input = Reshape((n_patches, embed_dim))(processed_first_input)
 
         # get the first shape of the upconv from the encoder
@@ -141,7 +145,9 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         # build small model that selects a small shape from the unified predictions
         model_first_up = Sequential()
         model_first_up.add(Input(embed_dim))
-        model_first_up.add(Dense(units, activation="relu"))
+        model_first_up.add(Dense(units, activation="relu",
+                                 kernel_regularizer=regularizers.l2(0.01),
+                                 bias_regularizer=regularizers.l2(0.01)))
         model_first_up.add(Reshape(first_l_shape))
         if includes_pooling:
             model_first_up.add(UpSampling3D((2, 2, 2)))
@@ -271,7 +277,10 @@ def apply_encoder_model_3d(
 
     if code_size:
         x = Flatten()(model.outputs[0])
-        x = Dense(code_size)(x)
+        x = Dense(code_size,
+                  activation="sigmoid",
+                  kernel_regularizer=regularizers.l2(0.01),
+                  bias_regularizer=regularizers.l2(0.01))(x)
 
         enc_model = Model(model.inputs[0], x, name="encoder")
     else:
@@ -314,6 +323,7 @@ def load_permutations_3d(
         perms = np.load(f)
 
     return perms, len(perms)
+
 
 def load_permutations_3d_old(
         permutation_path=str(
@@ -377,4 +387,4 @@ def get_writing_path(working_dir, root_config_file):
 
 
 def model_summary_long(model):
-    model.summary(positions=[0.2,0.65,0.75,1.0])
+    model.summary(positions=[0.2, 0.65, 0.75, 1.0])

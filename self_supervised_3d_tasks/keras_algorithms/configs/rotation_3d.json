@@ -4,11 +4,10 @@
   "dataset_name": "pancreas3d",
   "train3D": true,
   "data_dim": 128,
-  "batch_size": 4,
+  "batch_size": 16,
   "n_channels": 1,
-  "embed_dim": 2048,
-  "enc_filters": 16,
+  "lr": 0.00005,
   "top_architecture": "big_fully",
-  "lr": 5e-5,
-  "epochs": 250
+  "embed_dim": 1024,
+  "enc_filters": 8
 }

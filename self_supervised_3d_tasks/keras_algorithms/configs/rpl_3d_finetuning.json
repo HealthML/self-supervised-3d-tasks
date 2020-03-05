@@ -4,24 +4,24 @@
   "dataset_name": "pancreas3d",
   "data_dir_train": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train",
   "data_dir_test": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/test",
-  "model_checkpoint": "/home/Julius.Severin/workspace/self-supervised-transfer-learning/rpl_pancreas3d_20/weights-improvement-479.hdf5",
+  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rpl/julius.hdf5",
   "data_dim": 128,
   "embed_dim": 1024,
   "n_channels": 1,
   "val_split": 0.05,
   "patches_per_side": 2,
   "exp_splits": [
-    100,10,1,50,25
+    100
   ],
   "prediction_architecture": "unet_3d_upconv_patches",
   "enc_filters": 8,
-  "repetitions": 3,
-  "epochs": 30,
-  "epochs_warmup": 5,
-  "batch_size": 4,
+  "repetitions": 1,
+  "epochs": 80,
+  "epochs_warmup": 10,
+  "batch_size": 3,
   "top_architecture": "big_fully",
   "scores": ["dice", "jaccard"],
   "metrics": ["accuracy", "mse"],
   "loss": "weighted_sum_loss",
-  "lr": 5e-6
+  "lr": 1e-4
 }
