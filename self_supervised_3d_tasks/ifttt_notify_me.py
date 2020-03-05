@@ -62,6 +62,8 @@ def ifttt_notify_me(
     request_dict = {"value1": data_in, "value2": data_out, "value3": data_err}
     # post_data = urllib.parse.urlencode(request_dict)
     # post_data = post_data.encode("ascii")
+    return
+    # turn off for now
     r = requests.post(
         f"https://maker.ifttt.com/trigger/{trigger}/with/key/{key}", json=request_dict
     )

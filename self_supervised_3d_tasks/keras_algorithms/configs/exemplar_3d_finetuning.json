@@ -1,24 +1,30 @@
 {
-  "algorithm": "rotation",
+  "algorithm": "exemplar",
   "data_dir_train": "/home/Shared.Workspace/data/pancreas/images_resized_128_labeled/train",
   "data_dir_test": "/home/Shared.Workspace/data/pancreas/images_resized_128_labeled/test",
-  "train_data_generator_args": {"shuffle": true},
   "dataset_name": "pancreas3d",
   "data_dim": 128,
   "n_channels": 1,
   "train3D": true,
-  "batch_size": 2,
+  "batch_size": 5,
+  "exp_splits": [
+    100,
+    10,
+    1,
+    50,
+    25
+  ],
   "prediction_architecture": "unet_3d_upconv",
   "scores": ["dice", "jaccard"],
   "metrics": ["accuracy", "mse"],
   "loss": "weighted_sum_loss",
-  "pooling": "avg",
-  "embed_dim": 2048,
+  "embed_dim": 1024,
   "val_split": 0.05,
-  "epochs": 5,
-  "enc_filters": 16,
-  "lr": 0.0003,
-  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_1/weights-improvement-034.hdf5",
-  "load_weights": true,
-  "epochs_warmup": 2
+  "epochs": 30,
+  "epochs_warmup": 5,
+  "lr": 5e-6,
+  "model_checkpoint": "/home/Noel.Danz/workspace/self-supervised-transfer-learning/exemplar_pancreas3d_15/weights-improvement-098.hdf5",
+  "repetitions": 3,
+  "enc_filters": 8
 }
+

@@ -1,8 +1,17 @@
 import numpy as np
 from tensorflow.keras import backend as K
 
+def metrics(weights):
+    xx = weighted_categorical_crossentropy(weights)
 
-def weighted_categorical_crossentropy(weights):
+    def m1(y_true, y_pred):
+        return jaccard_distance(y_true, y_pred)
+    def m2(y_true, y_pred):
+        return xx(y_true, y_pred)
+    def m3(y_true, y_pred):
+        pass
+
+def weighted_categorical_crossentropy(weights, debug=False):
     """
     A weighted version of keras.objectives.categorical_crossentropy
 
@@ -21,20 +30,25 @@ def weighted_categorical_crossentropy(weights):
         weights = np.array(weights)
     weights = K.variable(weights)
 
-    def loss(y_true, y_pred):
-        # scale predictions so that the class probas of each sample sum to 1
-        y_pred /= K.sum(y_pred, axis=-1, keepdims=True)
+    def wcc_loss(y_true, y_pred):
+        # scale predictions so that the class probs of each sample sum to 1
+        ya = y_pred / (K.sum(y_pred, axis=-1, keepdims=True) + K.epsilon())
         # clip to prevent NaN's and Inf's
-        y_pred = K.clip(y_pred, K.epsilon(), 1 - K.epsilon())
+        yb = K.clip(ya, K.epsilon(), 1 - K.epsilon())
         # calc
-        loss = y_true * K.log(y_pred) * weights
-        loss = -K.sum(loss, -1)
-        return loss
+        loss_a = y_true * K.log(yb) * weights
+        loss_b = -K.sum(loss_a, -1)
+        loss_c = K.mean(loss_b)
 
-    return loss
+        if debug:
+            return loss_a, loss_b, loss_c, yb,
+
+        return loss_c
+
+    return wcc_loss
 
 
-def jaccard_distance(y_true, y_pred, smooth=100):
+def jaccard_distance(y_true, y_pred, smooth=5):
     """Jaccard distance for semantic segmentation.
     Also known as the intersection-over-union loss.
     This loss is useful when you have unbalanced numbers of pixels within an image
@@ -64,12 +78,13 @@ def jaccard_distance(y_true, y_pred, smooth=100):
     @url:https://github.com/keras-team/keras-contrib/blob/master/keras_contrib/losses/jaccard.py
     @author: wassname, ahundt
     """
-    intersection_mask = K.cast_to_floatx(K.equal(y_true, y_pred))
-    intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
-    sum_ = K.sum(K.abs(y_true) + K.abs(y_pred), axis=-1)
+    intersection = K.sum(K.abs(y_true * y_pred), axis=tuple(range(y_pred.shape.rank - 1)))
+    sum_ = K.sum(K.abs(y_true) + K.abs(y_pred), axis=tuple(range(y_pred.shape.rank - 1)))
+
     jac = (intersection + smooth) / (sum_ - intersection + smooth + K.epsilon())
-    jac = jac
-    return (1 - jac) * smooth
+    jd = K.mean(jac)
+
+    return (1 - jd) * smooth
 
 
 def weighted_sum_loss(alpha=1, beta=1, weights=(1, 5, 10)):

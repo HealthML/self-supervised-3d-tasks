@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import pandas
 
 
-def draw_curve(path, name, metric, min_max_avg="avg", batch_size=32, repetitions=3, epochs=12):
+def draw_curve(path, name, metric, min_max_avg="avg", batch_size=32, repetitions=3, epochs=12, dataset_name="kaggle", train3D=False, **kwargs):
     df = pandas.read_csv(path)
     df['split'] = [int(i[:-1]) for i in df['Train Split']]
     df = df.sort_values(by=['split'])
@@ -15,7 +15,7 @@ def draw_curve(path, name, metric, min_max_avg="avg", batch_size=32, repetitions
     plt.plot(df["Train Split"], df["Weights_frozen_"+metric+"_"+min_max_avg], label=name + ' - Encoder Frozen')
     plt.plot(df["Train Split"], df["Weights_random_"+metric+"_"+min_max_avg], label='Random')
 
-    plt.title(f"Comparison of {min_max_avg} {metric} for kaggle retina 2019. \nbatch_size={batch_size},repetitions={repetitions},epochs={epochs}", pad=30)
+    plt.title(f"Comparison of {min_max_avg} {metric} for {dataset_name} ({'3D' if train3D else '2D'}). \nbatch_size={batch_size},repetitions={repetitions},epochs={epochs}", pad=30)
 
     plt.legend()
     plt.show()
@@ -33,7 +33,10 @@ def draw_convergence():
     plt.show()
 
 if __name__ == "__main__":
-    path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_kaggle_retina_13/weights-improvement-004_test_1/results.csv"
+    path = "/home/Shared.Workspace/workspace/self-supervised-transfer-learning/shared_models/cpc_kaggle_retina/weights-250_test_1/results.csv"
+    path_y = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_kaggle_retina_1/weights-130_test/results.csv"
+    path_x = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_kaggle_retina_10/weights-improvement-192_test_1/results.csv"
+    # path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina_2/weights-improvement-183_test_3/results.csv"
     # draw_convergence()
 
     args = {}
@@ -42,4 +45,4 @@ if __name__ == "__main__":
             args = json.load(file)
         break
 
-    draw_curve(path, args["algorithm"], "qw_kappa_kaggle", "avg", args["batch_size"],  args["repetitions"],  args["epochs"])
+    draw_curve(path, args["algorithm"], "qw_kappa_kaggle", "avg", **args)

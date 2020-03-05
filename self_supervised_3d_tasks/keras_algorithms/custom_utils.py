@@ -26,6 +26,26 @@ from self_supervised_3d_tasks.keras_models.unet import downconv_model
 from self_supervised_3d_tasks.keras_models.unet3d import downconv_model_3d, upconv_model_3d
 
 
+def print_flat_summary(model):
+    flatten_model(model).summary()
+
+
+def flatten_model(model_nested):
+    def get_layers(layers):
+        layers_flat = []
+        for layer in layers:
+            try:
+                layers_flat.extend(get_layers(layer.layers))
+            except AttributeError:
+                layers_flat.append(layer)
+        return layers_flat
+
+    model_flat = Sequential(
+        get_layers(model_nested.layers)
+    )
+    return model_flat
+
+
 def init(f, name="training", NGPUS=1):
     config_filename = Path(__file__).parent / "config.json"
 
@@ -46,18 +66,21 @@ def init(f, name="training", NGPUS=1):
     print("###########################################")
 
     aquire_free_gpus(amount=NGPUS, **args)
-    (
-        c_stdout,
-        c_stderr,
-    ) = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
+    f(**args)
 
-    with redirect_stdout(
-            Tee(c_stdout, sys.stdout)
-    ):  # needed to actually capture stdout
-        with redirect_stderr(
-                Tee(c_stderr, sys.stderr)
-        ):  # needed to actually capture stderr
-            f(**args)
+    # skip telegram notification
+    # (
+    #     c_stdout,
+    #     c_stderr,
+    # ) = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
+    #
+    # with redirect_stdout(
+    #         Tee(c_stdout, sys.stdout)
+    # ):  # needed to actually capture stdout
+    #     with redirect_stderr(
+    #             Tee(c_stderr, sys.stderr)
+    #     ):  # needed to actually capture stderr
+    #         f(**args)
 
 
 def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs):
@@ -80,7 +103,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         includes_pooling = algorithm_instance.layer_data[2][1]
         units = np.prod(first_l_shape)
 
-        x = Dense(units)(first_input)
+        x = Dense(units, activation="relu")(first_input)
         x = Reshape(first_l_shape)(x)
 
         if includes_pooling:
@@ -106,7 +129,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         # combine all predictions from encoders to one layer and split up again
         first_input = Input(in_shape)
         flat = Flatten()(first_input)
-        processed_first_input = Dense(n_patches * embed_dim)(flat)
+        processed_first_input = Dense(n_patches * embed_dim, activation="relu")(flat)
         processed_first_input = Reshape((n_patches, embed_dim))(processed_first_input)
 
         # get the first shape of the upconv from the encoder
@@ -118,7 +141,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         # build small model that selects a small shape from the unified predictions
         model_first_up = Sequential()
         model_first_up.add(Input(embed_dim))
-        model_first_up.add(Dense(units))
+        model_first_up.add(Dense(units, activation="relu"))
         model_first_up.add(Reshape(first_l_shape))
         if includes_pooling:
             model_first_up.add(UpSampling3D((2, 2, 2)))
@@ -147,8 +170,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
 
             pred_patches.append(model_up(small_inputs))
 
-        last_out = Concatenate()(pred_patches)
-        last_out = Permute((4, 1, 2, 3))(last_out)
+        last_out = Concatenate(axis=1)(pred_patches)
         last_out = Reshape((n_patches,) + model_up.layers[-1].output_shape[1:])(last_out)
 
         model = Model(inputs=large_inputs, outputs=[last_out])
@@ -284,6 +306,16 @@ def apply_encoder_model(
 
 
 def load_permutations_3d(
+        permutation_path=str(
+            Path(__file__).parent.parent / "permutations" / "permutations3d_100_27.npy"
+        ),
+):
+    with open(permutation_path, "rb") as f:
+        perms = np.load(f)
+
+    return perms, len(perms)
+
+def load_permutations_3d_old(
         permutation_path=str(
             Path(__file__).parent.parent / "permutations" / "permutations3d_100_max.bin"
         ),

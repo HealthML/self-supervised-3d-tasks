@@ -22,7 +22,7 @@
   "epochs": 12,
   "epochs_warmup": 2,
   "load_weights": true,
-  "model_checkpoint":"/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_kaggle_retina_13/weights-improvement-004.hdf5",
+  "model_checkpoint":"/home/Shared.Workspace/workspace/self-supervised-transfer-learning/shared_models/cpc_kaggle_retina/weights-250.hdf5",
   "scores": ["qw_kappa_kaggle", "cat_acc_kaggle"],
   "repetitions": 3,
   "exp_splits": [100,10,1,50,25]

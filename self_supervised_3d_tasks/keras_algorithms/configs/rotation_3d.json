@@ -6,6 +6,9 @@
   "data_dim": 128,
   "batch_size": 4,
   "n_channels": 1,
-  "lr": 0.00005,
-  "top_architecture": "big_fully"
+  "embed_dim": 2048,
+  "enc_filters": 16,
+  "top_architecture": "big_fully",
+  "lr": 5e-5,
+  "epochs": 250
 }

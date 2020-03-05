@@ -21,7 +21,7 @@
   "epochs": 12,
   "epochs_warmup": 2,
   "load_weights": true,
-  "model_checkpoint": "/home/Julius.Severin/workspace/self-supervised-transfer-learning/rpl_kaggle_retina_9/weights-improvement-072.hdf5",
+  "model_checkpoint": "/home/Julius.Severin/workspace/self-supervised-transfer-learning/rpl_kaggle_retina/weights-improvement-218.hdf5",
   "scores": ["qw_kappa_kaggle", "cat_acc_kaggle"],
   "repetitions": 3,
   "exp_splits": [100,10,1,50,25]

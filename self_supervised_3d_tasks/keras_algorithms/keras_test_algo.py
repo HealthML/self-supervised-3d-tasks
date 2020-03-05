@@ -1,8 +1,11 @@
-from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance
+from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance, \
+    weighted_categorical_crossentropy
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long
 
 import csv
 import gc
+import tensorflow_addons as tfa
+
 from pathlib import Path
 
 import numpy as np
@@ -27,6 +30,8 @@ from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import (
     keras_algorithm_list,
 )
 
+CLIPVALUE = 10.0
+CLIPNORM = 10.0
 
 def transform_multilabel_to_continuous(y, threshold):
     assert isinstance(y, np.ndarray), "invalid y"
@@ -67,10 +72,10 @@ def score_cat_acc(y, y_pred):
 
 
 def score_jaccard(y, y_pred):
-    y = np.rint(y).flatten()
-    y_pred = np.rint(y_pred).flatten()
+    y = np.argmax(y, axis=-1).flatten()
+    y_pred = np.argmax(y_pred, axis=-1).flatten()
 
-    return jaccard_score(y, y_pred, average="micro")
+    return jaccard_score(y, y_pred, average="macro")
 
 
 def score_dice(y, y_pred):
@@ -280,13 +285,6 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     else:
         enc_model = algorithm_def.get_finetuning_model()
 
-    pred_model = apply_prediction_model(
-        input_shape=enc_model.outputs[0].shape[1:],
-        algorithm_instance=algorithm_def,
-        **kwargs,
-    )
-    model_summary_long(enc_model)
-
     pred_model = apply_prediction_model(input_shape=enc_model.outputs[0].shape[1:], algorithm_instance=algorithm_def,
                                         **kwargs)
 
@@ -300,12 +298,19 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     # TODO: remove debugging
     # plot_model(model, to_file=Path("~/test_architecture.png").expanduser(), expand_nested=True)
 
+    weights = (0.1, 100, 150)
+    if loss == "weighted_sum_loss":
+        loss = weighted_sum_loss(alpha=0.25, beta=0.75, weights=weights)
+    elif loss == "jaccard_distance":
+        loss = jaccard_distance
+    elif loss == "weighted_categorical_crossentropy":
+        loss = weighted_categorical_crossentropy(weights)
+    elif loss == "tfa_giou":
+        loss = tfa.losses.GIoULoss()
+
     if epochs > 0:  # testing the scores
         callbacks = []
-        if loss == "weighted_sum_loss":
-            loss = weighted_sum_loss(alpha=0.5, beta=0.5, weights=(1, 5, 10))
-        elif loss == "jaccard_distance":
-            loss = jaccard_distance
+
         if logging_path is not None:
             logging_path.parent.mkdir(exist_ok=True, parents=True)
             callbacks.append(CSVLogger(str(logging_path), append=True))
@@ -319,8 +324,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
                 ("-" * 10) + "LOADING weights, encoder model is trainable after warm-up"
             )
             print(("-" * 5) + " encoder model is frozen")
-            # model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
-            model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
+            model.compile(optimizer=Adam(lr=lr, clipvalue=CLIPVALUE), loss=loss, metrics=metrics)
             model.fit(
                 x=gen_train,
                 validation_data=gen_val,
@@ -337,15 +341,12 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
             print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
 
         # recompile model
-        print("COMPILE MODEL")
-        # model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
-        model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
-        print("NOW TRAINING")
+        model.compile(optimizer=Adam(lr=lr, clipvalue=CLIPVALUE, clipnorm=CLIPNORM), loss=loss, metrics=metrics)
         model.fit(
             x=gen_train, validation_data=gen_val, epochs=epochs, callbacks=callbacks
         )
 
-    model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
+    model.compile(optimizer=Adam(lr=lr, clipvalue=CLIPVALUE, clipnorm=CLIPNORM), loss=loss, metrics=metrics)
     y_pred = model.predict(x_test, batch_size=batch_size)
     scores_f = make_scores(y_test, y_pred, scores)
 
