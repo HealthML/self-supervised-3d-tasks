@@ -17,7 +17,7 @@ def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-
         return img
 
     # test function for making a sample prediction that can be visualized
-    def model_callback(model):
+    def model_callback_jigsaw(model):
         p1 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train/pancreas_052.npy"
         data = get_data_norm_npy(p1)
 
@@ -33,6 +33,18 @@ def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-
         ss = np.sum(result, axis=-1)
         print(ss.max())
         print(ss.min())
+
+        print(data.shape)
+        print(result.shape)
+
+        np.save("prediction.npy", result)
+
+    def model_callback_rotation(model):
+        p1 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train/pancreas_052.npy"
+        data = get_data_norm_npy(p1)
+
+        data = np.expand_dims(data, axis=0)
+        result = model.predict(data, batch_size=batch_size)
 
         print(data.shape)
         print(result.shape)
@@ -57,7 +69,7 @@ def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-
         metrics=metrics,
         logging_path=None,
         kwargs=kwargs,
-        model_callback=model_callback
+        model_callback=model_callback_rotation
     )
 
 
