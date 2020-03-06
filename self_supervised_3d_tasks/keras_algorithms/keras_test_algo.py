@@ -1,3 +1,4 @@
+from keras_algorithms.callbacks import TerminateOnNaN, NaNLossError
 from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance, \
     weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long
@@ -312,7 +313,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
         loss = weighted_categorical_crossentropy(weights)
 
     if epochs > 0:  # testing the scores
-        callbacks = []
+        callbacks = [TerminateOnNaN]
 
         if logging_path is not None:
             logging_path.parent.mkdir(exist_ok=True, parents=True)
@@ -379,6 +380,25 @@ def write_result(base_path, row):
         result_writer.writerow(row)
 
 
+class MaxTriesExceeded(Exception):
+    def __init__(self, func, *args):
+        self.func = func
+        if args:
+            self.max_tries = args[0]
+
+    def __str__(self):
+        return f'Maximum amount of tries ({self.max_tries}) exceeded for {self.func}.'
+
+
+def try_until_no_nan(func, max_tries=4):
+    for _ in range(max_tries):
+        try:
+            return func()
+        except NaNLossError:
+            print(f"Encountered NaN-Loss in {func}")
+    raise MaxTriesExceeded(func, max_tries)
+
+
 def run_complex_test(
         algorithm,
         dataset_name,
@@ -432,19 +452,22 @@ def run_complex_test(
             logging_a_path = logging_base_path / f"frozen_rep{i}.log"
             logging_b_path = logging_base_path / f"initialized_rep{i}.log"
             logging_c_path = logging_base_path / f"random_rep{i}.log"
-            b = run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
-                                logging_b_path, kwargs)
+            b = try_until_no_nan(
+                lambda: run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
+                                        batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                        logging_b_path, kwargs))
 
-            c = run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
-                                logging_c_path,
-                                kwargs)  # random
+            c = try_until_no_nan(
+                lambda: run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
+                                        batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                        logging_c_path,
+                                        kwargs))  # random
 
-            a = run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
-                                logging_a_path,
-                                kwargs)  # frozen
+            a = try_until_no_nan(
+                lambda: run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
+                                        batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                        logging_a_path,
+                                        kwargs))  # frozen
 
             print(
                 "train split:{} model accuracy frozen: {}, initialized: {}, random: {}".format(
@@ -491,4 +514,9 @@ def run_complex_test(
 
 
 if __name__ == "__main__":
-    init(run_complex_test, "test")
+    def t():
+        raise NaNLossError()
+
+
+    try_until_no_nan(t, max_tries=4)
+    # init(run_complex_test, "test")
