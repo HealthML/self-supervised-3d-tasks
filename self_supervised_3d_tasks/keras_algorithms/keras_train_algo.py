@@ -1,3 +1,10 @@
+import os
+
+import sys
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+sys.path.append('/home/Aiham.Taleb/workspace/self-supervised-3d-tasks/')
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
 from pathlib import Path
 
