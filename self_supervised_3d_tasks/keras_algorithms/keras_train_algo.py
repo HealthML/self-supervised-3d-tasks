@@ -49,7 +49,7 @@ def get_dataset(data_dir, batch_size, f_train, f_val, train_val_split, dataset_n
 
 
 def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250, batch_size=2, train_val_split=0.9,
-                base_workspace="~/workspace/self-supervised-3d-tasks/", save_checkpoint_every_n_epochs=25,
+                base_workspace="~/workspace/self-supervised-3d-tasks/", save_checkpoint_every_n_epochs=5,
                 **kwargs):
     kwargs["root_config_file"] = root_config_file
 
