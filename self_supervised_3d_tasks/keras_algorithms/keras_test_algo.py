@@ -30,9 +30,6 @@ from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import (
     keras_algorithm_list,
 )
 
-CLIPVALUE = 1.0
-CLIPNORM = 1.0
-
 def transform_multilabel_to_continuous(y, threshold):
     assert isinstance(y, np.ndarray), "invalid y"
 
@@ -275,6 +272,12 @@ def get_dataset_test(dataset_name, batch_size, f_test, kwargs):
 def run_single_test(algorithm_def, dataset_name, train_split, load_weights, freeze_weights, x_test, y_test, lr,
                     batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, logging_path, kwargs,
                     model_callback=None):
+    if "weighted_dice_coefficient" in metrics:
+        metrics.remove("weighted_dice_coefficient")
+        metrics.append(weighted_dice_coefficient)
+
+    print(metrics)
+
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     gen_train, gen_val = get_dataset_train(
         dataset_name, batch_size, f_train, f_val, train_split, kwargs
@@ -326,7 +329,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
                 ("-" * 10) + "LOADING weights, encoder model is trainable after warm-up"
             )
             print(("-" * 5) + " encoder model is frozen")
-            model.compile(optimizer=Adam(lr=lr, clipvalue=CLIPVALUE, clipnorm=CLIPNORM), loss=loss, metrics=metrics)
+            model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
             model.fit(
                 x=gen_train,
                 validation_data=gen_val,
@@ -341,12 +344,12 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
             print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
 
         # recompile model
-        model.compile(optimizer=Adam(lr=lr, clipvalue=CLIPVALUE, clipnorm=CLIPNORM), loss=loss, metrics=metrics)
+        model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
         model.fit(
             x=gen_train, validation_data=gen_val, epochs=epochs, callbacks=callbacks
         )
 
-    model.compile(optimizer=Adam(lr=lr, clipvalue=CLIPVALUE, clipnorm=CLIPNORM), loss=loss, metrics=metrics)
+    model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
     y_pred = model.predict(x_test, batch_size=batch_size)
     scores_f = make_scores(y_test, y_pred, scores)
 
@@ -395,10 +398,6 @@ def run_complex_test(
     kwargs["model_checkpoint"] = model_checkpoint
     kwargs["root_config_file"] = root_config_file
     metrics = list(metrics)  # TODO: this seems unnecessary... but tf expects this to be list or str not tuple -.-
-
-    if "weighted_dice_coefficient" in metrics:
-        metrics.remove("weighted_dice_coefficient")
-        metrics.append(weighted_dice_coefficient)
 
     working_dir = get_writing_path(
         Path(model_checkpoint).expanduser().parent

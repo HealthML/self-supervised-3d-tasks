@@ -84,6 +84,8 @@ def init(f, name="training", NGPUS=1):
 
 
 def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs):
+    model_params = kwargs.get("model_params", {})
+
     if name == "big_fully":
         input_l = Input(in_shape)
         output_l = fully_connected_big(input_l, include_top=include_top, **kwargs)
@@ -103,9 +105,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         includes_pooling = algorithm_instance.layer_data[2][1]
         units = np.prod(first_l_shape)
 
-        x = Dense(units, activation="relu",
-                  kernel_regularizer=regularizers.l2(0.01),
-                  bias_regularizer=regularizers.l2(0.01))(first_input)
+        x = Dense(units, activation="relu")(first_input)
         x = Reshape(first_l_shape)(x)
 
         if includes_pooling:
@@ -118,7 +118,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         print(x.shape)
 
         model_up_out = upconv_model_3d(x.shape[1:], down_layers=algorithm_instance.layer_data[0],
-                                       filters=algorithm_instance.layer_data[1])(inputs_up)
+                                       filters=algorithm_instance.layer_data[1], **model_params)(inputs_up)
 
         return Model(inputs=[first_input, *inputs_skip], outputs=model_up_out)
     elif name == "unet_3d_upconv_patches":
@@ -131,9 +131,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         # combine all predictions from encoders to one layer and split up again
         first_input = Input(in_shape)
         flat = Flatten()(first_input)
-        processed_first_input = Dense(n_patches * embed_dim, activation="relu",
-                                      kernel_regularizer=regularizers.l2(0.01),
-                                      bias_regularizer=regularizers.l2(0.01))(flat)
+        processed_first_input = Dense(n_patches * embed_dim, activation="relu")(flat)
         processed_first_input = Reshape((n_patches, embed_dim))(processed_first_input)
 
         # get the first shape of the upconv from the encoder
@@ -145,9 +143,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         # build small model that selects a small shape from the unified predictions
         model_first_up = Sequential()
         model_first_up.add(Input(embed_dim))
-        model_first_up.add(Dense(units, activation="relu",
-                                 kernel_regularizer=regularizers.l2(0.01),
-                                 bias_regularizer=regularizers.l2(0.01)))
+        model_first_up.add(Dense(units, activation="relu"))
         model_first_up.add(Reshape(first_l_shape))
         if includes_pooling:
             model_first_up.add(UpSampling3D((2, 2, 2)))
@@ -157,7 +153,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
 
         # prepare decoder
         model_up = upconv_model_3d(processed_first_input.shape[2:], down_layers=algorithm_instance.layer_data[0],
-                                   filters=algorithm_instance.layer_data[1])
+                                   filters=algorithm_instance.layer_data[1], **model_params)
 
         pred_patches = []
         large_inputs = [first_input]
@@ -265,6 +261,8 @@ def apply_encoder_model_3d(
         enc_filters=8,
         **kwargs
 ):
+    model_params = kwargs.get("model_params", {})
+
     if pooling == "none":
         pooling = None
 
@@ -272,15 +270,12 @@ def apply_encoder_model_3d(
         model, layer_data = get_encoder_model_3d(encoder_architecture, input_shape)
     else:
         model, layer_data = downconv_model_3d(
-            input_shape, num_layers=num_layers, pooling=pooling, filters=enc_filters
+            input_shape, num_layers=num_layers, pooling=pooling, filters=enc_filters, **model_params
         )
 
     if code_size:
         x = Flatten()(model.outputs[0])
-        x = Dense(code_size,
-                  activation="sigmoid",
-                  kernel_regularizer=regularizers.l2(0.01),
-                  bias_regularizer=regularizers.l2(0.01))(x)
+        x = Dense(code_size, activation="sigmoid")(x)
 
         enc_model = Model(model.inputs[0], x, name="encoder")
     else:
