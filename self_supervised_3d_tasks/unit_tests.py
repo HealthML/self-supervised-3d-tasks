@@ -895,19 +895,19 @@ def test_nans():
 
 
 if __name__ == "__main__":
-    a = np.zeros((2,48,48,48,3))
-    b = np.zeros((2,48,48,48,3)) + 1
-    c = np.zeros((2,48,48,48,3)) + 2
-
-    conc = np.concatenate([a, b, c], axis=1)
-    resh = np.reshape(conc, newshape=(2,3,48,48,48,3))
-
-    x_a = resh[:, 0, :, :, :, :]
-    x_b = resh[:, 1, :, :, :, :]
-    x_c = resh[:, 2, :, :, :, :]
-
-    print((x_a==np.zeros(x_a.shape)).all())
+    # a = np.zeros((2,48,48,48,3))
+    # b = np.zeros((2,48,48,48,3)) + 1
+    # c = np.zeros((2,48,48,48,3)) + 2
+    #
+    # conc = np.concatenate([a, b, c], axis=1)
+    # resh = np.reshape(conc, newshape=(2,3,48,48,48,3))
+    #
+    # x_a = resh[:, 0, :, :, :, :]
+    # x_b = resh[:, 1, :, :, :, :]
+    # x_c = resh[:, 2, :, :, :, :]
+    #
+    # print((x_a==np.zeros(x_a.shape)).all())
 
     # test_exemplar_preprocess_3d()
     # test_nans()
-    #test_prediction_3d()
+    test_prediction_3d()

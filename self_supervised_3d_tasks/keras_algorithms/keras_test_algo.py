@@ -1,5 +1,5 @@
 from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance, \
-    weighted_categorical_crossentropy
+    weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long
 
 import csv
@@ -303,10 +303,10 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
         loss = weighted_sum_loss(alpha=0.85, beta=0.15, weights=weights)
     elif loss == "jaccard_distance":
         loss = jaccard_distance
+    elif loss == "weighted_dice_loss":
+        loss = weighted_dice_coefficient_loss
     elif loss == "weighted_categorical_crossentropy":
         loss = weighted_categorical_crossentropy(weights)
-    elif loss == "tfa_giou":
-        loss = tfa.losses.GIoULoss()
 
     if epochs > 0:  # testing the scores
         callbacks = []
@@ -395,6 +395,10 @@ def run_complex_test(
     kwargs["model_checkpoint"] = model_checkpoint
     kwargs["root_config_file"] = root_config_file
     metrics = list(metrics)  # TODO: this seems unnecessary... but tf expects this to be list or str not tuple -.-
+
+    if "weighted_dice_coefficient" in metrics:
+        metrics.remove("weighted_dice_coefficient")
+        metrics.append(weighted_dice_coefficient)
 
     working_dir = get_writing_path(
         Path(model_checkpoint).expanduser().parent

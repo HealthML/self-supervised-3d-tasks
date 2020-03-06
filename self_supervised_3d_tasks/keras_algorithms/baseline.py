@@ -67,6 +67,7 @@ def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-
         scores=scores,
         loss=loss,
         metrics=metrics,
+        # TODO: LOG
         logging_path=None,
         kwargs=kwargs,
         model_callback=model_callback_rotation
