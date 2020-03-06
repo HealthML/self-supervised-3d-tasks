@@ -90,8 +90,7 @@ def data_conversion_brats(split='train'):
 
 
 def read_mm_slice(flair_files, i, seg_files, t1_files, t1ce_files, t2_files, new_resolution):
-    # t1ce_image = read_image(sbbox, nib.load(t1ce_files[i]))
-    t1ce_image, nbbox = read_scan_find_bbox(nib.load(t1ce_files[i]))
+    t1ce_image, nbbox = read_scan_find_bbox(nib.load(t1ce_files[i]).get_fdata())
     t1ce_image = skTrans.resize(t1ce_image, new_resolution, order=1, preserve_range=True)
     flair_image = read_image(nbbox, nib.load(flair_files[i]))
     flair_image = skTrans.resize(flair_image, new_resolution, order=1, preserve_range=True)
