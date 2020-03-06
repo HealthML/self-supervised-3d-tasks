@@ -2,22 +2,31 @@
   "algorithm": "rotation",
   "data_dir_train": "/home/Shared.Workspace/data/pancreas/images_resized_128_labeled/train",
   "data_dir_test": "/home/Shared.Workspace/data/pancreas/images_resized_128_labeled/test",
-  "train_data_generator_args": {"shuffle": true},
+  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_3/weights-improvement-233.hdf5",
   "dataset_name": "pancreas3d",
-  "data_dim": 128,
-  "n_channels": 1,
+  "train_data_generator_args": {"shuffle": true},
+
   "train3D": true,
-  "batch_size": 6,
-  "prediction_architecture": "unet_3d_upconv",
+  "val_split": 0.05,
+
+  "embed_dim": 1024,
+  "enc_filters": 8,
+  "data_dim": 128,
+
+  "loss": "weighted_dice_loss",
   "scores": ["dice", "jaccard"],
   "metrics": ["weighted_dice_coefficient", "accuracy"],
-  "loss": "weighted_dice_loss",
+
+  "prediction_architecture": "unet_3d_upconv",
   "pooling": "avg",
-  "embed_dim": 1024,
-  "val_split": 0.05,
+  "n_channels": 1,
+  "batch_size": 7,
+
+  "lr": 0.001,
   "epochs": 250,
-  "enc_filters": 8,
-  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_3/weights-improvement-119.hdf5",
-  "load_weights": false,
-  "epochs_warmup": 5
+  "epochs_warmup": 5,
+
+  "load_weights": true,
+  "clipnorm": 1,
+  "clipvalue": 1
 }

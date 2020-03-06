@@ -1,4 +1,4 @@
-from keras_algorithms.callbacks import TerminateOnNaN, NaNLossError
+from self_supervised_3d_tasks.keras_algorithms.callbacks import TerminateOnNaN, NaNLossError
 from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance, \
     weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long
@@ -272,7 +272,17 @@ def get_dataset_test(dataset_name, batch_size, f_test, kwargs):
 
 def run_single_test(algorithm_def, dataset_name, train_split, load_weights, freeze_weights, x_test, y_test, lr,
                     batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, logging_path, kwargs,
+                    clipnorm=None, clipvalue=None,
                     model_callback=None):
+
+    def get_optimizer():
+        if clipnorm is None and clipvalue is None:
+            return Adam(lr=lr)
+        elif clipnorm is None:
+            return Adam(lr=lr, clipvalue=clipvalue)
+        else:
+            return Adam(lr=lr, clipnorm=clipnorm, clipvalue=clipvalue)
+
     if "weighted_dice_coefficient" in metrics:
         metrics.remove("weighted_dice_coefficient")
         metrics.append(weighted_dice_coefficient)
@@ -330,7 +340,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
                 ("-" * 10) + "LOADING weights, encoder model is trainable after warm-up"
             )
             print(("-" * 5) + " encoder model is frozen")
-            model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
+            model.compile(optimizer=get_optimizer(), loss=loss, metrics=metrics)
             model.fit(
                 x=gen_train,
                 validation_data=gen_val,
@@ -345,12 +355,12 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
             print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
 
         # recompile model
-        model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
+        model.compile(optimizer=get_optimizer(), loss=loss, metrics=metrics)
         model.fit(
             x=gen_train, validation_data=gen_val, epochs=epochs, callbacks=callbacks
         )
 
-    model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
+    model.compile(optimizer=get_optimizer(), loss=loss, metrics=metrics)
     y_pred = model.predict(x_test, batch_size=batch_size)
     scores_f = make_scores(y_test, y_pred, scores)
 
@@ -413,6 +423,8 @@ def run_complex_test(
         scores=("qw_kappa",),
         loss="mse",
         metrics=("mse",),
+        clipnorm=None,
+        clipvalue=None,
         **kwargs,
 ):
     kwargs["model_checkpoint"] = model_checkpoint
@@ -455,19 +467,19 @@ def run_complex_test(
             b = try_until_no_nan(
                 lambda: run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
                                         batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
-                                        logging_b_path, kwargs))
+                                        logging_b_path, kwargs, clipnorm=clipnorm, clipvalue=clipvalue))
 
             c = try_until_no_nan(
                 lambda: run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
                                         batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
                                         logging_c_path,
-                                        kwargs))  # random
+                                        kwargs, clipnorm=clipnorm, clipvalue=clipvalue))  # random
 
             a = try_until_no_nan(
                 lambda: run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
                                         batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
                                         logging_a_path,
-                                        kwargs))  # frozen
+                                        kwargs, clipnorm=clipnorm, clipvalue=clipvalue))  # frozen
 
             print(
                 "train split:{} model accuracy frozen: {}, initialized: {}, random: {}".format(
@@ -514,9 +526,4 @@ def run_complex_test(
 
 
 if __name__ == "__main__":
-    def t():
-        raise NaNLossError()
-
-
-    try_until_no_nan(t, max_tries=4)
-    # init(run_complex_test, "test")
+    init(run_complex_test, "test")

@@ -7,7 +7,7 @@ import numpy as np
 
 
 def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-3, scores=("qw_kappa_kaggle",),
-          model_checkpoint=None, load_weights=False, epochs_warmup=0, **kwargs):
+          model_checkpoint=None, load_weights=False, epochs_warmup=0, clipnorm=None, clipvalue=None, **kwargs):
     algorithm_def = keras_algorithm_list[algorithm].create_instance(**kwargs)
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     x_test, y_test = ts.get_dataset_test(dataset_name, batch_size, f_val, kwargs)
@@ -73,7 +73,9 @@ def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-
         metrics=metrics,
         logging_path=Path(__file__).parent / "log.csv",
         kwargs=kwargs,
-        model_callback=model_callback_rotation
+        model_callback=model_callback_rotation,
+        clipvalue=clipvalue,
+        clipnorm=clipnorm
     )
 
 
