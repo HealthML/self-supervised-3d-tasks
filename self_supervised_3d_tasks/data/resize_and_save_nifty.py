@@ -81,7 +81,7 @@ def data_conversion_brats(split='train'):
     for i, item in enumerate(results):
         file_name = os.path.basename(t1ce_files[i]).replace('_t1ce.nii.gz', '')
         scan_file_name = file_name + ".npy"
-        mask_file_name = file_name + "_mask.npy"
+        mask_file_name = file_name + "_label.npy"
         np.save("{}/{}".format(result_path, scan_file_name), item[0])
         np.save("{}/{}".format(result_path, mask_file_name), item[1])
 
@@ -98,7 +98,7 @@ def read_mm_slice(flair_files, i, seg_files, t1_files, t1ce_files, t2_files, new
     t1_image = skTrans.resize(t1_image, new_resolution, order=1, preserve_range=True)
     t2_image = read_image(nbbox, nib.load(t2_files[i]))
     t2_image = skTrans.resize(t2_image, new_resolution, order=1, preserve_range=True)
-    seg_image = read_image(nbbox, nib.load(seg_files[i]), normalize=False)
+    seg_image = read_image(nbbox, nib.load(seg_files[i]))
     seg_image = skTrans.resize(seg_image, new_resolution, order=0, preserve_range=True)
     seg_image = np.asarray(seg_image, dtype=np.int32)
     seg_image[seg_image == 4] = 3
@@ -106,20 +106,8 @@ def read_mm_slice(flair_files, i, seg_files, t1_files, t1ce_files, t2_files, new
     return np.stack([t1ce_image, flair_image, t1_image, t2_image], axis=-1), seg_image
 
 
-def read_image(sbbox, nif_file, normalize=True):
-    if normalize:
-        image = norm(nif_file.get_fdata()[sbbox[0]:sbbox[1], sbbox[2]:sbbox[3], sbbox[4]:sbbox[5]])
-    else:
-        image = nif_file.get_fdata()[sbbox[0]:sbbox[1], sbbox[2]:sbbox[3], sbbox[4]:sbbox[5]]
-    return image
-
-
-def norm(im):
-    im = im.astype(np.float32)
-    min_v = np.min(im)
-    max_v = np.max(im)
-    im = (im - min_v) / (max_v - min_v)
-    return im
+def read_image(sbbox, nif_file):
+    return nif_file.get_fdata()[sbbox[0]:sbbox[1], sbbox[2]:sbbox[3], sbbox[4]:sbbox[5]]
 
 
 if __name__ == "__main__":
