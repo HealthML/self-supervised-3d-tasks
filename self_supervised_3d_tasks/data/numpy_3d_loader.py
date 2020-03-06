@@ -15,13 +15,12 @@ class DataGeneratorUnlabeled3D(DataGeneratorBase):
         data_y = []
 
         for file_name in list_files_temp:
-            if 'label' not in file_name:
-                path_to_image = "{}/{}".format(self.path_to_data, file_name)
-                img = np.load(path_to_image)
-                img = (img - img.min()) / (img.max() - img.min())
+            path_to_image = "{}/{}".format(self.path_to_data, file_name)
+            img = np.load(path_to_image)
+            img = (img - img.min()) / (img.max() - img.min())
 
-                data_x.append(img)
-                data_y.append(0)  # just to keep the dims right
+            data_x.append(img)
+            data_y.append(0)  # just to keep the dims right
 
         data_x = np.stack(data_x)
         data_y = np.stack(data_y)
