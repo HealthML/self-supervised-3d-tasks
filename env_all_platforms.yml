@@ -24,4 +24,5 @@ dependencies:
     - nibabel
     - hyperopt
     - albumentations
+    - tensorflow_addons
 
