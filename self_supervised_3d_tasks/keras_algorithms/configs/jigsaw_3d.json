@@ -5,6 +5,8 @@
 
   "train3D": true,
 
+  "embed_dim": 128,
+  "enc_filters": 8,
   "split_per_side": 3,
   "patch_dim": 48,
   "patch_jitter": 3,
@@ -14,6 +16,6 @@
   "n_channels": 1,
   "batch_size": 8,
 
-  "lr": 1e-5,
+  "lr": 1e-4,
   "epochs": 250
 }

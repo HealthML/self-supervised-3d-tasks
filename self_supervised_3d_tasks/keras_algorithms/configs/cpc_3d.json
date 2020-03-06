@@ -1,12 +1,17 @@
 {
   "algorithm": "cpc",
-  "batch_size": 1,
   "data_dir": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128",
   "dataset_name": "pancreas3d",
+
   "train3D": true,
-  "data_dim": 128,
-  "n_channels": 1,
+
+  "embed_dim": 64,
   "split_per_side": 4,
-  "epochs": 500,
-  "lr": 5e-6
+  "data_dim": 128,
+
+  "n_channels": 1,
+  "batch_size": 1,
+
+  "lr": 5e-5,
+  "epochs": 250
 }

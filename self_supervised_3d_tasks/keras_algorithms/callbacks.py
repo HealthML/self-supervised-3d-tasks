@@ -1,5 +1,5 @@
-from tensorflow.keras import callbacks
-
+from tensorflow.python.keras.callbacks import Callback
+import numpy as np
 
 class NaNLossError(Exception):
     def __init__(self, *args):
@@ -19,7 +19,12 @@ class NaNLossError(Exception):
             return f"NaNLoss occured."
 
 
-class TerminateOnNaN(callbacks.TerminateOnNaN):
+class TerminateOnNaN(Callback):
     def on_batch_end(self, batch, logs=None):
-        super(TerminateOnNaN, self).on_batch_end(batch, logs)
-        raise NaNLossError()
+        logs = logs or {}
+        loss = logs.get('loss')
+        if loss is not None:
+            if np.isnan(loss) or np.isinf(loss):
+                print(f'Batch %d: Invalid loss: {loss}, terminating training' % (batch))
+                self.model.stop_training = True
+                raise NaNLossError()

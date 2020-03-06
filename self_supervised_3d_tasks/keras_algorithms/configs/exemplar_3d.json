@@ -2,12 +2,17 @@
   "algorithm": "exemplar",
   "data_dir": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128/",
   "dataset_name": "pancreas3d",
+
+  "train3D": true,
+
+  "embed_dim": 1024,
+  "enc_filters": 8,
   "data_dim": 128,
+
   "n_channels": 1,
   "batch_size": 5,
-  "train3D": true,
+
   "alpha_triplet": 0.2,
-  "embed_dim": 1024,
-  "lr": 0.0006,
-  "enc_filters": 8
+  "lr": 5e-4,
+  "epochs": 250
 }

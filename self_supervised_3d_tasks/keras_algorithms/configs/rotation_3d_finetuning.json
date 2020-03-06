@@ -15,7 +15,7 @@
 
   "loss": "weighted_dice_loss",
   "scores": ["dice", "jaccard"],
-  "metrics": ["accuracy", "mse"],
+  "metrics": ["accuracy", "weighted_dice_coefficient"],
 
   "top_architecture": "big_fully",
   "prediction_architecture": "unet_3d_upconv",
@@ -25,7 +25,7 @@
 
   "exp_splits": [100,10,1,50,25],
   "lr": 1e-3,
-  "epochs": 250,
+  "epochs": 150,
   "epochs_warmup": 25,
   "repetitions": 1,
 

@@ -323,7 +323,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
         loss = weighted_categorical_crossentropy(weights)
 
     if epochs > 0:  # testing the scores
-        callbacks = [TerminateOnNaN]
+        callbacks = [TerminateOnNaN()]
 
         if logging_path is not None:
             logging_path.parent.mkdir(exist_ok=True, parents=True)
