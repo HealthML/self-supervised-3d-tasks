@@ -19,7 +19,9 @@ keras_algorithm_list = {
 
 data_gen_list = {
     "kaggle_retina": DataGeneratorUnlabeled2D,
-    "pancreas3d": DataGeneratorUnlabeled3D
+    "pancreas3d": DataGeneratorUnlabeled3D,
+    "brats": DataGeneratorUnlabeled3D,
+    "ukb": DataGeneratorUnlabeled3D
 }
 
 
@@ -29,10 +31,10 @@ def get_dataset(data_dir, batch_size, f_train, f_val, train_val_split, dataset_n
 
     train_data, validation_data = get_data_generators(data_dir, train_split=train_val_split,
                                                       train_data_generator_args={**{"batch_size": batch_size,
-                                                                                 "pre_proc_func": f_train},
+                                                                                    "pre_proc_func": f_train},
                                                                                  **train_data_generator_args},
                                                       val_data_generator_args={**{"batch_size": batch_size,
-                                                                                "pre_proc_func": f_val},
+                                                                                  "pre_proc_func": f_val},
                                                                                **val_data_generator_args},
                                                       data_generator=data_gen_type)
 
@@ -40,7 +42,8 @@ def get_dataset(data_dir, batch_size, f_train, f_val, train_val_split, dataset_n
 
 
 def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250, batch_size=2, train_val_split=0.9,
-                base_workspace="~/workspace/self-supervised-transfer-learning/", save_checkpoint_every_n_epochs=25, **kwargs):
+                base_workspace="~/workspace/self-supervised-3d-tasks/", save_checkpoint_every_n_epochs=25,
+                **kwargs):
     kwargs["root_config_file"] = root_config_file
 
     working_dir = get_writing_path(Path(base_workspace).expanduser() / (algorithm + "_" + dataset_name),
@@ -48,7 +51,8 @@ def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250,
     algorithm_def = keras_algorithm_list[algorithm].create_instance(**kwargs)
 
     f_train, f_val = algorithm_def.get_training_preprocessing()
-    train_data, validation_data = get_dataset(data_dir, batch_size, f_train, f_val, train_val_split, dataset_name, **kwargs)
+    train_data, validation_data = get_dataset(data_dir, batch_size, f_train, f_val, train_val_split, dataset_name,
+                                              **kwargs)
     model = algorithm_def.get_training_model()
     model.summary()
 
@@ -56,9 +60,11 @@ def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250,
     # uncomment if you want to plot the model
 
     tb_c = keras.callbacks.TensorBoard(log_dir=str(working_dir))
-    mc_c = keras.callbacks.ModelCheckpoint(str(working_dir / "weights-improvement-{epoch:03d}.hdf5"), monitor="val_loss",
+    mc_c = keras.callbacks.ModelCheckpoint(str(working_dir / "weights-improvement-{epoch:03d}.hdf5"),
+                                           monitor="val_loss",
                                            mode="min", save_best_only=True)  # reduce storage space
-    mc_c_epochs = keras.callbacks.ModelCheckpoint(str(working_dir / "weights-{epoch:03d}.hdf5"), period=save_checkpoint_every_n_epochs)  # reduce storage space
+    mc_c_epochs = keras.callbacks.ModelCheckpoint(str(working_dir / "weights-{epoch:03d}.hdf5"),
+                                                  period=save_checkpoint_every_n_epochs)  # reduce storage space
     callbacks = [tb_c, mc_c, mc_c_epochs]
 
     # Trains the model
