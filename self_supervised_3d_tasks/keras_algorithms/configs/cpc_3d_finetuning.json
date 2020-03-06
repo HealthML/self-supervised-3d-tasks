@@ -8,12 +8,16 @@
   "split_per_side": 4,
   "data_dir_train": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train",
   "data_dir_test": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/test",
-  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_pancreas3d_22/weights-improvement-001.hdf5",
+  "model_checkpoint": "/home/Julius.Severin/workspace/self-supervised-transfer-learning/cpc_pancreas3d/weights-improvement-080.hdf5",
   "repetitions": 1,
-  "epochs": 6,
-  "epochs_warmup": 2,
+  "epochs": 80,
+  "epochs_warmup": 10,
   "prediction_architecture": "unet_3d_upconv_patches",
-  "exp_splits": [90],
-  "scores": ["dice"],
-  "patch_dim": 64
+  "exp_splits": [100, 10, 1, 50, 25],
+  "scores": ["dice", "jaccard"],
+  "metrics": ["accuracy", "mse"],
+  "loss": "weighted_sum_loss",
+  "patch_dim": 64,
+  "lr": 1e-4,
+  "val_split": 0.05
 }
