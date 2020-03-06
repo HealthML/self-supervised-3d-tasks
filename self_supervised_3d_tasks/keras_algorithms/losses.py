@@ -1,15 +1,19 @@
 import numpy as np
 from tensorflow.keras import backend as K
 
+
 def metrics(weights):
     xx = weighted_categorical_crossentropy(weights)
 
     def m1(y_true, y_pred):
         return jaccard_distance(y_true, y_pred)
+
     def m2(y_true, y_pred):
         return xx(y_true, y_pred)
+
     def m3(y_true, y_pred):
         pass
+
 
 def weighted_categorical_crossentropy(weights, debug=False):
     """
@@ -85,6 +89,26 @@ def jaccard_distance(y_true, y_pred, smooth=5):
     jd = K.mean(jac)
 
     return (1 - jd) * smooth
+
+
+def weighted_dice_coefficient(y_true, y_pred, smooth=0.00001):
+    """
+    Weighted dice coefficient. Default axis assumes a "channels first" data structure
+    :param smooth:
+    :param y_true:
+    :param y_pred:
+    :return:
+    """
+    axis = tuple(range(y_pred.shape.rank - 1))
+
+    return K.mean(2. * (K.sum(y_true * y_pred,
+                              axis=axis) + smooth / 2) / (K.sum(y_true,
+                                                                axis=axis) + K.sum(y_pred,
+                                                                                   axis=axis) + smooth))
+
+
+def weighted_dice_coefficient_loss(y_true, y_pred):
+    return -weighted_dice_coefficient(y_true, y_pred)
 
 
 def weighted_sum_loss(alpha=1, beta=1, weights=(1, 5, 10)):

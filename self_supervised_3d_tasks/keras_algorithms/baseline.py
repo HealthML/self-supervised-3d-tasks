@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
 from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_algorithm_list
 from self_supervised_3d_tasks.keras_algorithms import keras_test_algo as ts
@@ -51,6 +53,8 @@ def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-
 
         np.save("prediction.npy", result)
 
+    print(Path(__file__).parent / "log.csv")
+
     ts.run_single_test(
         algorithm_def=algorithm_def,
         dataset_name=dataset_name,
@@ -67,7 +71,7 @@ def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-
         scores=scores,
         loss=loss,
         metrics=metrics,
-        logging_path=None,
+        logging_path=Path(__file__).parent / "log.csv",
         kwargs=kwargs,
         model_callback=model_callback_rotation
     )

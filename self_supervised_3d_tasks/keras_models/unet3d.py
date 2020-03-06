@@ -64,7 +64,8 @@ def downconv_model_3d(
         dropout_change_per_layer=0.0,
         filters=8,
         num_layers=4,
-        pooling=None
+        pooling=None,
+        **kwargs
 ):
     inputs = Input(input_shape)
     x = inputs
@@ -104,6 +105,7 @@ def upconv_model_3d(
         filters=128,
         down_layers=(),
         output_activation="softmax",  # 'sigmoid' or 'softmax'
+        **kwargs
 ):
     inp = Input(input_shape)
     inputs = [inp]
