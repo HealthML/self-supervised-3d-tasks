@@ -55,8 +55,8 @@ def data_generation_pancreas():
 
 
 def data_conversion_ukb():
-    source_path = "/mnt/30T/data/ukbiobank/original/imaging/brain_mri/"
-    destination_path = "/mnt/30T/data/ukbiobank/derived/imaging/brain_mri/"
+    source_path = "/mnt/30T/ukbiobank/original/imaging/brain_mri/"
+    destination_path = "/mnt/30T/ukbiobank/derived/imaging/brain_mri/"
     new_resolution = (128, 128, 128)
 
     t1_zip_files = sorted(glob.glob(source_path + "T1_structural_brain_mri/archive/**/*.zip", recursive=True))
