@@ -9,7 +9,7 @@ def norm(im):
     return im
 
 
-def read_scan_find_bbox(image, normalize=True):
+def read_scan_find_bbox(image, normalize=False):
     st_x, en_x, st_y, en_y, st_z, en_z = 0, 0, 0, 0, 0, 0
     for x in range(image.shape[0]):
         if np.any(image[x, :, :]):
