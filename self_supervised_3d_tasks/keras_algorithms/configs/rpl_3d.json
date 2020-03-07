@@ -5,15 +5,18 @@
 
   "train3D": true,
 
-  "embed_dim": 128,
-  "patches_per_side": 2,
+  "embed_dim": 512,
+  "enc_filters": 8,
+  "patches_per_side": 3,
+  "patch_dim": 48,
   "patch_jitter": 2,
   "data_dim": 128,
 
   "top_architecture": "big_fully",
+  "pooling": "none",
   "n_channels": 1,
   "batch_size": 8,
 
-  "lr": 5e-6,
+  "lr": 1e-4,
   "epochs": 250
 }
