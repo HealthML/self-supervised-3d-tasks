@@ -166,7 +166,7 @@ def preprocess_ukb_3D_multimodal():
 
     num_cores = multiprocessing.cpu_count()
     results = Parallel(n_jobs=num_cores)(
-        delayed(read_ukb_scan_multimodal)(t1_files, t2_flair_files, i, resize=False) for i in
+        delayed(read_ukb_scan_multimodal)(t1_files, t2_flair_files, i) for i in
         range(len(t2_flair_files)))
     print("done loading images, gathering them in one array now.")
     for i, mm_scan in enumerate(results):
