@@ -5,7 +5,7 @@
 
   "train3D": true,
 
-  "embed_dim": 512,
+  "embed_dim": 128,
   "enc_filters": 8,
   "patches_per_side": 3,
   "patch_dim": 48,

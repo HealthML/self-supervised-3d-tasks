@@ -393,7 +393,11 @@ def display_slice(image, dim_to_slice, slice_idx, plot_square=False):
     plt.show()
 
 
-def plot_3d(image, dim_to_animate, plot_square=False, max_value=1):
+def plot_3d(image, dim_to_animate, plot_square=False, step=1):
+    min_value = [image[i].min() for i in range(len(image))]
+    max_value = [image[i].max() for i in range(len(image))]
+    print(f"max values: {max_value}, min values: {min_value}")
+
     plt.figure(figsize=(10, 10))
 
     n = len(image)
@@ -417,7 +421,7 @@ def plot_3d(image, dim_to_animate, plot_square=False, max_value=1):
     while True:
         for i in range(n):
             img = image[i]
-            ani[i] += 1
+            ani[i] += step
 
             if ani[i] >= img.shape[dim_to_animate]:
                 ani[i] = -1
@@ -430,13 +434,14 @@ def plot_3d(image, dim_to_animate, plot_square=False, max_value=1):
 
             if frame[i] is None:
                 init = np.zeros(im.shape)
-                init[0, 0] = max_value
+                init[0, 0] = max_value[i]
+                init[0, 1] = min_value[i]
                 frame[i] = ax[i].imshow(init, cmap="inferno")
             else:
                 frame[i].set_data(im)
 
-        time.sleep(0.05)
-        plt.pause(0.1)
+        #time.sleep(0.05)
+        plt.pause(0.01)
         plt.draw()
 
 
@@ -893,6 +898,27 @@ def test_nans():
 
     print("done")
 
+def xxx():
+    path = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox/pancreas_004.npy"
+    path1 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox/pancreas_010.npy"
+    path2 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox/pancreas_024.npy"
+    path3 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox/pancreas_037.npy"
+    data = [get_data_npy(p) for p in [path, path1, path2, path3]]
+    plot_3d(data, 2, step=3)
+
+def yyy():
+    tt = get_data_npy("/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/img_labels/pancreas_102_label.npy")
+    tt2 = get_data_npy("/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/img_labels/pancreas_102.npy")
+    data_y = tt.astype(np.int)
+
+    print(tt.dtype)
+    print(tt.min())
+    print(tt.max())
+
+    path = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/img/pancreas_102.npy"
+    path1 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/img_labels/pancreas_102.npy"
+    data = [get_data_npy(p) for p in [path, path1]]
+    plot_3d([tt, tt2], 2, step=3)
 
 if __name__ == "__main__":
     # a = np.zeros((2,48,48,48,3))
@@ -910,4 +936,6 @@ if __name__ == "__main__":
 
     # test_exemplar_preprocess_3d()
     # test_nans()
-    test_prediction_3d()
+    # test_prediction_3d()
+
+    yyy()
