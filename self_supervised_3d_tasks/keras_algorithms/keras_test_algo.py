@@ -34,6 +34,7 @@ from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import (
     keras_algorithm_list,
 )
 
+
 def transform_multilabel_to_continuous(y, threshold):
     assert isinstance(y, np.ndarray), "invalid y"
 
@@ -88,6 +89,42 @@ def score_dice(y, y_pred):
     return np.average(np.array([(2 * x) / (1 + x) for x in j]))
 
 
+# TODO move the following methods to brats utils file or something
+def brats_et(y, y_pred):
+    gt_et = np.copy(y).astype(np.int)
+    gt_et[gt_et == 1] = 0
+    gt_et[gt_et == 2] = 0
+    gt_et[gt_et == 3] = 1
+    pd_et = np.copy(y_pred).astype(np.int)
+    pd_et[pd_et == 1] = 0
+    pd_et[pd_et == 2] = 0
+    pd_et[pd_et == 3] = 1
+    dice_et = score_dice(gt_et, pd_et)
+    return dice_et
+
+
+def brats_tc(y, y_pred):
+    gt_tc = np.copy(y).astype(np.int)
+    gt_tc[gt_tc == 2] = 0
+    gt_tc[gt_tc == 3] = 1
+    pd_tc = np.copy(y_pred).astype(np.int)
+    pd_tc[pd_tc == 2] = 0
+    pd_tc[pd_tc == 3] = 1
+    dice_tc = score_dice(gt_tc, pd_tc)
+    return dice_tc
+
+
+def brats_wt(y, y_pred):
+    gt_wt = np.copy(y).astype(np.int)
+    gt_wt[gt_wt == 2] = 1
+    gt_wt[gt_wt == 3] = 1
+    pd_wt = np.copy(y_pred).astype(np.int)
+    pd_wt[pd_wt == 2] = 1
+    pd_wt[pd_wt == 3] = 1
+    dice_wt = score_dice(gt_wt, pd_wt)
+    return dice_wt
+
+
 def get_score(score_name):
     if score_name == "qw_kappa":
         return score_kappa
@@ -103,6 +140,12 @@ def get_score(score_name):
         return score_kappa_kaggle
     elif score_name == "cat_acc_kaggle":
         return score_cat_acc_kaggle
+    elif score_name == "brats_wt":
+        return brats_wt
+    elif score_name == "brats_tc":
+        return brats_tc
+    elif score_name == "brats_et":
+        return brats_et
     else:
         raise ValueError(f"score {score_name} not found")
 
@@ -251,7 +294,7 @@ def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split, kwa
         return get_dataset_kaggle_train_original(
             batch_size, f_train, f_val, train_split, **kwargs
         )
-    elif dataset_name == "pancreas3d":
+    elif dataset_name == "pancreas3d" or dataset_name == 'brats':
         return get_dataset_regular_train(
             batch_size,
             f_train,
@@ -267,7 +310,7 @@ def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split, kwa
 def get_dataset_test(dataset_name, batch_size, f_test, kwargs):
     if dataset_name == "kaggle_retina":
         gen_test = get_dataset_kaggle_test(batch_size, f_test, **kwargs)
-    elif dataset_name == "pancreas3d":
+    elif dataset_name == "pancreas3d" or dataset_name == 'brats':
         gen_test = get_dataset_regular_test(
             batch_size, f_test, data_generator=SegmentationGenerator3D, **kwargs
         )
@@ -281,7 +324,6 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
                     batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, logging_path, kwargs,
                     clipnorm=None, clipvalue=None,
                     model_callback=None):
-
     def get_optimizer():
         if clipnorm is None and clipvalue is None:
             return Adam(lr=lr)
