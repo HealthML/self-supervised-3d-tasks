@@ -327,7 +327,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
 
         if logging_path is not None:
             logging_path.parent.mkdir(exist_ok=True, parents=True)
-            callbacks.append(CSVLogger(str(logging_path), append=True))
+            callbacks.append(CSVLogger(str(logging_path), append=False))
         if freeze_weights or load_weights:
             enc_model.trainable = False
 
@@ -461,9 +461,9 @@ def run_complex_test(
 
         for i in range(repetitions):
             logging_base_path = working_dir / "logs"
-            logging_a_path = logging_base_path / f"frozen_rep{i}.log"
-            logging_b_path = logging_base_path / f"initialized_rep{i}.log"
-            logging_c_path = logging_base_path / f"random_rep{i}.log"
+            logging_a_path = logging_base_path / f"split{train_split}frozen_rep{i}.log"
+            logging_b_path = logging_base_path / f"split{train_split}initialized_rep{i}.log"
+            logging_c_path = logging_base_path / f"split{train_split}random_rep{i}.log"
             b = try_until_no_nan(
                 lambda: run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
                                         batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,

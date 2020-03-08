@@ -93,7 +93,7 @@ def jaccard_distance(y_true, y_pred, smooth=5):
 
 def weighted_dice_coefficient(y_true, y_pred, smooth=0.00001):
     """
-    Weighted dice coefficient. Default axis assumes a "channels first" data structure
+    Weighted dice coefficient.
     :param smooth:
     :param y_true:
     :param y_pred:
