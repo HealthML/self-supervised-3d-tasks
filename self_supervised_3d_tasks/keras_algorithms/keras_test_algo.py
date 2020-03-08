@@ -77,8 +77,12 @@ def score_jaccard(y, y_pred):
 
 
 def score_dice(y, y_pred):
-    j_score = score_jaccard(y, y_pred)
-    return (2 * j_score) / (1 + j_score)
+    y = np.argmax(y, axis=-1).flatten()
+    y_pred = np.argmax(y_pred, axis=-1).flatten()
+
+    j = jaccard_score(y, y_pred, average=None)
+
+    return np.average(np.array([(2 * x) / (1 + x) for x in j]))
 
 
 def get_score(score_name):

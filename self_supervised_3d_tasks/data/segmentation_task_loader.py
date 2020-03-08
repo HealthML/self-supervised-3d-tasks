@@ -48,7 +48,7 @@ class SegmentationGenerator3D(DataGeneratorBase):
         if self.pre_proc_func:
             data_x, data_y = self.pre_proc_func(data_x, data_y)
 
-        data_y = np.rint(data_y)
+        data_y = np.rint(data_y).astype(np.int)
         data_y = np.eye(3)[data_y]
         data_y = np.squeeze(data_y, axis=-2)  # remove second last axis, which is still 1
 
