@@ -1,3 +1,5 @@
+import random
+
 from self_supervised_3d_tasks.keras_algorithms.callbacks import TerminateOnNaN, NaNLossError
 from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance, \
     weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss
@@ -9,6 +11,7 @@ import tensorflow_addons as tfa
 
 from pathlib import Path
 
+import tensorflow as tf
 import numpy as np
 from sklearn.metrics import cohen_kappa_score, jaccard_score, accuracy_score
 from tensorflow.keras import backend as K
@@ -468,6 +471,12 @@ def run_complex_test(
             logging_a_path = logging_base_path / f"split{train_split}frozen_rep{i}.log"
             logging_b_path = logging_base_path / f"split{train_split}initialized_rep{i}.log"
             logging_c_path = logging_base_path / f"split{train_split}random_rep{i}.log"
+
+            # Use the same seed for all experiments in one repetition
+            tf.random.set_seed(i)
+            np.random.seed(i)
+            random.seed(i)
+
             b = try_until_no_nan(
                 lambda: run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
                                         batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
