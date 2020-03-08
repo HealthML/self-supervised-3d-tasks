@@ -158,7 +158,35 @@ def read_scan(sbbox, nif_file):
     return nif_file.get_fdata()[sbbox[0]:sbbox[1], sbbox[2]:sbbox[3], sbbox[4]:sbbox[5]]
 
 
+def preprocess_ukb_3D_multimodal():
+    base_path = "/mnt/30T/ukbiobank/derived/imaging/brain_mri/"
+    result_path = "/mnt/30T/ukbiobank/derived/imaging/brain_mri/images_resized_128"
+    t1_files = np.array(sorted(glob.glob(base_path + "/T1/**/*.npy", recursive=True)))
+    t2_flair_files = np.array(sorted(glob.glob(base_path + "/T2_FLAIR/**/*.npy", recursive=True)))
+
+    num_cores = multiprocessing.cpu_count()
+    results = Parallel(n_jobs=num_cores)(
+        delayed(read_ukb_scan_multimodal)(t1_files, t2_flair_files, i, resize=False) for i in
+        range(len(t2_flair_files)))
+    print("done loading images, gathering them in one array now.")
+    for i, mm_scan in enumerate(results):
+        t1_image = mm_scan[0]
+        t2_flair_image = mm_scan[1]
+        stacked_array = np.stack([t1_image, t2_flair_image], axis=-1)
+        scan_file_name = os.path.basename(t1_files[i])
+        np.save("{}/{}".format(result_path, scan_file_name), stacked_array)
+        perc = (float(i) * 100.0) / len(results)
+        print(f"{perc:.2f} % done")
+
+
+def read_ukb_scan_multimodal(t1_files, t2_flair_files, i):
+    t1_scan, sbbox = read_scan_find_bbox(np.load(t1_files[i]))
+    t2_flair_scan = np.load(t2_flair_files[i])[sbbox[0]:sbbox[1], sbbox[2]:sbbox[3], sbbox[4]:sbbox[5]]
+    return t1_scan, t2_flair_scan
+
+
 if __name__ == "__main__":
     # data_generation_pancreas()
     # data_conversion_brats(split='train')
-    data_conversion_ukb()
+    # data_conversion_ukb()
+    preprocess_ukb_3D_multimodal()
