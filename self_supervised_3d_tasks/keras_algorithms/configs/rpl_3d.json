@@ -2,13 +2,21 @@
   "algorithm": "rpl",
   "data_dir": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128/",
   "dataset_name": "pancreas3d",
+
   "train3D": true,
-  "data_dim": 128,
-  "batch_size": 8,
-  "n_channels": 1,
+
+  "embed_dim": 128,
+  "enc_filters": 8,
+  "patches_per_side": 3,
+  "patch_dim": 48,
   "patch_jitter": 2,
-  "lr": 5e-6,
+  "data_dim": 128,
+
   "top_architecture": "big_fully",
-  "epochs": 250,
-  "patches_per_side": 2
+  "pooling": "none",
+  "n_channels": 1,
+  "batch_size": 8,
+
+  "lr": 1e-4,
+  "epochs": 250
 }

@@ -2,25 +2,33 @@
   "algorithm": "rotation",
   "data_dir_train": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train",
   "data_dir_test": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/test",
+  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_3/weights-improvement-233.hdf5",
   "dataset_name": "pancreas3d",
+  "train_data_generator_args": {"shuffle": true},
+
   "train3D": true,
-  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_3/weights-improvement-119.hdf5",
-  "repetitions": 1,
-  "loss": "weighted_sum_loss",
+  "val_split": 0.05,
+
   "embed_dim": 1024,
   "enc_filters": 8,
-  "top_architecture": "big_fully",
-  "batch_size": 6,
-  "n_channels": 1,
-  "exp_splits": [100],
-  "train_data_generator_args": {"shuffle": true},
   "data_dim": 128,
-  "prediction_architecture": "unet_3d_upconv",
+
+  "loss": "weighted_dice_loss",
   "scores": ["dice", "jaccard"],
-  "metrics": ["accuracy", "mse"],
-  "val_split": 0.05,
-  "lr": 1e-4,
-  "epochs": 80,
-  "epochs_warmup": 10,
-  "log_level": 0
+  "metrics": ["accuracy", "weighted_dice_coefficient"],
+
+  "top_architecture": "big_fully",
+  "prediction_architecture": "unet_3d_upconv",
+  "pooling": "avg",
+  "n_channels": 1,
+  "batch_size": 7,
+
+  "exp_splits": [100,10,1,50,25],
+  "lr": 1e-3,
+  "epochs": 150,
+  "epochs_warmup": 25,
+  "repetitions": 1,
+
+  "clipnorm": 1,
+  "clipvalue": 1
 }

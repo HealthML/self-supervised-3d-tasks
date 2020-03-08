@@ -5,13 +5,35 @@ import glob
 import matplotlib.pyplot as plt
 import numpy as np
 
-def draw_convergence(name, data, algorithm="exemplar",min_max_avg="avg", batch_size=32, repetitions=3, epochs=12, dataset_name="kaggle", train3D=False, **kwargs):
+def draw_convergence(name, data, data_name, algorithm="exemplar",min_max_avg="avg", batch_size=32, repetitions=3, epochs=12, dataset_name="kaggle", train3D=False, **kwargs):
     for x,i in data:
         plt.plot(x, label=i)
 
-    plt.title(f"Comparison of {min_max_avg} with split {name}%. Convergence for {algorithm} on {dataset_name} ({'3D' if train3D else '2D'}). \nbatch_size={batch_size},repetitions={repetitions},epochs={epochs}", pad=30)
+    plt.title(f"Comparison of {min_max_avg} {data_name} with split {name}%. \n Convergence for {algorithm} on {dataset_name} ({'3D' if train3D else '2D'}). \nbatch_size={batch_size},repetitions={repetitions},epochs={epochs}", pad=30)
     plt.legend()
     plt.show()
+
+def get_data_new(args, path, metric="val_loss"):
+    data_splits = []
+    epochs = args["epochs"]
+
+    for split in args["exp_splits"]:
+        data_exp = []
+        for exp in ["frozen", "initialized", "random"]:
+            data_rep = []
+            for filename in (Path(path) / "logs/").glob(f"split{split}{exp}*.log"):
+                df = pandas.read_csv(filename)
+
+                # some runs are missing, break here
+                if len(df) < epochs:
+                    return np.stack(data_splits)
+
+                # otherwise continue
+                data_rep.append(df[metric].to_numpy())
+            data_exp.append(np.stack(data_rep))
+        data_splits.append(np.stack(data_exp))
+
+    return np.stack(data_splits)
 
 def get_data(args, path, metric="val_loss"):
     data_splits = []
@@ -35,19 +57,34 @@ def get_data(args, path, metric="val_loss"):
 
     return np.stack(data_splits)
 
-
-if __name__ == "__main__":
-    path = "/home/Noel.Danz/workspace/self-supervised-transfer-learning/exemplar_kaggle_retina_24/weights-improvement-157_test_1"
-    # draw_convergence()
-
-    args = {}
+def draw_old_plots(path):
+    data_name = "val_weighted_dice_coefficient"
     try:
         config = list(Path(path).glob("*.json"))[0]
         with open(config, mode="r") as file:
             args = json.load(file)
         print(args)
-        data = get_data(args, path, "val_loss")
+        data = get_data(args, path, data_name)
         for x, y in zip(data, args["exp_splits"][:len(data)]):
-            draw_convergence(y, zip(np.average(x, axis=1), ["frozen", "initialized", "random"]), **args)
+            draw_convergence(y, zip(np.average(x, axis=1), ["frozen", "initialized", "random"]), data_name=data_name,
+                             **args)
     except IndexError as e:
         raise FileNotFoundError("No JSON file found in provided directory.")
+
+def draw_new_plots(path, data_name):
+    try:
+        config = list(Path(path).glob("*.json"))[0]
+        with open(config, mode="r") as file:
+            args = json.load(file)
+        print(args)
+        data = get_data_new(args, path, data_name)
+        for x, y in zip(data, args["exp_splits"][:len(data)]):
+            draw_convergence(y, zip(np.average(x, axis=1), ["frozen", "initialized", "random"]), data_name=data_name,
+                             **args)
+    except IndexError as e:
+        raise FileNotFoundError("No JSON file found in provided directory.")
+
+if __name__ == "__main__":
+    path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/exemplar_pancreas3d/weights-improvement-216_test/"
+    dpath = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_3/weights-improvement-233_test_6/"
+    draw_new_plots(path, "val_weighted_dice_coefficient")

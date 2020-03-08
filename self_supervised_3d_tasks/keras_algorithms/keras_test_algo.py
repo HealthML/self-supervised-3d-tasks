@@ -1,28 +1,38 @@
+import random
+
+from self_supervised_3d_tasks.keras_algorithms.callbacks import TerminateOnNaN, NaNLossError
+from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance, \
+    weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long
+
 import csv
 import gc
+import tensorflow_addons as tfa
+
 from pathlib import Path
 
+import tensorflow as tf
 import numpy as np
 from sklearn.metrics import cohen_kappa_score, jaccard_score, accuracy_score
 from tensorflow.keras import backend as K
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.utils import plot_model
 from tensorflow.python.keras import Model
+from tensorflow.python.keras.metrics import BinaryAccuracy, CategoricalAccuracy
 from tensorflow.python.keras.callbacks import CSVLogger
-from tensorflow.python.keras.metrics import BinaryAccuracy
 
 from self_supervised_3d_tasks.data.kaggle_retina_data import get_kaggle_generator
 from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
-from self_supervised_3d_tasks.data.segmentation_task_loader import SegmentationGenerator3D
+from self_supervised_3d_tasks.data.segmentation_task_loader import (
+    SegmentationGenerator3D,
+)
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     apply_prediction_model,
-    get_writing_path
+    get_writing_path,
 )
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long
-from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_algorithm_list
-
-from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance, \
-    weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss
-
+from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import (
+    keras_algorithm_list,
+)
 
 def transform_multilabel_to_continuous(y, threshold):
     assert isinstance(y, np.ndarray), "invalid y"
@@ -70,8 +80,12 @@ def score_jaccard(y, y_pred):
 
 
 def score_dice(y, y_pred):
-    j_score = score_jaccard(y, y_pred)
-    return (2 * j_score) / (1 + j_score)
+    y = np.argmax(y, axis=-1).flatten()
+    y_pred = np.argmax(y_pred, axis=-1).flatten()
+
+    j = jaccard_score(y, y_pred, average=None)
+
+    return np.average(np.array([(2 * x) / (1 + x) for x in j]))
 
 
 def get_score(score_name):
@@ -237,9 +251,14 @@ def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split, kwa
         return get_dataset_kaggle_train_original(
             batch_size, f_train, f_val, train_split, **kwargs
         )
-    elif dataset_name == "pancreas3d" or dataset_name == "brats" or dataset_name == "ukb":
+    elif dataset_name == "pancreas3d":
         return get_dataset_regular_train(
-            batch_size, f_train, f_val, train_split, data_generator=SegmentationGenerator3D, **kwargs,
+            batch_size,
+            f_train,
+            f_val,
+            train_split,
+            data_generator=SegmentationGenerator3D,
+            **kwargs,
         )
     else:
         raise ValueError("not implemented")
@@ -248,7 +267,7 @@ def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split, kwa
 def get_dataset_test(dataset_name, batch_size, f_test, kwargs):
     if dataset_name == "kaggle_retina":
         gen_test = get_dataset_kaggle_test(batch_size, f_test, **kwargs)
-    elif dataset_name == "pancreas3d" or dataset_name == "brats" or dataset_name == "ukb":
+    elif dataset_name == "pancreas3d":
         gen_test = get_dataset_regular_test(
             batch_size, f_test, data_generator=SegmentationGenerator3D, **kwargs
         )
@@ -260,7 +279,17 @@ def get_dataset_test(dataset_name, batch_size, f_test, kwargs):
 
 def run_single_test(algorithm_def, dataset_name, train_split, load_weights, freeze_weights, x_test, y_test, lr,
                     batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, logging_path, kwargs,
+                    clipnorm=None, clipvalue=None,
                     model_callback=None):
+
+    def get_optimizer():
+        if clipnorm is None and clipvalue is None:
+            return Adam(lr=lr)
+        elif clipnorm is None:
+            return Adam(lr=lr, clipvalue=clipvalue)
+        else:
+            return Adam(lr=lr, clipnorm=clipnorm, clipvalue=clipvalue)
+
     if "weighted_dice_coefficient" in metrics:
         metrics.remove("weighted_dice_coefficient")
         metrics.append(weighted_dice_coefficient)
@@ -301,11 +330,11 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
         loss = weighted_categorical_crossentropy(weights)
 
     if epochs > 0:  # testing the scores
-        callbacks = []
+        callbacks = [TerminateOnNaN()]
 
         if logging_path is not None:
             logging_path.parent.mkdir(exist_ok=True, parents=True)
-            callbacks.append(CSVLogger(str(logging_path), append=True))
+            callbacks.append(CSVLogger(str(logging_path), append=False))
         if freeze_weights or load_weights:
             enc_model.trainable = False
 
@@ -318,7 +347,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
                 ("-" * 10) + "LOADING weights, encoder model is trainable after warm-up"
             )
             print(("-" * 5) + " encoder model is frozen")
-            model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
+            model.compile(optimizer=get_optimizer(), loss=loss, metrics=metrics)
             model.fit(
                 x=gen_train,
                 validation_data=gen_val,
@@ -333,12 +362,12 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
             print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
 
         # recompile model
-        model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
+        model.compile(optimizer=get_optimizer(), loss=loss, metrics=metrics)
         model.fit(
             x=gen_train, validation_data=gen_val, epochs=epochs, callbacks=callbacks
         )
 
-    model.compile(optimizer=Adam(lr=lr), loss=loss, metrics=metrics)
+    model.compile(optimizer=get_optimizer(), loss=loss, metrics=metrics)
     y_pred = model.predict(x_test, batch_size=batch_size)
     scores_f = make_scores(y_test, y_pred, scores)
 
@@ -368,6 +397,25 @@ def write_result(base_path, row):
         result_writer.writerow(row)
 
 
+class MaxTriesExceeded(Exception):
+    def __init__(self, func, *args):
+        self.func = func
+        if args:
+            self.max_tries = args[0]
+
+    def __str__(self):
+        return f'Maximum amount of tries ({self.max_tries}) exceeded for {self.func}.'
+
+
+def try_until_no_nan(func, max_tries=4):
+    for _ in range(max_tries):
+        try:
+            return func()
+        except NaNLossError:
+            print(f"Encountered NaN-Loss in {func}")
+    raise MaxTriesExceeded(func, max_tries)
+
+
 def run_complex_test(
         algorithm,
         dataset_name,
@@ -382,6 +430,8 @@ def run_complex_test(
         scores=("qw_kappa",),
         loss="mse",
         metrics=("mse",),
+        clipnorm=None,
+        clipvalue=None,
         **kwargs,
 ):
     kwargs["model_checkpoint"] = model_checkpoint
@@ -418,22 +468,31 @@ def run_complex_test(
 
         for i in range(repetitions):
             logging_base_path = working_dir / "logs"
-            logging_a_path = logging_base_path / f"frozen_rep{i}.log"
-            logging_b_path = logging_base_path / f"initialized_rep{i}.log"
-            logging_c_path = logging_base_path / f"random_rep{i}.log"
-            b = run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
-                                logging_b_path, kwargs)
+            logging_a_path = logging_base_path / f"split{train_split}frozen_rep{i}.log"
+            logging_b_path = logging_base_path / f"split{train_split}initialized_rep{i}.log"
+            logging_c_path = logging_base_path / f"split{train_split}random_rep{i}.log"
 
-            c = run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
-                                logging_c_path,
-                                kwargs)  # random
+            # Use the same seed for all experiments in one repetition
+            tf.random.set_seed(i)
+            np.random.seed(i)
+            random.seed(i)
 
-            a = run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
-                                batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
-                                logging_a_path,
-                                kwargs)  # frozen
+            b = try_until_no_nan(
+                lambda: run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
+                                        batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                        logging_b_path, kwargs, clipnorm=clipnorm, clipvalue=clipvalue))
+
+            c = try_until_no_nan(
+                lambda: run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
+                                        batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                        logging_c_path,
+                                        kwargs, clipnorm=clipnorm, clipvalue=clipvalue))  # random
+
+            a = try_until_no_nan(
+                lambda: run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
+                                        batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                        logging_a_path,
+                                        kwargs, clipnorm=clipnorm, clipvalue=clipvalue))  # frozen
 
             print(
                 "train split:{} model accuracy frozen: {}, initialized: {}, random: {}".format(
