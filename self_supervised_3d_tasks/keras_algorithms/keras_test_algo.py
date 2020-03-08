@@ -1,34 +1,28 @@
-from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance, \
-    weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long
-
 import csv
 import gc
-import tensorflow_addons as tfa
-
 from pathlib import Path
 
 import numpy as np
 from sklearn.metrics import cohen_kappa_score, jaccard_score, accuracy_score
 from tensorflow.keras import backend as K
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.utils import plot_model
 from tensorflow.python.keras import Model
-from tensorflow.python.keras.metrics import BinaryAccuracy, CategoricalAccuracy
 from tensorflow.python.keras.callbacks import CSVLogger
+from tensorflow.python.keras.metrics import BinaryAccuracy
 
 from self_supervised_3d_tasks.data.kaggle_retina_data import get_kaggle_generator
 from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
-from self_supervised_3d_tasks.data.segmentation_task_loader import (
-    SegmentationGenerator3D,
-)
+from self_supervised_3d_tasks.data.segmentation_task_loader import SegmentationGenerator3D
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     apply_prediction_model,
-    get_writing_path,
+    get_writing_path
 )
-from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import (
-    keras_algorithm_list,
-)
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long
+from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_algorithm_list
+
+from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance, \
+    weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss
+
 
 def transform_multilabel_to_continuous(y, threshold):
     assert isinstance(y, np.ndarray), "invalid y"
@@ -243,14 +237,9 @@ def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split, kwa
         return get_dataset_kaggle_train_original(
             batch_size, f_train, f_val, train_split, **kwargs
         )
-    elif dataset_name == "pancreas3d":
+    elif dataset_name == "pancreas3d" or dataset_name == "brats" or dataset_name == "ukb":
         return get_dataset_regular_train(
-            batch_size,
-            f_train,
-            f_val,
-            train_split,
-            data_generator=SegmentationGenerator3D,
-            **kwargs,
+            batch_size, f_train, f_val, train_split, data_generator=SegmentationGenerator3D, **kwargs,
         )
     else:
         raise ValueError("not implemented")
@@ -259,7 +248,7 @@ def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split, kwa
 def get_dataset_test(dataset_name, batch_size, f_test, kwargs):
     if dataset_name == "kaggle_retina":
         gen_test = get_dataset_kaggle_test(batch_size, f_test, **kwargs)
-    elif dataset_name == "pancreas3d":
+    elif dataset_name == "pancreas3d" or dataset_name == "brats" or dataset_name == "ukb":
         gen_test = get_dataset_regular_test(
             batch_size, f_test, data_generator=SegmentationGenerator3D, **kwargs
         )
