@@ -97,6 +97,8 @@ def score_dice(y, y_pred):
 
 # TODO move the following methods to brats utils file or something
 def brats_et(y, y_pred):
+    y = np.argmax(y, axis=-1).flatten()
+    y_pred = np.argmax(y_pred, axis=-1).flatten()
     gt_et = np.copy(y).astype(np.int)
     gt_et[gt_et == 1] = 0
     gt_et[gt_et == 2] = 0
@@ -110,6 +112,8 @@ def brats_et(y, y_pred):
 
 
 def brats_tc(y, y_pred):
+    y = np.argmax(y, axis=-1).flatten()
+    y_pred = np.argmax(y_pred, axis=-1).flatten()
     gt_tc = np.copy(y).astype(np.int)
     gt_tc[gt_tc == 2] = 0
     gt_tc[gt_tc == 3] = 1
@@ -121,6 +125,8 @@ def brats_tc(y, y_pred):
 
 
 def brats_wt(y, y_pred):
+    y = np.argmax(y, axis=-1).flatten()
+    y_pred = np.argmax(y_pred, axis=-1).flatten()
     gt_wt = np.copy(y).astype(np.int)
     gt_wt[gt_wt == 2] = 1
     gt_wt[gt_wt == 3] = 1
@@ -144,6 +150,8 @@ def _dice_hard_coe(target, output, smooth=1e-5):
 
 def brats_wt_metric(y_true, y_pred):
     # whole tumor
+    y_true = tf.argmax(y_true, axis=-1)
+    y_pred = tf.argmax(y_pred, axis=-1)
     gt_wt = tf.cast(tf.identity(y_true), tf.int32)
     gt_wt = tf.where(tf.equal(2, gt_wt), 1 * tf.ones_like(gt_wt), gt_wt)  # ground_truth_wt[ground_truth_wt == 2] = 1
     gt_wt = tf.where(tf.equal(3, gt_wt), 1 * tf.ones_like(gt_wt), gt_wt)  # ground_truth_wt[ground_truth_wt == 3] = 1
@@ -155,6 +163,8 @@ def brats_wt_metric(y_true, y_pred):
 
 def brats_tc_metric(y_true, y_pred):
     # tumor core
+    y_true = tf.argmax(y_true, axis=-1)
+    y_pred = tf.argmax(y_pred, axis=-1)
     gt_tc = tf.cast(tf.identity(y_true), tf.int32)
     gt_tc = tf.where(tf.equal(2, gt_tc), 0 * tf.ones_like(gt_tc), gt_tc)  # ground_truth_tc[ground_truth_tc == 2] = 0
     gt_tc = tf.where(tf.equal(3, gt_tc), 1 * tf.ones_like(gt_tc), gt_tc)  # ground_truth_tc[ground_truth_tc == 3] = 1
@@ -166,6 +176,8 @@ def brats_tc_metric(y_true, y_pred):
 
 def brats_et_metric(y_true, y_pred):
     # enhancing tumor
+    y_true = tf.argmax(y_true, axis=-1)
+    y_pred = tf.argmax(y_pred, axis=-1)
     gt_et = tf.cast(tf.identity(y_true), tf.int32)
     gt_et = tf.where(tf.equal(1, gt_et), 0 * tf.ones_like(gt_et), gt_et)  # ground_truth_et[ground_truth_et == 1] = 0
     gt_et = tf.where(tf.equal(2, gt_et), 0 * tf.ones_like(gt_et), gt_et)  # ground_truth_et[ground_truth_et == 2] = 0
