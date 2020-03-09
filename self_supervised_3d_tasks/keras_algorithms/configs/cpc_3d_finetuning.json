@@ -14,7 +14,7 @@
 
   "loss": "weighted_dice_loss",
   "scores": ["dice", "jaccard", "brats_wt", "brats_tc", "brats_et"],
-  "metrics": ["accuracy", "weighted_dice_coefficient"],
+  "metrics": ["accuracy", "weighted_dice_coefficient", "brats_metrics"],
 
   "train3D": true,
   "val_split": 0.05,
