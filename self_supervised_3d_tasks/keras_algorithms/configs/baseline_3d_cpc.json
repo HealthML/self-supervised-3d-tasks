@@ -13,8 +13,10 @@
   "metrics": ["accuracy"],
   "loss": "binary_crossentropy",
   "pooling": "avg",
-  "embed_dim": 64,
   "val_split": 0.05,
   "epochs": 5,
-  "split_per_side": 4
+  "split_per_side": 4,
+
+  "embed_dim": 128,
+  "enc_filters": 4
 }

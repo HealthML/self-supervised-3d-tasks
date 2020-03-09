@@ -26,7 +26,7 @@
   "lr": 3e-3,
   "epochs": 150,
   "epochs_warmup": 25,
-  "repetitions": 1,
+  "repetitions": 2,
 
   "clipnorm": 1,
   "clipvalue": 1

@@ -1,6 +1,6 @@
 {
   "algorithm": "rpl",
-  "data_dir": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128/",
+  "data_dir": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox/",
   "dataset_name": "pancreas3d",
 
   "train3D": true,
@@ -18,5 +18,5 @@
   "batch_size": 8,
 
   "lr": 1e-4,
-  "epochs": 250
+  "epochs": 1000
 }
