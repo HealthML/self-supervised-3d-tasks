@@ -133,36 +133,36 @@ def brats_wt(y, y_pred):
 
 def brats_wt_metric(y_true, y_pred):
     # whole tumor
-    gt_wt = tf.identity(y_true)
-    gt_wt = tf.where(tf.equal(2., gt_wt), 1. * tf.ones_like(gt_wt), gt_wt)  # ground_truth_wt[ground_truth_wt == 2] = 1
-    gt_wt = tf.where(tf.equal(3., gt_wt), 1. * tf.ones_like(gt_wt), gt_wt)  # ground_truth_wt[ground_truth_wt == 3] = 1
-    pd_wt = tf.identity(y_pred)
-    pd_wt = tf.where(tf.equal(2., pd_wt), 1. * tf.ones_like(pd_wt), pd_wt)  # predictions_wt[predictions_wt == 2] = 1
-    pd_wt = tf.where(tf.equal(3., pd_wt), 1. * tf.ones_like(pd_wt), pd_wt)  # predictions_wt[predictions_wt == 3] = 1
+    gt_wt = tf.cast(tf.identity(y_true), tf.int32)
+    gt_wt = tf.where(tf.equal(2, gt_wt), 1 * tf.ones_like(gt_wt), gt_wt)  # ground_truth_wt[ground_truth_wt == 2] = 1
+    gt_wt = tf.where(tf.equal(3, gt_wt), 1 * tf.ones_like(gt_wt), gt_wt)  # ground_truth_wt[ground_truth_wt == 3] = 1
+    pd_wt = tf.cast(tf.identity(y_pred), tf.int32)
+    pd_wt = tf.where(tf.equal(2, pd_wt), 1 * tf.ones_like(pd_wt), pd_wt)  # predictions_wt[predictions_wt == 2] = 1
+    pd_wt = tf.where(tf.equal(3, pd_wt), 1 * tf.ones_like(pd_wt), pd_wt)  # predictions_wt[predictions_wt == 3] = 1
     return weighted_dice_coefficient(gt_wt, pd_wt)
 
 
 def brats_tc_metric(y_true, y_pred):
     # tumor core
-    gt_tc = tf.identity(y_true)
-    gt_tc = tf.where(tf.equal(2., gt_tc), 0. * tf.ones_like(gt_tc), gt_tc)  # ground_truth_tc[ground_truth_tc == 2] = 0
-    gt_tc = tf.where(tf.equal(3., gt_tc), 1. * tf.ones_like(gt_tc), gt_tc)  # ground_truth_tc[ground_truth_tc == 3] = 1
-    pd_tc = tf.identity(y_pred)
-    pd_tc = tf.where(tf.equal(2., pd_tc), 0. * tf.ones_like(pd_tc), pd_tc)  # predictions_tc[predictions_tc == 2] = 0
-    pd_tc = tf.where(tf.equal(3., pd_tc), 1. * tf.ones_like(pd_tc), pd_tc)  # predictions_tc[predictions_tc == 3] = 1
+    gt_tc = tf.cast(tf.identity(y_true), tf.int32)
+    gt_tc = tf.where(tf.equal(2, gt_tc), 0 * tf.ones_like(gt_tc), gt_tc)  # ground_truth_tc[ground_truth_tc == 2] = 0
+    gt_tc = tf.where(tf.equal(3, gt_tc), 1 * tf.ones_like(gt_tc), gt_tc)  # ground_truth_tc[ground_truth_tc == 3] = 1
+    pd_tc = tf.cast(tf.identity(y_pred), tf.int32)
+    pd_tc = tf.where(tf.equal(2, pd_tc), 0 * tf.ones_like(pd_tc), pd_tc)  # predictions_tc[predictions_tc == 2] = 0
+    pd_tc = tf.where(tf.equal(3, pd_tc), 1 * tf.ones_like(pd_tc), pd_tc)  # predictions_tc[predictions_tc == 3] = 1
     return weighted_dice_coefficient(gt_tc, pd_tc)
 
 
 def brats_et_metric(y_true, y_pred):
     # enhancing tumor
-    gt_et = tf.identity(y_true)
-    gt_et = tf.where(tf.equal(1., gt_et), 0. * tf.ones_like(gt_et), gt_et)  # ground_truth_et[ground_truth_et == 1] = 0
-    gt_et = tf.where(tf.equal(2., gt_et), 0. * tf.ones_like(gt_et), gt_et)  # ground_truth_et[ground_truth_et == 2] = 0
-    gt_et = tf.where(tf.equal(3., gt_et), 1. * tf.ones_like(gt_et), gt_et)  # ground_truth_et[ground_truth_et == 3] = 1
-    pd_et = tf.identity(y_pred)
-    pd_et = tf.where(tf.equal(1., pd_et), 0. * tf.ones_like(pd_et), pd_et)  # predictions_et[predictions_et == 1] = 0
-    pd_et = tf.where(tf.equal(2., pd_et), 0. * tf.ones_like(pd_et), pd_et)  # predictions_et[predictions_et == 2] = 0
-    pd_et = tf.where(tf.equal(3., pd_et), 1. * tf.ones_like(pd_et), pd_et)  # predictions_et[predictions_et == 3] = 1
+    gt_et = tf.cast(tf.identity(y_true), tf.int32)
+    gt_et = tf.where(tf.equal(1, gt_et), 0 * tf.ones_like(gt_et), gt_et)  # ground_truth_et[ground_truth_et == 1] = 0
+    gt_et = tf.where(tf.equal(2, gt_et), 0 * tf.ones_like(gt_et), gt_et)  # ground_truth_et[ground_truth_et == 2] = 0
+    gt_et = tf.where(tf.equal(3, gt_et), 1 * tf.ones_like(gt_et), gt_et)  # ground_truth_et[ground_truth_et == 3] = 1
+    pd_et = tf.cast(tf.identity(y_pred), tf.int32)
+    pd_et = tf.where(tf.equal(1, pd_et), 0 * tf.ones_like(pd_et), pd_et)  # predictions_et[predictions_et == 1] = 0
+    pd_et = tf.where(tf.equal(2, pd_et), 0 * tf.ones_like(pd_et), pd_et)  # predictions_et[predictions_et == 2] = 0
+    pd_et = tf.where(tf.equal(3, pd_et), 1 * tf.ones_like(pd_et), pd_et)  # predictions_et[predictions_et == 3] = 1
     return weighted_dice_coefficient(gt_et, pd_et)
 
 
