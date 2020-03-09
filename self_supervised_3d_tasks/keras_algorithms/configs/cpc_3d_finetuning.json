@@ -8,7 +8,7 @@
 
   "prediction_architecture": "unet_3d_upconv_patches",
   "n_channels": 4,
-  "batch_size": 8,
+  "batch_size": 1,
   "patch_dim": 64,
   "lr": 1e-4,
 
@@ -21,7 +21,7 @@
 
   "data_dim": 128,
   "split_per_side": 4,
-  "embed_dim": 1024,
+  "embed_dim": 128,
 
   "exp_splits": [100, 10, 1, 50, 25],
   "repetitions": 1,
