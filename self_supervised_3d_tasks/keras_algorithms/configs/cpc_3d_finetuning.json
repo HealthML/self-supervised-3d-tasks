@@ -21,7 +21,7 @@
 
   "data_dim": 128,
   "split_per_side": 4,
-  "embed_dim": 100,
+  "embed_dim": 64,
 
   "exp_splits": [100, 10, 1, 50, 25],
   "repetitions": 1,
