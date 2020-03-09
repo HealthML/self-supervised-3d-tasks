@@ -25,6 +25,6 @@
 
   "exp_splits": [100, 10, 1, 50, 25],
   "repetitions": 1,
-  "epochs": 100,
-  "epochs_warmup": 10
+  "epochs": 150,
+  "epochs_warmup": 20
 }

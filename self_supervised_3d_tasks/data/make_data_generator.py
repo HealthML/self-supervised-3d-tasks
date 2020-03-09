@@ -42,10 +42,12 @@ def get_data_generators(data_path, data_generator, train_split=None, val_split=N
         # create generators
         train_data_generator = data_generator(data_path, train, **train_data_generator_args)
         val_data_generator = data_generator(data_path, val, **val_data_generator_args)
-        test_data_generator = data_generator(data_path, test, **test_data_generator_args)
-
-        # Return generators
-        return train_data_generator, val_data_generator, test_data_generator
+        if len(test) > 0:
+            test_data_generator = data_generator(data_path, test, **test_data_generator_args)
+            # Return generators
+            return train_data_generator, val_data_generator, test_data_generator
+        else:
+            return train_data_generator, val_data_generator, None
     elif train_split:
         assert train_split <= 1., "Invalid arguments for split: {}".format(train_split)
 
