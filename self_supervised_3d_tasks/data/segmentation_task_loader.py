@@ -1,9 +1,10 @@
 from pathlib import Path
 
 import numpy as np
-from tensorflow.keras.utils import to_categorical
 
 from self_supervised_3d_tasks.data.generator_base import DataGeneratorBase
+
+NUM_CLASSES = 4
 
 
 class SegmentationGenerator3D(DataGeneratorBase):
@@ -49,7 +50,7 @@ class SegmentationGenerator3D(DataGeneratorBase):
             data_x, data_y = self.pre_proc_func(data_x, data_y)
 
         data_y = np.rint(data_y).astype(np.int)
-        data_y = np.eye(3)[data_y]
+        data_y = np.eye(NUM_CLASSES)[data_y]
         data_y = np.squeeze(data_y, axis=-2)  # remove second last axis, which is still 1
 
         return data_x, data_y
