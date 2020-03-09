@@ -1,3 +1,6 @@
+import sys
+
+sys.path.append('/home/Aiham.Taleb/workspace/self-supervised-3d-tasks/')
 import random
 
 from self_supervised_3d_tasks.keras_algorithms.callbacks import TerminateOnNaN, NaNLossError
@@ -34,11 +37,8 @@ from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import (
 
 import os
 
-import sys
-
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-sys.path.append('/home/Aiham.Taleb/workspace/self-supervised-3d-tasks/')
 
 
 def transform_multilabel_to_continuous(y, threshold):

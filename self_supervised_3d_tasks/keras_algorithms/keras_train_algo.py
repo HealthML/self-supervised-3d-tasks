@@ -1,5 +1,7 @@
 import os
 import sys
+
+sys.path.append('/home/Aiham.Taleb/workspace/self-supervised-3d-tasks/')
 from pathlib import Path
 
 import tensorflow.keras as keras
@@ -13,7 +15,6 @@ from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "3"
-sys.path.append('/home/Aiham.Taleb/workspace/self-supervised-3d-tasks/')
 
 keras_algorithm_list = {
     "cpc": cpc,
