@@ -383,7 +383,6 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
         metrics.append(brats_tc_metric)
         metrics.append(brats_et_metric)
 
-    print(metrics)
 
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     gen_train, gen_val = get_dataset_train(
