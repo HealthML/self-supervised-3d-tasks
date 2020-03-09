@@ -10,7 +10,6 @@
   "batch_size": 1,
   "patch_dim": 64,
   "lr": 1e-4,
-  "pooling": "avg",
 
   "loss": "weighted_dice_loss",
   "scores": ["dice", "jaccard", "brats_wt", "brats_tc", "brats_et"],
