@@ -1,3 +1,10 @@
+import os
+
+import sys
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+sys.path.append('/home/Aiham.Taleb/workspace/self-supervised-3d-tasks/')
 import random
 
 from self_supervised_3d_tasks.keras_algorithms.callbacks import TerminateOnNaN, NaNLossError
@@ -7,7 +14,6 @@ from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_s
 
 import csv
 import gc
-import tensorflow_addons as tfa
 
 from pathlib import Path
 
@@ -16,9 +22,8 @@ import numpy as np
 from sklearn.metrics import cohen_kappa_score, jaccard_score, accuracy_score
 from tensorflow.keras import backend as K
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.utils import plot_model
 from tensorflow.python.keras import Model
-from tensorflow.python.keras.metrics import BinaryAccuracy, CategoricalAccuracy
+from tensorflow.python.keras.metrics import BinaryAccuracy
 from tensorflow.python.keras.callbacks import CSVLogger
 
 from self_supervised_3d_tasks.data.kaggle_retina_data import get_kaggle_generator
