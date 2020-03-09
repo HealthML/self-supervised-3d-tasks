@@ -4,6 +4,7 @@ import numpy as np
 
 from self_supervised_3d_tasks.data.generator_base import DataGeneratorBase
 
+# TODO: set the number of classes in the config file
 NUM_CLASSES = 4
 
 

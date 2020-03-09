@@ -92,7 +92,7 @@ def downconv_model_3d(
     model = Model(inputs=[inputs], outputs=[x])
     return model, [down_layers, filters]
 
-
+# FIXME set the num_classes in the config file
 def upconv_model_3d(
         input_shape,
         num_classes=4,
