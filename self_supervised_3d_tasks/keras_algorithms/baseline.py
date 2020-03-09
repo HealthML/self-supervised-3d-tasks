@@ -2,8 +2,6 @@ import os
 
 import sys
 
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 sys.path.append('/home/Aiham.Taleb/workspace/self-supervised-3d-tasks/')
 from pathlib import Path
 
@@ -11,6 +9,9 @@ from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
 from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_algorithm_list
 from self_supervised_3d_tasks.keras_algorithms import keras_test_algo as ts
 import numpy as np
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 
 def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-3, scores=("qw_kappa_kaggle",),
