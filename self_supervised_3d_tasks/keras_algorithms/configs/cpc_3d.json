@@ -6,7 +6,7 @@
   "train3D": true,
   "data_dim": 128,
   "n_channels": 4,
-  "embed_dim": 64,
+  "embed_dim": 128,
   "split_per_side": 4,
   "epochs": 500,
   "lr": 1e-3,

@@ -1,20 +1,19 @@
 import os
-
 import sys
-
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-sys.path.append('/home/Aiham.Taleb/workspace/self-supervised-3d-tasks/')
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
 from pathlib import Path
 
 import tensorflow.keras as keras
-from self_supervised_3d_tasks.data.numpy_3d_loader import DataGeneratorUnlabeled3D
 
-from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
 from self_supervised_3d_tasks.data.image_2d_loader import DataGeneratorUnlabeled2D
+from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
+from self_supervised_3d_tasks.data.numpy_3d_loader import DataGeneratorUnlabeled3D
 from self_supervised_3d_tasks.keras_algorithms import cpc, jigsaw, relative_patch_location, rotation, exemplar
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import get_writing_path
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+sys.path.append('/home/Aiham.Taleb/workspace/self-supervised-3d-tasks/')
 
 keras_algorithm_list = {
     "cpc": cpc,
