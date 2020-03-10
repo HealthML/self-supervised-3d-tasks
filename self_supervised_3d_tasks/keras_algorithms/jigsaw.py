@@ -142,14 +142,13 @@ class JigsawBuilder:
     def get_finetuning_preprocessing(self):
         def f(x, y):
             return (
-                preprocess_pad(preprocess_crop_only(x, self.split_per_side, False, False), self.patch_dim, False),
+                x,
                 y,
             )
 
         def f_3d(x, y):
             return (
-                preprocess_pad(preprocess_crop_only(x, self.split_per_side, False, True), self.patch_dim, True),
-                preprocess_pad(preprocess_crop_only(y, self.split_per_side, False, True), self.patch_dim, True)
+                x, y
             )
 
         if self.train3D:
@@ -159,37 +158,31 @@ class JigsawBuilder:
 
     def get_finetuning_model(self, model_checkpoint=None):
         model_full = self.apply_model()
+        assert self.enc_model is not None, "no encoder model"
 
         if model_checkpoint is not None:
             model_full.load_weights(model_checkpoint)
 
         if self.train3D:
-            assert self.layer_data is not None, "no layer data for 3D"
-
-            layer_in = Input(
-                (
-                    self.n_patches3D,
-                    self.patch_dim,
-                    self.patch_dim,
-                    self.patch_dim,
-                    self.n_channels,
-                )
+            new_enc_model, self.layer_data = apply_encoder_model_3d(
+                (self.data_dim, self.data_dim, self.data_dim, self.n_channels,),
+                self.embed_dim, **self.kwargs
             )
 
-            out_one = TimeDistributed(self.enc_model)(layer_in)
+            weights = [layer.get_weights() for layer in self.enc_model.layers[1:]]
+            for layer, weight in zip(new_enc_model.layers[1:], weights):
+                layer.set_weights(weight)
 
-            models_skip = [Model(self.enc_model.layers[0].input, x) for x in self.layer_data[0]]
-            outputs = [TimeDistributed(m)(layer_in) for m in models_skip]
+            self.layer_data.append(isinstance(new_enc_model.layers[-1], Pooling3D))
 
-            result = Model(inputs=[layer_in], outputs=[out_one, *reversed(outputs)])
-            # result.summary(positions=[.23, .65, .77, 1.])  # debug
+            model_skips = Model(inputs=new_enc_model.inputs, outputs=[new_enc_model.layers[-1].output,
+                                                                                      *reversed(self.layer_data[0])])
 
-            self.layer_data.append((self.enc_model.layers[-3].output_shape[1:],
-                                    isinstance(self.enc_model.layers[-3], Pooling3D)))
-
-            self.cleanup_models += [*models_skip, result]
+            self.cleanup_models.append(self.enc_model)
             self.cleanup_models.append(model_full)
-            return result
+
+            model_skips.summary()
+            return model_skips
 
         else:
             layer_in = Input(

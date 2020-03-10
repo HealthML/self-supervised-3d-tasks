@@ -8,6 +8,7 @@ import sys
 from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
 
+import tensorflow.keras.backend as K
 import numpy as np
 import tensorflow as tf
 from tensorflow.keras.layers import Reshape
@@ -99,23 +100,17 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         assert algorithm_instance.layer_data is not None, "no layer data for 3d skip connections found"
 
         print(in_shape)
+
         first_input = Input(in_shape)
-
-        first_l_shape = algorithm_instance.layer_data[2][0]
-        includes_pooling = algorithm_instance.layer_data[2][1]
-        units = np.prod(first_l_shape)
-
-        x = Dense(units, activation="relu")(first_input)
-        x = Reshape(first_l_shape)(x)
+        includes_pooling = algorithm_instance.layer_data[2]
 
         if includes_pooling:
-            x = UpSampling3D((2, 2, 2))(x)
+            x = UpSampling3D((2, 2, 2))(first_input)
+        else:
+            x = first_input
 
         inputs_skip = [Input(x.shape[1:]) for x in reversed(algorithm_instance.layer_data[0])]
         inputs_up = [x] + inputs_skip
-
-        print(x)
-        print(x.shape)
 
         model_up_out = upconv_model_3d(x.shape[1:], down_layers=algorithm_instance.layer_data[0],
                                        filters=algorithm_instance.layer_data[1], **model_params)(inputs_up)
@@ -297,12 +292,12 @@ def apply_encoder_model(
     else:
         model, _ = downconv_model(input_shape, num_layers=num_layers, pooling=pooling)
 
-    x = Flatten()(model.outputs[0])
-
-    if dropout_rate_before_embed_layer > 0:
-        x = Dropout(dropout_rate_before_embed_layer)(x)
-
     if code_size:
+        x = Flatten()(model.outputs[0])
+
+        if dropout_rate_before_embed_layer > 0:
+            x = Dropout(dropout_rate_before_embed_layer)(x)
+
         x = Dense(code_size)(x)
 
     enc_model = Model(model.inputs[0], x, name="encoder")
