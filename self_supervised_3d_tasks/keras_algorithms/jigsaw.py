@@ -14,7 +14,7 @@ from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     apply_encoder_model_3d,
     load_permutations,
     load_permutations_3d,
-    apply_prediction_model)
+    apply_prediction_model, make_finetuning_encoder_3d)
 
 
 class JigsawBuilder:
@@ -25,7 +25,7 @@ class JigsawBuilder:
             patch_jitter=0,
             n_channels=3,
             lr=0.00003,
-            embed_dim=128,
+            embed_dim=0,  # not using embed dim anymore
             train3D=False,
             patch_dim=None,
             top_architecture="big_fully",
@@ -164,26 +164,16 @@ class JigsawBuilder:
             model_full.load_weights(model_checkpoint)
 
         if self.train3D:
-            new_enc_model, self.layer_data = apply_encoder_model_3d(
+            model_skips, self.layer_data = make_finetuning_encoder_3d(
                 (self.data_dim, self.data_dim, self.data_dim, self.n_channels,),
-                self.embed_dim, **self.kwargs
+                self.enc_model,
+                **self.kwargs
             )
-
-            weights = [layer.get_weights() for layer in self.enc_model.layers[1:]]
-            for layer, weight in zip(new_enc_model.layers[1:], weights):
-                layer.set_weights(weight)
-
-            self.layer_data.append(isinstance(new_enc_model.layers[-1], Pooling3D))
-
-            model_skips = Model(inputs=new_enc_model.inputs, outputs=[new_enc_model.layers[-1].output,
-                                                                                      *reversed(self.layer_data[0])])
 
             self.cleanup_models.append(self.enc_model)
             self.cleanup_models.append(model_full)
 
-            model_skips.summary()
             return model_skips
-
         else:
             layer_in = Input(
                 (

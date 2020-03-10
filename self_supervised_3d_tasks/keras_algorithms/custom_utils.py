@@ -1,4 +1,7 @@
 import os
+
+from tensorflow.python.keras.layers.pooling import Pooling3D
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 
 import json
@@ -179,6 +182,25 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
     return model
 
 
+def apply_prediction_model_to_encoder(
+        encoder,
+        n_prediction_layers=2,
+        dim_prediction_layers=1024,
+        prediction_architecture=None,
+        include_top=True,
+        algorithm_instance=None,
+        model_on_top=None,
+        **kwargs
+):
+    units = np.prod(encoder.outputs[0].shape[1:])
+    sub_model = apply_prediction_model(units, n_prediction_layers, dim_prediction_layers,
+                                       prediction_architecture, include_top, algorithm_instance, **kwargs)
+
+    if model_on_top:
+        return Sequential([encoder, Flatten(), Dense(units), sub_model, model_on_top])
+    else:
+        return Sequential([encoder, Flatten(), Dense(units), sub_model])
+
 def apply_prediction_model(
         input_shape,
         n_prediction_layers=2,
@@ -247,6 +269,23 @@ def get_encoder_model_3d(name, in_shape):
     raise ValueError("model " + name + " not found")
 
 
+def make_finetuning_encoder_3d(input_shape, enc_model, **kwargs):
+    # TODO: we cant have anything but 0 for embed dim to make this work
+    new_enc_model, layer_data = apply_encoder_model_3d(
+        input_shape, 0, **kwargs
+    )
+
+    weights = [layer.get_weights() for layer in enc_model.layers[1:]]
+    for layer, weight in zip(new_enc_model.layers[1:], weights):
+        layer.set_weights(weight)
+
+    layer_data.append(isinstance(new_enc_model.layers[-1], Pooling3D))
+
+    model_skips = Model(inputs=new_enc_model.inputs, outputs=[new_enc_model.layers[-1].output,
+                                                              *reversed(layer_data[0])])
+
+    return model_skips, layer_data
+
 def apply_encoder_model_3d(
         input_shape,
         code_size,
@@ -293,6 +332,8 @@ def apply_encoder_model(
         model, _ = downconv_model(input_shape, num_layers=num_layers, pooling=pooling)
 
     if code_size:
+        # TODO: Refactor this
+        raise ValueError("code size not allowed here anymore")
         x = Flatten()(model.outputs[0])
 
         if dropout_rate_before_embed_layer > 0:

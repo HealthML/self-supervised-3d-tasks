@@ -14,13 +14,13 @@ from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     apply_encoder_model,
     apply_encoder_model_3d,
     apply_prediction_model,
-)
+    apply_prediction_model_to_encoder)
 
 class RelativePatchLocationBuilder:
     def __init__(
             self,
             data_dim=384,
-            embed_dim=1024,
+            embed_dim=0,  # not using embed dim anymore
             n_channels=3,
             patches_per_side=3,
             patch_jitter=0,
@@ -32,7 +32,7 @@ class RelativePatchLocationBuilder:
     ):
         self.cleanup_models = []
         self.data_dim = data_dim
-        self.embed_dim = embed_dim
+        self.embed_dim = 0
         self.n_channels = n_channels
         self.patch_jitter = patch_jitter
         self.lr = lr
@@ -64,39 +64,26 @@ class RelativePatchLocationBuilder:
             self.enc_model, self.layer_data = apply_encoder_model_3d(
                 self.patch_shape, self.embed_dim, **self.kwargs
             )
-            self.enc_model.summary()
-            a = apply_prediction_model(
-                2 * self.embed_dim,
-                prediction_architecture=self.top_architecture,
-                include_top=False,
-            )
-            a.summary()
         else:
             self.enc_model = apply_encoder_model(
                 self.patch_shape, self.embed_dim, **self.kwargs
             )
-            self.enc_model.summary()
-            a = apply_prediction_model(
-                2 * self.embed_dim,
-                prediction_architecture=self.top_architecture,
-                include_top=False,
-            )
-            a.summary()
 
         x_input = Input(self.images_shape)
         enc_out = TimeDistributed(self.enc_model)(x_input)
-        enc_out = Flatten()(enc_out)
-        enc_out = a(enc_out)
-        out = Dense(self.class_count, activation="softmax")(enc_out)
 
-        model = Model(x_input, out)
-        model.summary()
+        x = Dense(self.class_count, activation="softmax")(enc_out)
+        model = apply_prediction_model_to_encoder(
+            Model(x_input, enc_out),
+            prediction_architecture=self.top_architecture,
+            include_top=False,
+            model_on_top=x
+        )
 
-        return model, self.enc_model
+        return model
 
     def get_training_model(self):
-        model, _ = self.apply_model()
-
+        model = self.apply_model()
         model.compile(
             optimizer=Adam(lr=self.lr),
             loss="categorical_crossentropy",

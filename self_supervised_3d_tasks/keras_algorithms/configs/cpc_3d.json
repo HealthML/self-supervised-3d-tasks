@@ -5,13 +5,14 @@
 
   "train3D": true,
 
-  "embed_dim": 64,
+  "code_size": 1024,
+  "enc_filters": 8,
   "split_per_side": 4,
   "data_dim": 128,
 
   "n_channels": 1,
-  "batch_size": 1,
+  "batch_size": 64,
 
-  "lr": 5e-5,
+  "lr": 1e-4,
   "epochs": 250
 }
