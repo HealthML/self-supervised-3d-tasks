@@ -2,6 +2,8 @@ import numpy as np
 
 import tensorflow.keras as keras
 import tensorflow.keras.backend as K
+from tensorflow.keras.layers import Dense
+from tensorflow.keras import Sequential
 
 from tensorflow.keras import Model, Input
 from tensorflow.keras.layers import Flatten, TimeDistributed
@@ -12,7 +14,8 @@ from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import (
     preprocess
 )
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess_3d import preprocess_3d, preprocess_grid_3d
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model_3d, apply_encoder_model
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model_3d, apply_encoder_model, \
+    make_finetuning_encoder_3d
 
 
 def network_autoregressive(x):
@@ -60,7 +63,8 @@ class CPCBuilder:
             n_channels=3,
             crop_size=None,
             split_per_side=7,
-            embed_dim=128,
+            embed_dim=0,  # not using embed dim anymore
+            code_size=128,
             lr=1e-3,
             train3D=False,
             **kwargs,
@@ -72,7 +76,7 @@ class CPCBuilder:
         self.n_channels = n_channels
         self.crop_size = crop_size
         self.split_per_side = split_per_side
-        self.code_size = embed_dim
+        self.code_size = code_size
         self.lr = lr
         self.kwargs = kwargs
         self.train3D = train3D
@@ -96,20 +100,22 @@ class CPCBuilder:
 
     def apply_model(self):
         if self.train3D:
-            self.enc_model, self.layer_data = apply_encoder_model_3d(self.img_shape_3d, self.code_size, **self.kwargs)
+            self.enc_model, _ = apply_encoder_model_3d(self.img_shape_3d, 0, **self.kwargs)
             x_input = Input((self.terms, self.image_size, self.image_size, self.image_size, self.n_channels))
             y_input = keras.layers.Input(
                 (self.predict_terms, self.image_size, self.image_size, self.image_size, self.n_channels))
         else:
-            self.enc_model = apply_encoder_model(self.img_shape, self.code_size, **self.kwargs)
+            self.enc_model = apply_encoder_model(self.img_shape, 0, **self.kwargs)
             x_input = Input((self.terms, self.image_size, self.image_size, self.n_channels))
             y_input = keras.layers.Input((self.predict_terms, self.image_size, self.image_size, self.n_channels))
 
-        x_encoded = TimeDistributed(self.enc_model)(x_input)
+        # CPC really needs a code size
+        model_with_embed_dim = Sequential([self.enc_model, Flatten(), Dense(self.code_size)])
+        x_encoded = TimeDistributed(model_with_embed_dim)(x_input)
         context = network_autoregressive(x_encoded)
         preds = network_prediction(context, self.code_size, self.predict_terms)
 
-        y_encoded = keras.layers.TimeDistributed(self.enc_model)(y_input)
+        y_encoded = keras.layers.TimeDistributed(model_with_embed_dim)(y_input)
         dot_product_probs = CPCLayer()([preds, y_encoded])
         cpc_model = keras.models.Model(inputs=[x_input, y_input], outputs=dot_product_probs)
 
@@ -138,17 +144,10 @@ class CPCBuilder:
             return f, f
 
     def get_finetuning_preprocessing(self):
-        def f(x, y):  # not using y here, as it gets generated
-            return preprocess(x, self.crop_size, self.split_per_side, is_training=False), y
+        def f_identity(x, y):
+            return x, y
 
-        def f_3d(x, y):  # not using y here, as it gets generated
-            return preprocess_3d(x, self.crop_size, self.split_per_side, is_training=False), \
-                   preprocess_3d(y, self.crop_size, self.split_per_side, is_training=False)
-
-        if self.train3D:
-            return f_3d, f_3d
-        else:
-            return f, f
+        return f_identity, f_identity
 
     def get_finetuning_model(self, model_checkpoint=None):
         cpc_model = self.apply_model()
@@ -157,24 +156,16 @@ class CPCBuilder:
             cpc_model.load_weights(model_checkpoint)
 
         if self.train3D:
-            assert self.layer_data is not None, "no layer data for 3D"
+            model_skips, self.layer_data = make_finetuning_encoder_3d(
+                (self.data_dim, self.data_dim, self.data_dim, self.n_channels,),
+                self.enc_model,
+                **self.kwargs
+            )
 
-            layer_in = Input((self.split_per_side * self.split_per_side * self.split_per_side,) + self.img_shape_3d)
-
-            out_one = TimeDistributed(self.enc_model)(layer_in)
-
-            models_skip = [Model(self.enc_model.layers[0].input, x) for x in self.layer_data[0]]
-            outputs = [TimeDistributed(m)(layer_in) for m in models_skip]
-
-            result = Model(inputs=[layer_in], outputs=[out_one, *reversed(outputs)])
-            # result.summary(positions=[.23, .65, .77, 1.])  # debug
-
-            self.layer_data.append((self.enc_model.layers[-3].output_shape[1:],
-                                    isinstance(self.enc_model.layers[-3], Pooling3D)))
-
-            self.cleanup_models += [*models_skip, result]
+            self.cleanup_models.append(self.enc_model)
             self.cleanup_models.append(cpc_model)
-            return result
+
+            return model_skips
         else:
             layer_in = Input((self.split_per_side * self.split_per_side,) + self.img_shape)
             layer_out = TimeDistributed(self.enc_model)(layer_in)

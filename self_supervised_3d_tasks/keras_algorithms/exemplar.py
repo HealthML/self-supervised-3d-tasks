@@ -1,5 +1,6 @@
 import numpy as np
 from tensorflow.keras.utils import plot_model
+from tensorflow.python.keras.layers import Reshape, Dense
 from tensorflow.python.keras.layers.pooling import Pooling3D
 
 from self_supervised_3d_tasks.custom_preprocessing.preprocessing_exemplar import (
@@ -24,7 +25,8 @@ class ExemplarBuilder:
             batch_size=10,
             train3D=False,
             alpha_triplet=0.2,
-            embed_dim=10,
+            embed_dim=0,  # not using embed dim anymore
+            code_size=1024,
             lr=0.0006,
             model_checkpoint=None,
             **kwargs
@@ -48,7 +50,8 @@ class ExemplarBuilder:
             (data_dim, data_dim, data_dim) if self.train3D else (data_dim, data_dim)
         )
         self.alpha_triplet = alpha_triplet
-        self.embed_dim = embed_dim
+        self.embed_dim = 0
+        self.code_size = code_size
         self.lr = lr
         self.model_checkpoint = model_checkpoint
         self.kwargs = kwargs
@@ -56,6 +59,7 @@ class ExemplarBuilder:
         self.cleanup_models = []
         self.layer_data = []
 
+    # TODO: move to losses
     def triplet_loss(self, y_true, y_pred, _alpha=0.5):
         """
         This function returns the calculated triplet loss for y_pred
@@ -65,13 +69,11 @@ class ExemplarBuilder:
         :param _alpha: defines the shift of the loss
         :return: calculated loss
         """
-        embeddings = K.reshape(y_pred, (-1, 3, self.embed_dim))
-
         positive_distance = K.mean(
-            K.square(embeddings[:, 0] - embeddings[:, 1]), axis=-1
+            K.square(y_pred[:, 0] - y_pred[:, 1]), axis=-1
         )
         negative_distance = K.mean(
-            K.square(embeddings[:, 0] - embeddings[:, 2]), axis=-1
+            K.square(y_pred[:, 0] - y_pred[:, 2]), axis=-1
         )
         return K.mean(K.maximum(0.0, positive_distance - negative_distance + _alpha))
 
@@ -103,12 +105,16 @@ class ExemplarBuilder:
         )
 
         # Generate the encodings (feature vectors) for the three images
-        encoded_a = self.enc_model(anchor_input)
-        encoded_p = self.enc_model(positive_input)
-        encoded_n = self.enc_model(negative_input)
+        encoded_a = Dense(self.code_size)(Flatten()(self.enc_model(anchor_input)))
+        encoded_p = Dense(self.code_size)(Flatten()(self.enc_model(positive_input)))
+        encoded_n = Dense(self.code_size)(Flatten()(self.enc_model(negative_input)))
+
+        encoded_a = Reshape((1, self.code_size))(encoded_a)
+        encoded_p = Reshape((1, self.code_size))(encoded_p)
+        encoded_n = Reshape((1, self.code_size))(encoded_n)
 
         # Concat the outputs together
-        output = Concatenate()([encoded_a, encoded_p, encoded_n])
+        output = Concatenate(axis=-2)([encoded_a, encoded_p, encoded_n])
 
         # Connect the inputs with the outputs
         model = Model(inputs=input_layer, outputs=output)
@@ -122,10 +128,10 @@ class ExemplarBuilder:
 
     def get_training_preprocessing(self):
         def f_train(x, y):
-            return preprocessing_exemplar_training(x, y, self.train3D, self.embed_dim)
+            return preprocessing_exemplar_training(x, y, self.train3D)
 
         def f_val(x, y):
-            return preprocessing_exemplar_training(x, y, self.train3D, self.embed_dim)
+            return preprocessing_exemplar_training(x, y, self.train3D)
 
         return f_train, f_val
 

@@ -1,4 +1,5 @@
 import numpy as np
+from tensorflow.keras.layers import Flatten
 
 from tensorflow.keras.layers import MaxPooling3D
 from tensorflow.keras import Sequential
@@ -18,14 +19,14 @@ from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     apply_encoder_model,
     apply_encoder_model_3d,
     apply_prediction_model,
-    flatten_model, print_flat_summary)
+    flatten_model, print_flat_summary, apply_prediction_model_to_encoder)
 
 
 class RotationBuilder:
     def __init__(
             self,
             data_dim=384,
-            embed_dim=1024,
+            embed_dim=0,  # not using embed dim anymore
             n_channels=3,
             lr=1e-3,
             train3D=False,
@@ -36,7 +37,7 @@ class RotationBuilder:
         self.n_channels = n_channels
         self.lr = lr
         self.image_size = data_dim
-        self.embed_dim = embed_dim
+        self.embed_dim = 0
         self.img_shape = (self.image_size, self.image_size, n_channels)
         self.img_shape_3d = (
             self.image_size,
@@ -53,9 +54,6 @@ class RotationBuilder:
         self.layer_data = None
 
     def apply_model(self):
-        if self.embed_dim == -1:
-            self.embed_dim = None
-
         if self.train3D:
             self.enc_model, self.layer_data = apply_encoder_model_3d(
                 self.img_shape_3d, self.embed_dim, **self.kwargs
@@ -67,22 +65,12 @@ class RotationBuilder:
             )
             x = Dense(4, activation="softmax")
 
-        if self.embed_dim is None:
-            self.embed_dim = self.enc_model.outputs[0].shape[1:]
-            print(self.embed_dim)
-
-        a = apply_prediction_model(
-            self.embed_dim,
+        model = apply_prediction_model_to_encoder(
+            self.enc_model,
             prediction_architecture=self.top_architecture,
             include_top=False,
+            model_on_top=x
         )
-
-        # should we include additional layers for predicting
-        if a is None:
-            model = Sequential([self.enc_model, x])
-        else:
-            model = Sequential([self.enc_model, a, x])
-
         return model
 
     def get_training_model(self):

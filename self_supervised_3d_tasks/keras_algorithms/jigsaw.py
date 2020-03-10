@@ -14,7 +14,7 @@ from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     apply_encoder_model_3d,
     load_permutations,
     load_permutations_3d,
-    apply_prediction_model)
+    apply_prediction_model, make_finetuning_encoder_3d)
 
 
 class JigsawBuilder:
@@ -25,7 +25,7 @@ class JigsawBuilder:
             patch_jitter=0,
             n_channels=3,
             lr=0.00003,
-            embed_dim=128,
+            embed_dim=0,  # not using embed dim anymore
             train3D=False,
             patch_dim=None,
             top_architecture="big_fully",
@@ -142,14 +142,13 @@ class JigsawBuilder:
     def get_finetuning_preprocessing(self):
         def f(x, y):
             return (
-                preprocess_pad(preprocess_crop_only(x, self.split_per_side, False, False), self.patch_dim, False),
+                x,
                 y,
             )
 
         def f_3d(x, y):
             return (
-                preprocess_pad(preprocess_crop_only(x, self.split_per_side, False, True), self.patch_dim, True),
-                preprocess_pad(preprocess_crop_only(y, self.split_per_side, False, True), self.patch_dim, True)
+                x, y
             )
 
         if self.train3D:
@@ -159,38 +158,22 @@ class JigsawBuilder:
 
     def get_finetuning_model(self, model_checkpoint=None):
         model_full = self.apply_model()
+        assert self.enc_model is not None, "no encoder model"
 
         if model_checkpoint is not None:
             model_full.load_weights(model_checkpoint)
 
         if self.train3D:
-            assert self.layer_data is not None, "no layer data for 3D"
-
-            layer_in = Input(
-                (
-                    self.n_patches3D,
-                    self.patch_dim,
-                    self.patch_dim,
-                    self.patch_dim,
-                    self.n_channels,
-                )
+            model_skips, self.layer_data = make_finetuning_encoder_3d(
+                (self.data_dim, self.data_dim, self.data_dim, self.n_channels,),
+                self.enc_model,
+                **self.kwargs
             )
 
-            out_one = TimeDistributed(self.enc_model)(layer_in)
-
-            models_skip = [Model(self.enc_model.layers[0].input, x) for x in self.layer_data[0]]
-            outputs = [TimeDistributed(m)(layer_in) for m in models_skip]
-
-            result = Model(inputs=[layer_in], outputs=[out_one, *reversed(outputs)])
-            # result.summary(positions=[.23, .65, .77, 1.])  # debug
-
-            self.layer_data.append((self.enc_model.layers[-3].output_shape[1:],
-                                    isinstance(self.enc_model.layers[-3], Pooling3D)))
-
-            self.cleanup_models += [*models_skip, result]
+            self.cleanup_models.append(self.enc_model)
             self.cleanup_models.append(model_full)
-            return result
 
+            return model_skips
         else:
             layer_in = Input(
                 (

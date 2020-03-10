@@ -46,7 +46,7 @@ def make_derangement(indices):
     return indices
 
 
-def preprocessing_exemplar_training(x, y, process_3d=False, embedding_size=10):
+def preprocessing_exemplar_training(x, y, process_3d=False):
     batch_size = len(y)
     x_processed = np.empty(shape=(batch_size, 3, *x.shape[1:]))
     triplet = np.empty(shape=(3, *x.shape[1:]))
