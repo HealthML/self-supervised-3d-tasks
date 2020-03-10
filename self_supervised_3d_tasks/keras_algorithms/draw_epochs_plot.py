@@ -9,7 +9,7 @@ def draw_convergence(name, data, data_name, algorithm="exemplar",min_max_avg="av
     for x,i in data:
         plt.plot(x, label=i)
 
-    plt.title(f"Comparison of {min_max_avg} {data_name} with split {name}%. \n Convergence for {algorithm} on {dataset_name} ({'3D' if train3D else '2D'}). \nbatch_size={batch_size},repetitions={repetitions},epochs={epochs}", pad=30)
+    plt.title(f"Comparison of {min_max_avg} {data_name} with split {name}%. \n Convergence for {str.upper(algorithm)} on {dataset_name} ({'3D' if train3D else '2D'}). \nbatch_size={batch_size},repetitions={repetitions},epochs={epochs}", pad=30)
     plt.legend()
     plt.show()
 
@@ -89,7 +89,9 @@ def draw_new_plots(path, data_name):
         raise FileNotFoundError("No JSON file found in provided directory.")
 
 if __name__ == "__main__":
-    path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/exemplar_pancreas3d/weights-improvement-216_test/"
-    dpath = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_3/weights-improvement-233_test_6/"
-    ppp = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_pancreas3d_5/weights-improvement-001_test_1"
-    draw_new_plots(ppp, "val_weighted_dice_coefficient")
+    epath = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/exemplar_pancreas3d/weights-improvement-216_test_1/"
+    rpath = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_3/weights-improvement-233_test_8/"
+
+    path = rpath
+
+    draw_new_plots(path, "weighted_dice_coefficient")

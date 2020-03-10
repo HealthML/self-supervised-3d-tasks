@@ -28,7 +28,7 @@ class RotationBuilder:
             data_dim=384,
             embed_dim=0,  # not using embed dim anymore
             n_channels=3,
-            lr=1e-3,
+            lr=1e-4,
             train3D=False,
             top_architecture="big_fully",
             **kwargs
@@ -46,12 +46,12 @@ class RotationBuilder:
             n_channels,
         )
         self.top_architecture = top_architecture
-        self.kwargs = kwargs
-        self.cleanup_models = []
         self.train3D = train3D
 
+        self.kwargs = kwargs
         self.enc_model = None
-        self.layer_data = None
+        self.cleanup_models = []
+        self.layer_data = []
 
     def apply_model(self):
         if self.train3D:
@@ -65,13 +65,12 @@ class RotationBuilder:
             )
             x = Dense(4, activation="softmax")
 
-        model = apply_prediction_model_to_encoder(
+        return apply_prediction_model_to_encoder(
             self.enc_model,
             prediction_architecture=self.top_architecture,
             include_top=False,
             model_on_top=x
         )
-        return model
 
     def get_training_model(self):
         model = self.apply_model()
@@ -103,7 +102,6 @@ class RotationBuilder:
 
     def get_finetuning_model(self, model_checkpoint=None):
         org_model = self.apply_model()
-
         assert self.enc_model is not None, "no encoder model"
 
         if model_checkpoint is not None:
@@ -112,15 +110,17 @@ class RotationBuilder:
         if self.train3D:
             assert self.layer_data is not None, "no layer data for 3D"
 
-            self.layer_data.append((self.enc_model.layers[-3].output_shape[1:],
-                                    isinstance(self.enc_model.layers[-3], Pooling3D)))
-
+            self.layer_data.append(isinstance(self.enc_model.layers[-1], Pooling3D))
             self.cleanup_models.append(self.enc_model)
-            self.enc_model = Model(inputs=[self.enc_model.layers[0].input], outputs=[self.enc_model.layers[-1].output,
-                                                                                     *reversed(self.layer_data[0])])
+
+            self.enc_model = Model(
+                inputs=[self.enc_model.layers[0].input],
+                outputs=[
+                    self.enc_model.layers[-1].output,
+                    *reversed(self.layer_data[0])
+                ])
 
         self.cleanup_models.append(org_model)
-        self.cleanup_models.append(self.enc_model)
         return self.enc_model
 
     def purge(self):

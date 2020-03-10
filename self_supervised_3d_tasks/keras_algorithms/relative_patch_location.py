@@ -14,7 +14,7 @@ from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     apply_encoder_model,
     apply_encoder_model_3d,
     apply_prediction_model,
-    apply_prediction_model_to_encoder)
+    apply_prediction_model_to_encoder, make_finetuning_encoder_3d, make_finetuning_encoder_2d)
 
 class RelativePatchLocationBuilder:
     def __init__(
@@ -26,7 +26,6 @@ class RelativePatchLocationBuilder:
             patch_jitter=0,
             lr=1e-3,
             train3D=False,
-            patch_dim=None,
             top_architecture="big_fully",
             **kwargs
     ):
@@ -42,9 +41,6 @@ class RelativePatchLocationBuilder:
 
         self.patches_per_side = patches_per_side
         self.patch_dim = int(data_dim / patches_per_side)
-
-        if patch_dim is not None:
-            self.patch_dim = patch_dim
 
         self.patch_shape = (self.patch_dim, self.patch_dim, n_channels)
         self.patch_count = patches_per_side**2
@@ -72,15 +68,13 @@ class RelativePatchLocationBuilder:
         x_input = Input(self.images_shape)
         enc_out = TimeDistributed(self.enc_model)(x_input)
 
-        x = Dense(self.class_count, activation="softmax")(enc_out)
-        model = apply_prediction_model_to_encoder(
+        x = Dense(self.class_count, activation="softmax")
+        return apply_prediction_model_to_encoder(
             Model(x_input, enc_out),
             prediction_architecture=self.top_architecture,
             include_top=False,
             model_on_top=x
         )
-
-        return model
 
     def get_training_model(self):
         model = self.apply_model()
@@ -94,88 +88,49 @@ class RelativePatchLocationBuilder:
 
     def get_training_preprocessing(self):
         def f(x, y):  # not using y here, as it gets generated
-            x,y = preprocess_batch(x, self.patches_per_side, self.patch_jitter)
-            return preprocess_pad(x, self.patch_dim, False), y
+            return preprocess_batch(x, self.patches_per_side, self.patch_jitter)
 
         def f_3d(x, y):
-            x,y = preprocess_batch_3d(x, self.patches_per_side, self.patch_jitter)
-            return preprocess_pad(x, self.patch_dim, True), y
+            return preprocess_batch_3d(x, self.patches_per_side, self.patch_jitter)
 
         if self.train3D:
             return f_3d, f_3d
-
-        return f, f
+        else:
+            return f, f
 
     def get_finetuning_preprocessing(self):
-        def f(x, y):  # not using y here, as it gets generated
-            return (
-                preprocess_pad(preprocess_batch(x, self.patches_per_side, 0, is_training=False)[0],
-                               self.patch_dim, False),
-                               y)
+        def f_identity(x, y):
+            return x, y,
 
-        def f_3d(x, y):
-            x = preprocess_batch_3d(x, self.patches_per_side, 0, is_training=False)[0]
-            y = preprocess_batch_3d(y, self.patches_per_side, 0, is_training=False)[0]
-            return preprocess_pad(x, self.patch_dim, True), preprocess_pad(y, self.patch_dim, True)
-
-        if self.train3D:
-            return f_3d, f_3d
-
-        return f, f
+        return f_identity, f_identity
 
     def get_finetuning_model(self, model_checkpoint=None):
-        model, enc_model = self.apply_model()
-
-        self.cleanup_models.append(model)
-        self.cleanup_models.append(enc_model)
+        model = self.apply_model()
 
         if model_checkpoint is not None:
             model.load_weights(model_checkpoint)
 
-        #####
+        self.cleanup_models.append(model)
+        self.cleanup_models.append(self.enc_model)
+
         if self.train3D:
             assert self.layer_data is not None, "no layer data for 3D"
 
-            layer_in = Input(
-                (
-                    self.patch_count,
-                    self.patch_dim,
-                    self.patch_dim,
-                    self.patch_dim,
-                    self.n_channels,
-                )
+            model_skips, self.layer_data = make_finetuning_encoder_3d(
+                (self.data_dim, self.data_dim, self.data_dim, self.n_channels,),
+                self.enc_model,
+                **self.kwargs
             )
-            out_one = TimeDistributed(self.enc_model)(layer_in)
-            models_skip = [Model(self.enc_model.layers[0].input, x) for x in self.layer_data[0]]
-            outputs = [TimeDistributed(m)(layer_in) for m in models_skip]
 
-            result = Model(inputs=[layer_in], outputs=[out_one, *reversed(outputs)])
-
-            self.layer_data.append((self.enc_model.layers[-3].output_shape[1:],
-                                    isinstance(self.enc_model.layers[-3], Pooling3D)))
-
-            self.cleanup_models += [*models_skip, result]
-            self.cleanup_models.append(model)
-
-            return result
+            return model_skips
         else:
-            layer_in = Input(
-                (
-                    self.patch_count,
-                    self.patch_dim,
-                    self.patch_dim,
-                    self.n_channels,
-                )
+            new_enc = make_finetuning_encoder_2d(
+                (self.data_dim, self.data_dim, self.n_channels,),
+                self.enc_model,
+                **self.kwargs
             )
 
-            layer_out = TimeDistributed(self.enc_model)(layer_in)
-            x = Flatten()(layer_out)
-
-            self.cleanup_models.append(self.enc_model)
-            self.cleanup_models.append(model)
-
-            return Model(layer_in, x)
-
+            return new_enc
 
     def purge(self):
         for i in reversed(range(len(self.cleanup_models))):

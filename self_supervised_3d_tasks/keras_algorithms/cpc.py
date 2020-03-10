@@ -15,7 +15,7 @@ from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import (
 )
 from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess_3d import preprocess_3d, preprocess_grid_3d
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model_3d, apply_encoder_model, \
-    make_finetuning_encoder_3d
+    make_finetuning_encoder_3d, make_finetuning_encoder_2d
 
 
 def network_autoregressive(x):
@@ -64,7 +64,7 @@ class CPCBuilder:
             crop_size=None,
             split_per_side=7,
             embed_dim=0,  # not using embed dim anymore
-            code_size=128,
+            code_size=1024,
             lr=1e-3,
             train3D=False,
             **kwargs,
@@ -155,6 +155,9 @@ class CPCBuilder:
         if model_checkpoint is not None:
             cpc_model.load_weights(model_checkpoint)
 
+        self.cleanup_models.append(self.enc_model)
+        self.cleanup_models.append(cpc_model)
+
         if self.train3D:
             model_skips, self.layer_data = make_finetuning_encoder_3d(
                 (self.data_dim, self.data_dim, self.data_dim, self.n_channels,),
@@ -162,18 +165,15 @@ class CPCBuilder:
                 **self.kwargs
             )
 
-            self.cleanup_models.append(self.enc_model)
-            self.cleanup_models.append(cpc_model)
-
             return model_skips
         else:
-            layer_in = Input((self.split_per_side * self.split_per_side,) + self.img_shape)
-            layer_out = TimeDistributed(self.enc_model)(layer_in)
-            x = Flatten()(layer_out)
+            new_enc = make_finetuning_encoder_2d(
+                (self.data_dim, self.data_dim, self.n_channels,),
+                self.enc_model,
+                **self.kwargs
+            )
 
-            self.cleanup_models.append(self.enc_model)
-            self.cleanup_models.append(cpc_model)
-            return Model(layer_in, x)
+            return new_enc
 
     def purge(self):
         for i in reversed(range(len(self.cleanup_models))):

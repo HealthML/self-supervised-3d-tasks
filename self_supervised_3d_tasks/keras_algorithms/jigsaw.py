@@ -14,7 +14,7 @@ from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     apply_encoder_model_3d,
     load_permutations,
     load_permutations_3d,
-    apply_prediction_model, make_finetuning_encoder_3d)
+    apply_prediction_model, make_finetuning_encoder_3d, make_finetuning_encoder_2d)
 
 
 class JigsawBuilder:
@@ -24,10 +24,9 @@ class JigsawBuilder:
             split_per_side=3,
             patch_jitter=0,
             n_channels=3,
-            lr=0.00003,
+            lr=1e-4,
             embed_dim=0,  # not using embed dim anymore
             train3D=False,
-            patch_dim=None,
             top_architecture="big_fully",
             **kwargs
     ):
@@ -37,7 +36,7 @@ class JigsawBuilder:
         self.patch_jitter = patch_jitter
         self.n_channels = n_channels
         self.lr = lr
-        self.embed_dim = embed_dim
+        self.embed_dim = 0
         self.n_patches = split_per_side * split_per_side
         self.n_patches3D = split_per_side * split_per_side * split_per_side
         self.patch_dim = int(data_dim / split_per_side)  # we are always padding the jitter away
@@ -47,9 +46,6 @@ class JigsawBuilder:
 
         self.layer_data = None
         self.enc_model = None
-
-        if patch_dim is not None:
-            self.patch_dim = patch_dim
 
     def apply_model(self):
         if self.train3D:
@@ -64,7 +60,7 @@ class JigsawBuilder:
                     self.n_channels,
                 )
             )
-            self.enc_model, self.layer_data = apply_encoder_model_3d(
+            self.enc_model, _ = apply_encoder_model_3d(
                 (self.patch_dim, self.patch_dim, self.patch_dim, self.n_channels,),
                 self.embed_dim, **self.kwargs
             )
@@ -88,14 +84,9 @@ class JigsawBuilder:
         )
 
         last_layer = Dense(len(perms), activation="softmax")
+        out = a(x)
+        out = last_layer(out)
 
-        if a is None:
-            out = last_layer(x)
-        else:
-            out = a(x)
-            out = last_layer(out)
-
-        self.enc_model.summary()
         model = Model(inputs=input_x, outputs=out, name="jigsaw_complete")
         return model
 
@@ -124,7 +115,7 @@ class JigsawBuilder:
                 is_training=True,
                 mode3d=self.train3D,
             )
-            return preprocess_pad(x, self.patch_dim, self.train3D), y
+            return x, y
 
         def f_val(x, y):
             x, y = preprocess(
@@ -135,26 +126,15 @@ class JigsawBuilder:
                 is_training=False,
                 mode3d=self.train3D,
             )
-            return preprocess_pad(x, self.patch_dim, self.train3D), y
+            return x, y
 
         return f_train, f_val
 
     def get_finetuning_preprocessing(self):
-        def f(x, y):
-            return (
-                x,
-                y,
-            )
+        def f_identity(x, y):
+            return x, y,
 
-        def f_3d(x, y):
-            return (
-                x, y
-            )
-
-        if self.train3D:
-            return f_3d, f_3d
-        else:
-            return f, f
+        return f_identity, f_identity
 
     def get_finetuning_model(self, model_checkpoint=None):
         model_full = self.apply_model()
@@ -163,6 +143,9 @@ class JigsawBuilder:
         if model_checkpoint is not None:
             model_full.load_weights(model_checkpoint)
 
+        self.cleanup_models.append(self.enc_model)
+        self.cleanup_models.append(model_full)
+
         if self.train3D:
             model_skips, self.layer_data = make_finetuning_encoder_3d(
                 (self.data_dim, self.data_dim, self.data_dim, self.n_channels,),
@@ -170,27 +153,15 @@ class JigsawBuilder:
                 **self.kwargs
             )
 
-            self.cleanup_models.append(self.enc_model)
-            self.cleanup_models.append(model_full)
-
             return model_skips
         else:
-            layer_in = Input(
-                (
-                    self.n_patches,
-                    self.patch_dim,
-                    self.patch_dim,
-                    self.n_channels,
-                )
+            new_enc = make_finetuning_encoder_2d(
+                (self.data_dim, self.data_dim, self.n_channels,),
+                self.enc_model,
+                **self.kwargs
             )
 
-            layer_out = TimeDistributed(self.enc_model)(layer_in)
-            x = Flatten()(layer_out)
-
-            self.cleanup_models.append(self.enc_model)
-            self.cleanup_models.append(model_full)
-
-            return Model(layer_in, x)
+            return new_enc
 
     def purge(self):
         for i in reversed(range(len(self.cleanup_models))):

@@ -22,12 +22,11 @@ class ExemplarBuilder:
             self,
             data_dim=384,
             n_channels=3,
-            batch_size=10,
             train3D=False,
             alpha_triplet=0.2,
             embed_dim=0,  # not using embed dim anymore
             code_size=1024,
-            lr=0.0006,
+            lr=1e-4,
             model_checkpoint=None,
             **kwargs
     ):
@@ -44,7 +43,6 @@ class ExemplarBuilder:
         :param kwargs: ...
         """
         self.n_channels = n_channels
-        self.batch_size = batch_size
         self.train3D = train3D
         self.dim = (
             (data_dim, data_dim, data_dim) if self.train3D else (data_dim, data_dim)
@@ -86,6 +84,7 @@ class ExemplarBuilder:
         """
         # defines encoder for 3d / non 3d
         if self.train3D:
+            # KEEP setting the layer data here, as we will use the enc directly without copying
             self.enc_model, self.layer_data = apply_encoder_model_3d(
                 (*self.dim, self.n_channels), self.embed_dim, **self.kwargs
             )
@@ -136,31 +135,13 @@ class ExemplarBuilder:
         return f_train, f_val
 
     def get_finetuning_preprocessing(self):
-        def f_train(x, y):
-            return x, y
+        def f_identity(x, y):
+            return x, y,
 
-        def f_val(x, y):
-            return x, y
-
-        return f_train, f_val
-
-    def get_finetuning_model_old(self, model_checkpoint=None):
-        self.enc_model, model_full = self.apply_model()
-        if model_checkpoint is not None:
-            model_full.load_weights(model_checkpoint)
-        self.cleanup_models.append(model_full)
-        self.cleanup_models.append(self.enc_model)
-        return self.enc_model
-
-    def purge(self):
-        for i in reversed(range(len(self.cleanup_models))):
-            del self.cleanup_models[i]
-        del self.cleanup_models
-        self.cleanup_models = []
+        return f_identity, f_identity
 
     def get_finetuning_model(self, model_checkpoint=None):
         org_model = self.apply_model()
-
         assert self.enc_model is not None, "no encoder model"
 
         if model_checkpoint is not None:
@@ -169,42 +150,24 @@ class ExemplarBuilder:
         if self.train3D:
             assert self.layer_data is not None, "no layer data for 3D"
 
-            self.layer_data.append(
-                (
-                    self.enc_model.layers[-3].output_shape[1:],
-                    isinstance(self.enc_model.layers[-3], Pooling3D),
-                )
-            )
-
+            self.layer_data.append(isinstance(self.enc_model.layers[-1], Pooling3D))
             self.cleanup_models.append(self.enc_model)
+
             self.enc_model = Model(
                 inputs=[self.enc_model.layers[0].input],
                 outputs=[
                     self.enc_model.layers[-1].output,
                     *reversed(self.layer_data[0]),
-                ],
-            )
+                ])
 
         self.cleanup_models.append(org_model)
-        self.cleanup_models.append(self.enc_model)
         return self.enc_model
 
-    def get_finetuning_layers_old(self, load_weights, freeze_weights):
-        enc_model, model_full = self.apply_model()
-
-        if load_weights:
-            model_full.load_weights(self.model_checkpoint)
-
-        if freeze_weights:
-            # freeze the encoder weights
-            enc_model.trainable = False
-
-        layer_in = Input((*self.dim, self.n_channels), name="anchor_input")
-        layer_out = Sequential(enc_model)(layer_in)
-
-        x = Flatten()(layer_out)
-        return layer_in, x, [enc_model, model_full]
-
+    def purge(self):
+        for i in reversed(range(len(self.cleanup_models))):
+            del self.cleanup_models[i]
+        del self.cleanup_models
+        self.cleanup_models = []
 
 def create_instance(*params, **kwargs):
     return ExemplarBuilder(*params, **kwargs)

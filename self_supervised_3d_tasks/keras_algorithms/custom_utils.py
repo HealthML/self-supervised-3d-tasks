@@ -269,6 +269,18 @@ def get_encoder_model_3d(name, in_shape):
     raise ValueError("model " + name + " not found")
 
 
+def make_finetuning_encoder_2d(input_shape, enc_model, **kwargs):
+    # TODO: we cant have anything but 0 for embed dim to make this work
+    new_enc_model = apply_encoder_model(
+        input_shape, 0, **kwargs
+    )
+
+    weights = [layer.get_weights() for layer in enc_model.layers[1:]]
+    for layer, weight in zip(new_enc_model.layers[1:], weights):
+        layer.set_weights(weight)
+
+    return new_enc_model
+
 def make_finetuning_encoder_3d(input_shape, enc_model, **kwargs):
     # TODO: we cant have anything but 0 for embed dim to make this work
     new_enc_model, layer_data = apply_encoder_model_3d(
@@ -308,6 +320,8 @@ def apply_encoder_model_3d(
         )
 
     if code_size:
+        # TODO: Refactor this
+        raise ValueError("code size not allowed here anymore")
         x = Flatten()(model.outputs[0])
         x = Dense(code_size, activation="sigmoid")(x)
 

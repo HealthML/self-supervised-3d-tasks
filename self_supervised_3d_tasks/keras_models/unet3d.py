@@ -62,7 +62,7 @@ def downconv_model_3d(
         use_batch_norm=True,
         dropout=0.3,
         dropout_change_per_layer=0.0,
-        filters=8,
+        filters=16,
         num_layers=4,
         pooling=None,
         **kwargs
