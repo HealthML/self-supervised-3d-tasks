@@ -30,9 +30,13 @@ from self_supervised_3d_tasks.keras_models.unet import downconv_model
 from self_supervised_3d_tasks.keras_models.unet3d import downconv_model_3d, upconv_model_3d
 
 
-def print_flat_summary(model):
-    flatten_model(model).summary()
+def print_flat_summary(model, long=True):
+    model = flatten_model(model)
 
+    if long:
+        model_summary_long(model)
+    else:
+        model.summary()
 
 def flatten_model(model_nested):
     def get_layers(layers):

@@ -3,7 +3,7 @@ import random
 from self_supervised_3d_tasks.keras_algorithms.callbacks import TerminateOnNaN, NaNLossError, LogCSVWithStart
 from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance, \
     weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long, print_flat_summary
 
 import csv
 import gc
@@ -309,12 +309,10 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     pred_model = apply_prediction_model(input_shape=enc_model.outputs[0].shape[1:], algorithm_instance=algorithm_def,
                                         **kwargs)
 
-    model_summary_long(pred_model)
-
     outputs = pred_model(enc_model.outputs)
     model = Model(inputs=enc_model.inputs[0], outputs=outputs)
 
-    model_summary_long(model)
+    print_flat_summary(model)
 
     # TODO: remove debugging
     # plot_model(model, to_file=Path("~/test_architecture.png").expanduser(), expand_nested=True)

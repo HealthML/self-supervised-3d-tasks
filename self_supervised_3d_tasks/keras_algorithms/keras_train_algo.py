@@ -1,4 +1,4 @@
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
+from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, print_flat_summary
 from pathlib import Path
 
 import tensorflow.keras as keras
@@ -50,7 +50,7 @@ def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250,
     f_train, f_val = algorithm_def.get_training_preprocessing()
     train_data, validation_data = get_dataset(data_dir, batch_size, f_train, f_val, train_val_split, dataset_name, **kwargs)
     model = algorithm_def.get_training_model()
-    model.summary()
+    print_flat_summary(model)
 
     # plot_model(model, to_file=expanduser("~/workspace/test.png"), expand_nested=True, show_shapes=True)
     # uncomment if you want to plot the model
