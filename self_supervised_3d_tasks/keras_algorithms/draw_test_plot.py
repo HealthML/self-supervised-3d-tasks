@@ -33,8 +33,9 @@ def draw_convergence():
     plt.show()
 
 if __name__ == "__main__":
-    path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/exemplar_pancreas3d/weights-improvement-216_test/results.csv"
-    dpath = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_3/weights-improvement-233_test_6/results.csv"
+    epath = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/exemplar_pancreas3d/weights-improvement-216_test_1/results.csv"
+    rpath = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_3/weights-improvement-233_test_8/results.csv"
+    jpath = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_pancreas3d_2/weights-improvement-221_test_4/results.csv"
 
     ppp = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_pancreas3d_4/weights-improvement-224_test_7/results.csv"
     path_z = "/home/Shared.Workspace/workspace/self-supervised-transfer-learning/shared_models/cpc_kaggle_retina/weights-250_test_1/results.csv"
@@ -42,6 +43,8 @@ if __name__ == "__main__":
     path_x = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_kaggle_retina_10/weights-improvement-192_test_1/results.csv"
     # path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina_2/weights-improvement-183_test_3/results.csv"
     # draw_convergence()
+
+    path = jpath
 
     args = {}
     for filename in glob.glob(str(Path(path).parent) + "/*.json"):

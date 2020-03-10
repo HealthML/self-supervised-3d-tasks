@@ -1,4 +1,4 @@
-from tensorflow.python.keras.callbacks import Callback
+from tensorflow.python.keras.callbacks import Callback, CSVLogger
 import numpy as np
 
 class NaNLossError(Exception):
@@ -28,3 +28,11 @@ class TerminateOnNaN(Callback):
                 print(f'Batch %d: Invalid loss: {loss}, terminating training' % (batch))
                 self.model.stop_training = True
                 raise NaNLossError()
+
+class LogCSVWithStart(CSVLogger):
+    def __init__(self, filename, start_from_epoch, separator=',', append=False):
+        self.start_from_epoch = start_from_epoch
+        super(LogCSVWithStart, self).__init__(filename, separator=',', append=False)
+
+    def on_epoch_end(self, epoch, logs=None):
+        super(LogCSVWithStart, self).on_epoch_end(self.start_from_epoch + epoch, logs)

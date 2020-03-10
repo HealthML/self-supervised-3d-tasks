@@ -1,6 +1,6 @@
 import random
 
-from self_supervised_3d_tasks.keras_algorithms.callbacks import TerminateOnNaN, NaNLossError
+from self_supervised_3d_tasks.keras_algorithms.callbacks import TerminateOnNaN, NaNLossError, LogCSVWithStart
 from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance, \
     weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long
@@ -332,14 +332,19 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     if epochs > 0:  # testing the scores
         callbacks = [TerminateOnNaN()]
 
+        logging_csv = False
         if logging_path is not None:
+            logging_csv = True
             logging_path.parent.mkdir(exist_ok=True, parents=True)
-            callbacks.append(CSVLogger(str(logging_path), append=False))
+            logger_normal = CSVLogger(str(logging_path), append=False)
+            logger_after_warmup = LogCSVWithStart(str(logging_path), start_from_epoch=epochs_warmup, append=True)
         if freeze_weights or load_weights:
             enc_model.trainable = False
 
         if freeze_weights:
             print(("-" * 10) + "LOADING weights, encoder model is completely frozen")
+            if logging_csv:
+                callbacks.append(logger_normal)
         elif load_weights:
             assert epochs_warmup < epochs, "warmup epochs must be smaller than epochs"
 
@@ -347,19 +352,29 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
                 ("-" * 10) + "LOADING weights, encoder model is trainable after warm-up"
             )
             print(("-" * 5) + " encoder model is frozen")
+
+            w_callbacks = list(callbacks)
+            if logging_csv:
+                w_callbacks.append(logger_normal)
+
             model.compile(optimizer=get_optimizer(), loss=loss, metrics=metrics)
             model.fit(
                 x=gen_train,
                 validation_data=gen_val,
                 epochs=epochs_warmup,
-                callbacks=callbacks,
+                callbacks=w_callbacks,
             )
             epochs = epochs - epochs_warmup
 
             enc_model.trainable = True
             print(("-" * 5) + " encoder model unfrozen")
+
+            if logging_csv:
+                callbacks.append(logger_after_warmup)
         else:
             print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
+            if logging_csv:
+                callbacks.append(logger_normal)
 
         # recompile model
         model.compile(optimizer=get_optimizer(), loss=loss, metrics=metrics)
