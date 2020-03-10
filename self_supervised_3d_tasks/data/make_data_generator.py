@@ -1,4 +1,5 @@
 import os
+import random
 
 from self_supervised_3d_tasks.data.segmentation_task_loader import SegmentationGenerator3D
 
@@ -6,23 +7,27 @@ from self_supervised_3d_tasks.data.segmentation_task_loader import SegmentationG
 def get_data_generators(data_path, data_generator, train_split=None, val_split=None,
                         train_data_generator_args={},
                         test_data_generator_args={},
-                        val_data_generator_args={}, **kwargs):
+                        val_data_generator_args={},
+                        shuffle_before_split=False,
+                        **kwargs):
     """
     This function generates the data generator for training, testing and optional validation.
     :param data_path: path to files
     :param data_generator: generator to use, first arguments must be data_path and files
     :param train_split: between 0 and 1, percentage of images used for training
     :param val_split: between 0 and 1, percentage of images used for test, None for no validation set
-    :param shuffle_files:
+    :param shuffle_before_split:
     :param train_data_generator_args: Optional arguments for data generator
     :param test_data_generator_args: Optional arguments for data generator
     :param val_data_generator_args: Optional arguments for data generator
-    :param data3d: 3d training
     :return: returns data generators
     """
 
     # List images in directory
     files = os.listdir(data_path)
+
+    if shuffle_before_split:
+        random.shuffle(files)
 
     if val_split:
         assert train_split, "val split cannot be set without train split"
@@ -45,7 +50,6 @@ def get_data_generators(data_path, data_generator, train_split=None, val_split=N
 
         if len(test) > 0:
             test_data_generator = data_generator(data_path, test, **test_data_generator_args)
-            # Return generators
             return train_data_generator, val_data_generator, test_data_generator
         else:
             return train_data_generator, val_data_generator, None
@@ -61,10 +65,12 @@ def get_data_generators(data_path, data_generator, train_split=None, val_split=N
 
         # Create data generators
         train_data_generator = data_generator(data_path, train, **train_data_generator_args)
-        val_data_generator = data_generator(data_path, val, **val_data_generator_args)
 
-        # Return generators
-        return train_data_generator, val_data_generator
+        if len(val) > 0:
+            val_data_generator = data_generator(data_path, val, **val_data_generator_args)
+            return train_data_generator, val_data_generator
+        else:
+            return train_data_generator, None
     else:
         train_data_generator = data_generator(data_path, files, **train_data_generator_args)
         return train_data_generator

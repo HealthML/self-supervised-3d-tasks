@@ -39,7 +39,8 @@ class JigsawBuilder:
         self.embed_dim = 0
         self.n_patches = split_per_side * split_per_side
         self.n_patches3D = split_per_side * split_per_side * split_per_side
-        self.patch_dim = int(data_dim / split_per_side)  # we are always padding the jitter away
+
+        self.patch_dim = (data_dim // split_per_side) - patch_jitter
         self.train3D = train3D
         self.kwargs = kwargs
         self.cleanup_models = []

@@ -40,7 +40,7 @@ class RelativePatchLocationBuilder:
         self.top_architecture = top_architecture
 
         self.patches_per_side = patches_per_side
-        self.patch_dim = int(data_dim / patches_per_side)
+        self.patch_dim = (data_dim // patches_per_side) - patch_jitter
 
         self.patch_shape = (self.patch_dim, self.patch_dim, n_channels)
         self.patch_count = patches_per_side**2

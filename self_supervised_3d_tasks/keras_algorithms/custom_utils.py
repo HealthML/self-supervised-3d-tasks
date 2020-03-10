@@ -1,6 +1,7 @@
 import os
 
 from tensorflow.python.keras.layers.pooling import Pooling3D
+from tensorflow_core.python.keras.layers import Wrapper
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 
@@ -30,13 +31,22 @@ from self_supervised_3d_tasks.keras_models.unet import downconv_model
 from self_supervised_3d_tasks.keras_models.unet3d import downconv_model_3d, upconv_model_3d
 
 
-def print_flat_summary(model, long=True):
-    model = flatten_model(model)
+def print_flat_summary(model, long=True, printed_models=[]):
+    if model in printed_models:
+        return
 
-    if long:
-        model_summary_long(model)
-    else:
-        model.summary()
+    printed_models.append(model)
+    if isinstance(model, Model):
+        for l in model.layers:
+            # print summary of nested models first
+            print_flat_summary(l, long, printed_models)
+
+        if long:
+            model_summary_long(model)
+        else:
+            model.summary()
+    elif isinstance(model, Wrapper):
+        print_flat_summary(model.layer, long, printed_models)
 
 def flatten_model(model_nested):
     def get_layers(layers):
@@ -197,13 +207,13 @@ def apply_prediction_model_to_encoder(
         **kwargs
 ):
     units = np.prod(encoder.outputs[0].shape[1:])
-    sub_model = apply_prediction_model(units, n_prediction_layers, dim_prediction_layers,
+    sub_model = apply_prediction_model((units, ), n_prediction_layers, dim_prediction_layers,
                                        prediction_architecture, include_top, algorithm_instance, **kwargs)
 
     if model_on_top:
-        return Sequential([encoder, Flatten(), Dense(units), sub_model, model_on_top])
+        return Sequential([encoder, Flatten(), sub_model, model_on_top])
     else:
-        return Sequential([encoder, Flatten(), Dense(units), sub_model])
+        return Sequential([encoder, Flatten(), sub_model])
 
 def apply_prediction_model(
         input_shape,
@@ -436,4 +446,4 @@ def get_writing_path(working_dir, root_config_file):
 
 
 def model_summary_long(model):
-    model.summary(positions=[0.2, 0.65, 0.75, 1.0])
+    model.summary(positions=[0.2, 0.65, 0.90, 1.0])
