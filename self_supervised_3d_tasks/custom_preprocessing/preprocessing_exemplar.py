@@ -2,9 +2,19 @@ import random
 
 import numpy as np
 import albumentations as ab
+import scipy
+import scipy.ndimage as ndimage
 
 
 def augment_exemplar_3d(image):
+    def _distort_zoom(scan):
+        # i dont work yet
+        scan_shape = scan.shape
+        factor = 0.2
+        zoom_factors = [np.random.uniform(1-factor, 1+factor) for _ in range(scan.ndim)]
+        scan = ndimage.zoom(scan, zoom_factors, mode="constant", cval=0)
+        return scan
+
     def _distort_color(scan):
         """
         This function is based on the distort_color function from the tf implementation.
@@ -28,9 +38,12 @@ def augment_exemplar_3d(image):
     for i in range(3):
         if np.random.rand() < 0.5:
             processed_image = np.flip(processed_image, i)
-    processed_image = np.rot90(processed_image, k=np.random.randint(0, 4), axes=(0, 1))
-    processed_image = np.rot90(processed_image, k=np.random.randint(0, 4), axes=(1, 2))
-    processed_image = np.rot90(processed_image, k=np.random.randint(0, 4), axes=(0, 2))
+
+    # make rotation arbitrary instead of multiples of 90deg
+    processed_image = ndimage.rotate(processed_image, np.random.uniform(0, 360), axes=(0, 1), reshape=False)
+    processed_image = ndimage.rotate(processed_image, np.random.uniform(0, 360), axes=(1, 2), reshape=False)
+    processed_image = ndimage.rotate(processed_image, np.random.uniform(0, 360), axes=(0, 2), reshape=False)
+
     if np.random.rand() < 0.5:
         # color distortion
         processed_image = _distort_color(processed_image)
