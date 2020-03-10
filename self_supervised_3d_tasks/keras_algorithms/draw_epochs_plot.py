@@ -30,6 +30,10 @@ def get_data_new(args, path, metric="val_loss"):
 
                 # otherwise continue
                 data_rep.append(df[metric].to_numpy())
+
+            if len(data_rep) == 0:
+                return np.stack(data_splits)
+
             data_exp.append(np.stack(data_rep))
         data_splits.append(np.stack(data_exp))
 
@@ -87,4 +91,5 @@ def draw_new_plots(path, data_name):
 if __name__ == "__main__":
     path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/exemplar_pancreas3d/weights-improvement-216_test/"
     dpath = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_3/weights-improvement-233_test_6/"
-    draw_new_plots(path, "val_weighted_dice_coefficient")
+    ppp = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_pancreas3d_5/weights-improvement-001_test_1"
+    draw_new_plots(ppp, "val_weighted_dice_coefficient")
