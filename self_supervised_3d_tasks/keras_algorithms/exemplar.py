@@ -23,7 +23,6 @@ class ExemplarBuilder:
             data_dim=384,
             n_channels=3,
             train3D=False,
-            alpha_triplet=0.2,
             embed_dim=0,  # not using embed dim anymore
             code_size=1024,
             lr=1e-4,
@@ -37,7 +36,6 @@ class ExemplarBuilder:
         :param n_channels: int
         :param batch_size: int
         :param train3D: bool
-        :param alpha_triplet: float for triplet loss
         :param embed_dim: int
         :param lr: float learningrate
         :param model_checkpoint: Dir to model checkpoint
@@ -49,7 +47,6 @@ class ExemplarBuilder:
         self.dim = (
             (data_dim, data_dim, data_dim) if self.train3D else (data_dim, data_dim)
         )
-        self.alpha_triplet = alpha_triplet
         self.embed_dim = 0
         self.code_size = code_size
         self.lr = lr

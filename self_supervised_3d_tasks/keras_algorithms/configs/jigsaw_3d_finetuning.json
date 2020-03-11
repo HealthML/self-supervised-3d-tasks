@@ -1,17 +1,18 @@
 {
   "algorithm": "jigsaw",
-  "data_dir_train": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train",
-  "data_dir_test": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/test",
-  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_pancreas3d_2/weights-improvement-221.hdf5",
+  "data_dir_train": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/train",
+  "data_dir_test": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/test",
+  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_pancreas3d_9",
   "dataset_name": "pancreas3d",
-  "train_data_generator_args": {"shuffle": true},
+  "train_data_generator_args": { "label_stem": "", "shuffle": true},
+  "val_data_generator_args": {"label_stem": ""},
+  "test_data_generator_args": {"label_stem": ""},
 
   "train3D": true,
   "val_split": 0.05,
 
-  "embed_dim": 128,
-  "enc_filters": 8,
-  "patch_dim": 48,
+  "enc_filters": 16,
+  "split_per_side": 3,
   "data_dim": 128,
 
   "loss": "weighted_dice_loss",
@@ -20,15 +21,15 @@
 
   "top_architecture": "big_fully",
   "prediction_architecture": "unet_3d_upconv_patches",
-  "pooling": "none",
+  "pooling": "max",
   "n_channels": 1,
-  "batch_size": 1,
+  "batch_size": 4,
 
-  "exp_splits": [100,10,1,50,25],
+  "exp_splits": [100,10,5,50,25],
   "lr": 1e-3,
   "epochs": 150,
   "epochs_warmup": 25,
-  "repetitions": 1,
+  "repetitions": 2,
 
   "clipnorm": 1,
   "clipvalue": 1
