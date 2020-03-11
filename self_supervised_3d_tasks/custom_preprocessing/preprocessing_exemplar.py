@@ -5,14 +5,22 @@ import albumentations as ab
 import scipy
 import scipy.ndimage as ndimage
 
+from self_supervised_3d_tasks.custom_preprocessing.crop import crop_3d
+from self_supervised_3d_tasks.custom_preprocessing.pad import pad_to_final_size_3d
+
 
 def augment_exemplar_3d(image):
+    # prob to apply transforms
+    alpha = 0.75
+    beta = 0.75
+
     def _distort_zoom(scan):
-        # i dont work yet
         scan_shape = scan.shape
         factor = 0.2
-        zoom_factors = [np.random.uniform(1-factor, 1+factor) for _ in range(scan.ndim)]
-        scan = ndimage.zoom(scan, zoom_factors, mode="constant", cval=0)
+        zoom_factors = [np.random.uniform(1 - factor, 1 + factor) for _ in range(scan.ndim - 1)] + [1]
+        scan = ndimage.zoom(scan, zoom_factors, mode="constant")
+        scan = pad_to_final_size_3d(scan, scan_shape[0])
+        scan = crop_3d(scan, True, scan_shape)
         return scan
 
     def _distort_color(scan):
@@ -44,9 +52,15 @@ def augment_exemplar_3d(image):
     processed_image = ndimage.rotate(processed_image, np.random.uniform(0, 360), axes=(1, 2), reshape=False)
     processed_image = ndimage.rotate(processed_image, np.random.uniform(0, 360), axes=(0, 2), reshape=False)
 
-    if np.random.rand() < 0.5:
+    if np.random.rand() < alpha:
         # color distortion
         processed_image = _distort_color(processed_image)
+    if np.random.rand() < beta:
+        # zooming
+        processed_image = _distort_zoom(processed_image)
+
+    # norm to [0,1] again
+    processed_image = (processed_image - processed_image.min()) / (processed_image.max() - processed_image.min())
     return processed_image
 
 

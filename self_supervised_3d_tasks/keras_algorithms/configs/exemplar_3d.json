@@ -5,7 +5,7 @@
 
   "train3D": true,
 
-  "code_size": 256,
+  "code_size": 1024,
   "enc_filters": 16,
   "data_dim": 128,
 

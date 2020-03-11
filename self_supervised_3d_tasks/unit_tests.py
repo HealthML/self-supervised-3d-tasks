@@ -8,6 +8,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from PIL import Image
+from scipy import ndimage
+
+from self_supervised_3d_tasks.custom_preprocessing.pad import pad_to_final_size_3d
+from self_supervised_3d_tasks.custom_preprocessing.preprocessing_exemplar import augment_exemplar_3d
 from self_supervised_3d_tasks.data.segmentation_task_loader import SegmentationGenerator3D
 
 from self_supervised_3d_tasks.keras_algorithms.exemplar import ExemplarBuilder
@@ -25,7 +29,7 @@ from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess_3d import (
     preprocess_volume_3d,
     preprocess_3d,
 )
-from self_supervised_3d_tasks.custom_preprocessing.crop import crop_patches
+from self_supervised_3d_tasks.custom_preprocessing.crop import crop_patches, crop_3d
 from self_supervised_3d_tasks.custom_preprocessing.jigsaw_preprocess import preprocess_pad, preprocess_crop_only
 from self_supervised_3d_tasks.custom_preprocessing.retina_preprocess import apply_to_x
 from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
@@ -920,6 +924,26 @@ def yyy():
     data = [get_data_npy(p) for p in [path, path1]]
     plot_3d([tt, tt2], 2, step=3)
 
+def distort_zoom(scan):
+    # i dont work yet
+    scan_shape = scan.shape
+    factor = 0.2
+    zoom_factors = [np.random.uniform(1 - factor, 1 + factor) for _ in range(scan.ndim - 1)] + [1]
+    scan = ndimage.zoom(scan, zoom_factors, mode="constant")
+    scan = pad_to_final_size_3d(scan, scan_shape[0])
+    scan = crop_3d(scan, True, scan_shape)
+    scan = (scan - scan.min()) / (scan.max() - scan.min())
+    return scan
+
+def test_exp():
+    tt2 = get_data_npy("/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/img/pancreas_102.npy")
+    tt3 = augment_exemplar_3d(tt2)
+
+    print(tt2.shape)
+    print(tt3.shape)
+
+    plot_3d([tt2, tt3], 2, step=3)
+
 if __name__ == "__main__":
     # a = np.zeros((2,48,48,48,3))
     # b = np.zeros((2,48,48,48,3)) + 1
@@ -938,4 +962,4 @@ if __name__ == "__main__":
     # test_nans()
     # test_prediction_3d()
 
-    yyy()
+    test_exp()
