@@ -104,9 +104,9 @@ class ExemplarBuilder:
         )
 
         # Generate the encodings (feature vectors) for the three images
-        encoded_a = Dense(self.code_size)(Flatten()(self.enc_model(anchor_input)))
-        encoded_p = Dense(self.code_size)(Flatten()(self.enc_model(positive_input)))
-        encoded_n = Dense(self.code_size)(Flatten()(self.enc_model(negative_input)))
+        encoded_a = Dense(self.code_size, activation="softmax")(Flatten()(self.enc_model(anchor_input)))
+        encoded_p = Dense(self.code_size, activation="softmax")(Flatten()(self.enc_model(positive_input)))
+        encoded_n = Dense(self.code_size, activation="softmax")(Flatten()(self.enc_model(negative_input)))
 
         encoded_a = Reshape((1, self.code_size))(encoded_a)
         encoded_p = Reshape((1, self.code_size))(encoded_p)

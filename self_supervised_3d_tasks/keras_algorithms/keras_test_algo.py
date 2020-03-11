@@ -1,3 +1,4 @@
+import os
 import random
 
 from self_supervised_3d_tasks.keras_algorithms.callbacks import TerminateOnNaN, NaNLossError, LogCSVWithStart
@@ -445,8 +446,16 @@ def run_complex_test(
         metrics=("mse",),
         clipnorm=None,
         clipvalue=None,
+        make_random=False,
         **kwargs,
 ):
+    if os.path.isdir(model_checkpoint):
+        weight_files = list(Path(model_checkpoint).glob("weights-improvement*"))
+        assert len(weight_files) > 0, "empty directory!"
+
+        weight_files.sort()
+        model_checkpoint = weight_files[-1]
+
     kwargs["model_checkpoint"] = model_checkpoint
     kwargs["root_config_file"] = root_config_file
     metrics = list(metrics)  # TODO: this seems unnecessary... but tf expects this to be list or str not tuple -.-
@@ -495,11 +504,14 @@ def run_complex_test(
                                         batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
                                         logging_b_path, kwargs, clipnorm=clipnorm, clipvalue=clipvalue))
 
-            c = try_until_no_nan(
-                lambda: run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
-                                        batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
-                                        logging_c_path,
-                                        kwargs, clipnorm=clipnorm, clipvalue=clipvalue))  # random
+            if make_random:
+                c = try_until_no_nan(
+                    lambda: run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
+                                            batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                            logging_c_path,
+                                            kwargs, clipnorm=clipnorm, clipvalue=clipvalue))  # random
+            else:
+                c = 0
 
             a = try_until_no_nan(
                 lambda: run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,

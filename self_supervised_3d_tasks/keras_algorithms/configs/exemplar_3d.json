@@ -5,13 +5,13 @@
 
   "train3D": true,
 
-  "code_size": 1024,
-  "enc_filters": 16,
+  "code_size": 256,
+  "enc_filters": 8,
   "data_dim": 128,
 
   "top_architecture": "big_fully",
   "n_channels": 1,
-  "batch_size": 2,
+  "batch_size": 5,
 
   "alpha_triplet": 0.2,
   "lr": 1e-4,
