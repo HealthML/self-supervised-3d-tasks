@@ -107,6 +107,8 @@ class RotationBuilder:
         if model_checkpoint is not None:
             org_model.load_weights(model_checkpoint)
 
+        self.cleanup_models.append(org_model)
+
         if self.train3D:
             assert self.layer_data is not None, "no layer data for 3D"
 
@@ -120,7 +122,6 @@ class RotationBuilder:
                     *reversed(self.layer_data[0])
                 ])
 
-        self.cleanup_models.append(org_model)
         return self.enc_model
 
     def purge(self):

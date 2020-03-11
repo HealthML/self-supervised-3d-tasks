@@ -9,40 +9,28 @@ from sklearn.utils import resample
 from tensorflow.python.keras.preprocessing.image import random_zoom
 
 from self_supervised_3d_tasks.data.generator_base import DataGeneratorBase
+from self_supervised_3d_tasks.data.make_data_generator import get_data_generators_internal, make_cross_validation
 
 
 class KaggleGenerator(DataGeneratorBase):
     def __init__(
             self,
-            base_path,
+            data_path,
+            file_list,
             dataset_table,
             batch_size=8,
             shuffle=False,
-            sample_classes_uniform=False,
             suffix=".jpeg",
+            pre_proc_func=None,
             multilabel=False,
             augment=False):
-
-        if sample_classes_uniform and not shuffle:
-            raise ValueError("shuffle and sample_classes_uniform have to be both active")
 
         self.augment = augment
         self.multilabel = multilabel
         self.suffix = suffix
         self.dataset = dataset_table
+        self.base_path = Path(data_path)
 
-        if sample_classes_uniform:
-            df_majority = self.dataset[self.dataset.level == 0]
-            df_minorities = [self.dataset[self.dataset.level == i] for i in range(1, 5)]
-            df_minorities = [resample(minority, replace=True, n_samples=len(df_majority))
-                             for minority in df_minorities]
-
-            self.dataset = pd.concat([df_majority] + df_minorities)
-            self.dataset = self.dataset.sample(frac=1)  # dont make them appear in order
-
-        self.base_path = Path(base_path)
-
-        file_list = list(range(len(self.dataset)))
         super().__init__(file_list, batch_size, shuffle, pre_proc_func)
 
     def load_image(self, index):
@@ -88,31 +76,46 @@ class KaggleGenerator(DataGeneratorBase):
 
         return data_x, data_y
 
-
-def get_kaggle_generator(data_path, csv_file, train_split=None, val_split=None, train_data_generator_args={},
-                         test_data_generator_args={}, val_data_generator_args={}, **kwargs):
+def __prepare_dataset(csv_file, sample_classes_uniform, shuffle_before_split):
     dataset = pd.read_csv(csv_file)
 
-    if val_split:
-        train_split = int(len(dataset) * train_split)
-        val_split = int(len(dataset) * val_split)
+    if sample_classes_uniform:
+        df_majority = dataset[dataset.level == 0]
+        df_minorities = [dataset[dataset.level == i] for i in range(1, 5)]
+        df_minorities = [resample(minority, replace=True, n_samples=len(df_majority))
+                         for minority in df_minorities]
 
-        train = dataset.iloc[0:train_split]
-        val = dataset.iloc[train_split:train_split + val_split]
-        test = dataset.iloc[train_split + val_split:]
+        dataset = pd.concat([df_majority] + df_minorities)
+        dataset = dataset.sample(frac=1)  # dont make them appear in order
 
-        train_data_generator = KaggleGenerator(data_path, train, **train_data_generator_args)
-        val_data_generator = KaggleGenerator(data_path, val, **val_data_generator_args)
-        test_data_generator = KaggleGenerator(data_path, test, **test_data_generator_args)
-        return train_data_generator, val_data_generator, test_data_generator
-    elif train_split:
-        train_split = int(len(dataset) * train_split)
+    if shuffle_before_split:
+        dataset = dataset.sample(frac=1)
 
-        train = dataset.iloc[0:train_split]
-        val = dataset.iloc[train_split:]
+    file_list = list(range(len(dataset)))
+    return file_list, dataset
 
-        train_data_generator = KaggleGenerator(data_path, train, **train_data_generator_args)
-        val_data_generator = KaggleGenerator(data_path, val, **val_data_generator_args)
-        return train_data_generator, val_data_generator
-    else:
-        return KaggleGenerator(data_path, dataset, **train_data_generator_args)
+
+def get_kaggle_cross_validation(data_path, csv_file, sample_classes_uniform=False, k_fold=5, files=None,
+                        train_data_generator_args={},
+                        test_data_generator_args={},
+                        val_data_generator_args={},
+                        shuffle_before_split=False,
+                        **kwargs):
+    file_list, dataset = __prepare_dataset(csv_file, sample_classes_uniform, shuffle_before_split)
+
+    return make_cross_validation(data_path, KaggleGenerator, k_fold=k_fold, files=files,
+                            train_data_generator_args={**{"dataset_table": dataset}, **train_data_generator_args},
+                            test_data_generator_args={**{"dataset_table": dataset}, **test_data_generator_args},
+                            val_data_generator_args={**{"dataset_table": dataset}, **val_data_generator_args},
+                            shuffle_before_split=False,  # dont shuffle again
+                            **kwargs)
+
+def get_kaggle_generator(data_path, csv_file, sample_classes_uniform=False, train_split=None, val_split=None, train_data_generator_args={},
+                         test_data_generator_args={}, val_data_generator_args={}, shuffle_before_split=False, **kwargs):
+    file_list, dataset = __prepare_dataset(csv_file, sample_classes_uniform, shuffle_before_split)
+
+    return get_data_generators_internal(data_path, file_list, KaggleGenerator, train_split=train_split, val_split=val_split,
+                        train_data_generator_args={**{"dataset_table": dataset}, **train_data_generator_args},
+                        test_data_generator_args={**{"dataset_table": dataset}, **test_data_generator_args},
+                        val_data_generator_args={**{"dataset_table": dataset}, **val_data_generator_args},
+                        **kwargs)

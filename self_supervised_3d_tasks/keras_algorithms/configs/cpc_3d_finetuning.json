@@ -22,11 +22,13 @@
   "prediction_architecture": "unet_3d_upconv",
   "pooling": "max",
   "n_channels": 1,
-  "batch_size": 4,
+  "batch_size": 3,
 
   "exp_splits": [100, 10, 5, 50, 25],
   "lr": 1e-3,
-  "epochs": 150,
+  "epochs_initialized": 150,
+  "epochs_frozen": 150,
+  "epochs_random": 150,
   "epochs_warmup": 25,
   "repetitions": 2,
 

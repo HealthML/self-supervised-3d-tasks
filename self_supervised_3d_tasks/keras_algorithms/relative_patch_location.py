@@ -58,7 +58,7 @@ class RelativePatchLocationBuilder:
 
     def apply_model(self):
         if self.train3D:
-            self.enc_model, self.layer_data = apply_encoder_model_3d(
+            self.enc_model, _ = apply_encoder_model_3d(
                 self.patch_shape, self.embed_dim, **self.kwargs
             )
         else:
@@ -107,6 +107,7 @@ class RelativePatchLocationBuilder:
 
     def get_finetuning_model(self, model_checkpoint=None):
         model = self.apply_model()
+        assert self.enc_model is not None, "no encoder model"
 
         if model_checkpoint is not None:
             model.load_weights(model_checkpoint)
@@ -115,8 +116,6 @@ class RelativePatchLocationBuilder:
         self.cleanup_models.append(self.enc_model)
 
         if self.train3D:
-            assert self.layer_data is not None, "no layer data for 3D"
-
             model_skips, self.layer_data = make_finetuning_encoder_3d(
                 (self.data_dim, self.data_dim, self.data_dim, self.n_channels,),
                 self.enc_model,

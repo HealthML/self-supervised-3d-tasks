@@ -144,8 +144,8 @@ class JigsawBuilder:
         if model_checkpoint is not None:
             model_full.load_weights(model_checkpoint)
 
-        self.cleanup_models.append(self.enc_model)
         self.cleanup_models.append(model_full)
+        self.cleanup_models.append(self.enc_model)
 
         if self.train3D:
             model_skips, self.layer_data = make_finetuning_encoder_3d(

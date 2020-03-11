@@ -277,6 +277,14 @@ def get_dataset_test(dataset_name, batch_size, f_test, kwargs):
 
     return get_data_from_gen(gen_test)
 
+# TODO: use this function to generate data, could be replaced by cross val
+def get_dataset_(repetition, dataset_name, batch_size, f_train, f_val, train_split, kwargs):
+    gen_train, gen_val = get_dataset_train(
+        dataset_name, batch_size, f_train, f_val, train_split, kwargs
+    )
+
+    x_test, y_test = get_dataset_test(dataset_name, batch_size, f_val, kwargs)
+    return gen_train, gen_val, x_test, y_test
 
 def run_single_test(algorithm_def, dataset_name, train_split, load_weights, freeze_weights, x_test, y_test, lr,
                     batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, logging_path, kwargs,
@@ -294,8 +302,6 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     if "weighted_dice_coefficient" in metrics:
         metrics.remove("weighted_dice_coefficient")
         metrics.append(weighted_dice_coefficient)
-
-    print(metrics)
 
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     gen_train, gen_val = get_dataset_train(
@@ -435,7 +441,9 @@ def run_complex_test(
         dataset_name,
         root_config_file,
         model_checkpoint,
-        epochs=5,
+        epochs_initialized=5,
+        epochs_random=5,
+        epochs_frozen=5,
         repetitions=2,
         batch_size=8,
         exp_splits=(100, 10, 1),
@@ -501,21 +509,18 @@ def run_complex_test(
 
             b = try_until_no_nan(
                 lambda: run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
-                                        batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                        batch_size, epochs_initialized, epochs_warmup, model_checkpoint, scores, loss, metrics,
                                         logging_b_path, kwargs, clipnorm=clipnorm, clipvalue=clipvalue))
 
-            if make_random:
-                c = try_until_no_nan(
-                    lambda: run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
-                                            batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
-                                            logging_c_path,
-                                            kwargs, clipnorm=clipnorm, clipvalue=clipvalue))  # random
-            else:
-                c = 0
+            c = try_until_no_nan(
+                lambda: run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
+                                        batch_size, epochs_random, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                        logging_c_path,
+                                        kwargs, clipnorm=clipnorm, clipvalue=clipvalue))  # random
 
             a = try_until_no_nan(
                 lambda: run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
-                                        batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                        batch_size, epochs_frozen, epochs_warmup, model_checkpoint, scores, loss, metrics,
                                         logging_a_path,
                                         kwargs, clipnorm=clipnorm, clipvalue=clipvalue))  # frozen
 

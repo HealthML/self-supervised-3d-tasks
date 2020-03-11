@@ -23,13 +23,15 @@
   "prediction_architecture": "unet_3d_upconv",
   "pooling": "max",
   "n_channels": 1,
-  "batch_size": 4,
+  "batch_size": 3,
 
   "exp_splits": [100,10,5,50,25],
   "lr": 1e-3,
-  "epochs": 150,
+  "epochs_initialized": 0,
+  "epochs_frozen": 0,
+  "epochs_random": 150,
   "epochs_warmup": 25,
-  "repetitions": 2,
+  "repetitions": 3,
 
   "clipnorm": 1,
   "clipvalue": 1

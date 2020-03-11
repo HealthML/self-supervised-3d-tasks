@@ -32,7 +32,7 @@ class TerminateOnNaN(Callback):
 class LogCSVWithStart(CSVLogger):
     def __init__(self, filename, start_from_epoch, separator=',', append=False):
         self.start_from_epoch = start_from_epoch
-        super(LogCSVWithStart, self).__init__(filename, separator=',', append=False)
+        super(LogCSVWithStart, self).__init__(filename, separator=separator, append=append)
 
     def on_epoch_end(self, epoch, logs=None):
         super(LogCSVWithStart, self).on_epoch_end(self.start_from_epoch + epoch, logs)

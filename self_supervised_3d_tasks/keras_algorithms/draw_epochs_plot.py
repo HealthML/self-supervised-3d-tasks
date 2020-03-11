@@ -19,17 +19,18 @@ def get_data_new(args, path, metric="val_loss"):
 
     for split in args["exp_splits"]:
         data_exp = []
-        for exp in ["frozen", "initialized", "random"]:
+        for exp in ["frozen", "initialized"]:
             data_rep = []
             for filename in (Path(path) / "logs/").glob(f"split{split}{exp}*.log"):
                 df = pandas.read_csv(filename)
 
                 # some runs are missing, break here
                 if len(df) < epochs:
-                    return np.stack(data_splits)
-
-                # otherwise continue
-                data_rep.append(df[metric].to_numpy())
+                    data_rep.append(np.concatenate([np.zeros(epochs - len(df)), df[metric].to_numpy()]))
+                    # return np.stack(data_splits)
+                else:
+                    # otherwise continue
+                    data_rep.append(df[metric].to_numpy())
 
             if len(data_rep) == 0:
                 return np.stack(data_splits)
@@ -91,7 +92,8 @@ def draw_new_plots(path, data_name):
 if __name__ == "__main__":
     epath = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/exemplar_pancreas3d/weights-improvement-216_test_1/"
     rpath = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_3/weights-improvement-233_test_8/"
+    rplpath = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rpl_pancreas3d_9/weights-improvement-936_test_11/"
 
-    path = rpath
+    path = rplpath
 
     draw_new_plots(path, "weighted_dice_coefficient")

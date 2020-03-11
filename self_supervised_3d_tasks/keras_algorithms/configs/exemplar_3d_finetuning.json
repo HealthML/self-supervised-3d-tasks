@@ -20,11 +20,13 @@
   "top_architecture": "big_fully",
   "prediction_architecture": "unet_3d_upconv",
   "n_channels": 1,
-  "batch_size": 5,
+  "batch_size": 3,
 
   "exp_splits": [100,10,1,50,25],
   "lr": 3e-3,
-  "epochs": 150,
+  "epochs_initialized": 150,
+  "epochs_frozen": 150,
+  "epochs_random": 150,
   "epochs_warmup": 25,
   "repetitions": 2,
 
