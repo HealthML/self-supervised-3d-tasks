@@ -67,6 +67,7 @@ class ExemplarBuilder:
         :param _alpha: defines the shift of the loss
         :return: calculated loss
         """
+
         positive_distance = K.mean(
             K.square(y_pred[:, 0] - y_pred[:, 1]), axis=-1
         )
@@ -104,9 +105,9 @@ class ExemplarBuilder:
         )
 
         # Generate the encodings (feature vectors) for the three images
-        encoded_a = Dense(self.code_size, activation="softmax")(Flatten()(self.enc_model(anchor_input)))
-        encoded_p = Dense(self.code_size, activation="softmax")(Flatten()(self.enc_model(positive_input)))
-        encoded_n = Dense(self.code_size, activation="softmax")(Flatten()(self.enc_model(negative_input)))
+        encoded_a = Dense(self.code_size, activation="sigmoid")(Flatten()(self.enc_model(anchor_input)))
+        encoded_p = Dense(self.code_size, activation="sigmoid")(Flatten()(self.enc_model(positive_input)))
+        encoded_n = Dense(self.code_size, activation="sigmoid")(Flatten()(self.enc_model(negative_input)))
 
         encoded_a = Reshape((1, self.code_size))(encoded_a)
         encoded_p = Reshape((1, self.code_size))(encoded_p)

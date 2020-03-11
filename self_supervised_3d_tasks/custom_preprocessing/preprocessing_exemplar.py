@@ -11,11 +11,11 @@ from self_supervised_3d_tasks.custom_preprocessing.pad import pad_to_final_size_
 
 def augment_exemplar_3d(image):
     # prob to apply transforms
-    alpha = 0.4
-    beta = 0.75
-    gamma = 0.1  # takes way too much time
+    alpha = 0.5
+    beta = 0.5
+    gamma = 0.15  # takes way too much time
 
-    rotate_only_90 = True
+    rotate_only_90 = 0.5
 
     def _distort_zoom(scan):
         scan_shape = scan.shape
@@ -52,19 +52,19 @@ def augment_exemplar_3d(image):
 
     # make rotation arbitrary instead of multiples of 90deg
     if np.random.rand() < alpha:
-        if rotate_only_90:
+        if np.random.rand() < rotate_only_90:
             processed_image = np.rot90(processed_image, k=np.random.randint(0, 4), axes=(0, 1))
         else:
             processed_image = ndimage.rotate(processed_image, np.random.uniform(0, 360), axes=(0, 1), reshape=False)
 
     if np.random.rand() < alpha:
-        if rotate_only_90:
+        if np.random.rand() < rotate_only_90:
             processed_image = np.rot90(processed_image, k=np.random.randint(0, 4), axes=(1, 2))
         else:
             processed_image = ndimage.rotate(processed_image, np.random.uniform(0, 360), axes=(1, 2), reshape=False)
 
     if np.random.rand() < alpha:
-        if rotate_only_90:
+        if np.random.rand() < rotate_only_90:
             processed_image = np.rot90(processed_image, k=np.random.randint(0, 4), axes=(0, 2))
         else:
             processed_image = ndimage.rotate(processed_image, np.random.uniform(0, 360), axes=(0, 2), reshape=False)

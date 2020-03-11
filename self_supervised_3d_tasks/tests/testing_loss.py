@@ -109,7 +109,36 @@ def weighted_sum_loss(alpha=1, beta=1, weights=(1, 5, 10)):
     return loss
 
 
+def test_triplet(y_pred):
+    print(y_pred.shape)
+    positive_distance = np.mean(
+        np.square(y_pred[:, 0] - y_pred[:, 1]), axis=-1
+    )
+    negative_distance = np.mean(
+        np.square(y_pred[:, 0] - y_pred[:, 2]), axis=-1
+    )
+    return np.mean(np.maximum(0.0, positive_distance - negative_distance + 0.5))
+
 if __name__ == "__main__":
+    a = np.zeros((1, 10,))
+    b = np.zeros((1, 10,))
+    c = np.zeros((1, 10,))
+
+    a[0,5] = 1
+    b[0,5] = 1
+    c[0,1] = 1
+
+    xxx = np.concatenate([a, b, c], axis=-2)
+    print(xxx.shape)
+
+    print(test_triplet(np.array([xxx])))
+    exit()
+
+
+
+
+
+
     path = "/home/Shared.Workspace/data/pancreas/images_resized_128_labeled/train"
     gen = get_data_generators(path, SegmentationGenerator3D)
 
