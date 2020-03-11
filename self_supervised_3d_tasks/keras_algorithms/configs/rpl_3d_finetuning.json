@@ -27,7 +27,7 @@
   "exp_splits": [100,10,1,50,25],
   "lr": 1e-4,
   "epochs": 150,
-  "epochs_warmup": 0,
+  "epochs_warmup": 25,
   "repetitions": 2,
 
   "clipnorm": 1,

@@ -121,7 +121,7 @@ def test_triplet(y_pred):
 
 if __name__ == "__main__":
     a = np.zeros((1, 10,))
-    b = np.zeros((1, 10,))
+    b = np.ones((1, 10,))
     c = np.zeros((1, 10,))
 
     a[0,5] = 1

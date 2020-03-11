@@ -58,7 +58,7 @@ class ExemplarBuilder:
         self.layer_data = []
 
     # TODO: move to losses
-    def triplet_loss(self, y_true, y_pred, _alpha=0.5):
+    def triplet_loss(self, y_true, y_pred, _alpha=1.0):
         """
         This function returns the calculated triplet loss for y_pred
         :param y_true: not needed
