@@ -11,9 +11,11 @@ from self_supervised_3d_tasks.custom_preprocessing.pad import pad_to_final_size_
 
 def augment_exemplar_3d(image):
     # prob to apply transforms
-    alpha = 0.75
+    alpha = 0.4
     beta = 0.75
     gamma = 0.1  # takes way too much time
+
+    rotate_only_90 = True
 
     def _distort_zoom(scan):
         scan_shape = scan.shape
@@ -50,24 +52,32 @@ def augment_exemplar_3d(image):
 
     # make rotation arbitrary instead of multiples of 90deg
     if np.random.rand() < alpha:
-        processed_image = ndimage.rotate(processed_image, np.random.uniform(0, 360), axes=(0, 1), reshape=False)
+        if rotate_only_90:
+            processed_image = np.rot90(processed_image, k=np.random.randint(0, 4), axes=(0, 1))
+        else:
+            processed_image = ndimage.rotate(processed_image, np.random.uniform(0, 360), axes=(0, 1), reshape=False)
 
     if np.random.rand() < alpha:
-        processed_image = ndimage.rotate(processed_image, np.random.uniform(0, 360), axes=(1, 2), reshape=False)
+        if rotate_only_90:
+            processed_image = np.rot90(processed_image, k=np.random.randint(0, 4), axes=(1, 2))
+        else:
+            processed_image = ndimage.rotate(processed_image, np.random.uniform(0, 360), axes=(1, 2), reshape=False)
 
     if np.random.rand() < alpha:
-        processed_image = ndimage.rotate(processed_image, np.random.uniform(0, 360), axes=(0, 2), reshape=False)
+        if rotate_only_90:
+            processed_image = np.rot90(processed_image, k=np.random.randint(0, 4), axes=(0, 2))
+        else:
+            processed_image = ndimage.rotate(processed_image, np.random.uniform(0, 360), axes=(0, 2), reshape=False)
 
     if np.random.rand() < beta:
         # color distortion
         processed_image = _distort_color(processed_image)
     if np.random.rand() < gamma:
         # zooming
-        # processed_image = _distort_zoom(processed_image)
-        pass
+        processed_image = _distort_zoom(processed_image)
 
     # norm to [0,1] again
-    processed_image = (processed_image - processed_image.min()) / (processed_image.max() - processed_image.min())
+    # processed_image = (processed_image - processed_image.min()) / (processed_image.max() - processed_image.min())
     return processed_image
 
 

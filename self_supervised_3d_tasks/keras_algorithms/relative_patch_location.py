@@ -2,6 +2,7 @@ from tensorflow.keras import Model, Input, Sequential
 from tensorflow.keras.layers import Flatten, TimeDistributed, Dense
 from tensorflow.keras.optimizers import Adam
 from tensorflow.python.keras.layers.pooling import Pooling3D
+from tensorflow_core.python.keras.models import load_model
 
 from self_supervised_3d_tasks.custom_preprocessing.jigsaw_preprocess import preprocess_pad
 from self_supervised_3d_tasks.custom_preprocessing.relative_patch_location import (

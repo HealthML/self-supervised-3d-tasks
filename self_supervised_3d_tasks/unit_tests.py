@@ -944,6 +944,22 @@ def test_exp():
 
     plot_3d([tt2, tt3], 2, step=3)
 
+def test_exppp():
+    path = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/train"
+
+    import self_supervised_3d_tasks.keras_algorithms.exemplar as exp
+    instance = exp.create_instance(train3D=True, data_dim=128)
+    gen = get_data_generators(path, SegmentationGenerator3D, train_data_generator_args=
+    {
+        "pre_proc_func": instance.get_training_preprocessing()[0],
+        "shuffle": True,
+        "batch_size": 5,
+        "label_stem": ""
+    })
+
+    x_batch, y_batch = gen[0]
+    plot_3d(x_batch[0], 2, step=3)
+
 if __name__ == "__main__":
     # a = np.zeros((2,48,48,48,3))
     # b = np.zeros((2,48,48,48,3)) + 1
@@ -962,4 +978,4 @@ if __name__ == "__main__":
     # test_nans()
     # test_prediction_3d()
 
-    test_exp()
+    test_exppp()

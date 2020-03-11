@@ -13,8 +13,10 @@ class SegmentationGenerator3D(DataGeneratorBase):
             file_list,
             batch_size=8,
             pre_proc_func=None,
-            shuffle=False
+            shuffle=False,
+            label_stem = "_label"
     ):
+        self.label_stem = label_stem
         self.label_dir = data_path + "_labels"
         self.data_dir = data_path
         self.pre_proc_func = pre_proc_func
@@ -35,7 +37,7 @@ class SegmentationGenerator3D(DataGeneratorBase):
         for file_name in list_files_temp:
             path = "{}/{}".format(self.data_dir, file_name)
             path_label = Path("{}/{}".format(self.label_dir, file_name))
-            path_label = path_label.with_name(path_label.stem + "_label").with_suffix(path_label.suffix)
+            path_label = path_label.with_name(path_label.stem + self.label_stem).with_suffix(path_label.suffix)
 
             img = np.load(path)
             img = (img - img.min()) / (img.max() - img.min())

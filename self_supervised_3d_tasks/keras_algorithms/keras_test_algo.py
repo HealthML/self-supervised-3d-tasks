@@ -450,11 +450,11 @@ def run_complex_test(
         **kwargs,
 ):
     if os.path.isdir(model_checkpoint):
-        weight_files = list(Path(model_checkpoint).glob("weights-improvement*"))
+        weight_files = list(Path(model_checkpoint).glob("weights-improvement*.hdf5"))
         assert len(weight_files) > 0, "empty directory!"
 
         weight_files.sort()
-        model_checkpoint = weight_files[-1]
+        model_checkpoint = str(weight_files[-1])
 
     kwargs["model_checkpoint"] = model_checkpoint
     kwargs["root_config_file"] = root_config_file
