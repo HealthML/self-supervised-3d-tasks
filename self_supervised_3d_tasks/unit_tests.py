@@ -948,13 +948,12 @@ def test_exppp():
     path = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/train"
 
     import self_supervised_3d_tasks.keras_algorithms.exemplar as exp
-    instance = exp.create_instance(train3D=True, data_dim=128)
-    gen = get_data_generators(path, SegmentationGenerator3D, train_data_generator_args=
+    instance = exp.create_instance(train3D=True, data_dim=128, sample_neg_examples_from="dataset")
+    gen = get_data_generators(path, DataGeneratorUnlabeled3D, train_data_generator_args=
     {
         "pre_proc_func": instance.get_training_preprocessing()[0],
         "shuffle": True,
-        "batch_size": 5,
-        "label_stem": ""
+        "batch_size": 1
     })
 
     x_batch, y_batch = gen[0]

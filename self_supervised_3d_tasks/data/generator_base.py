@@ -2,12 +2,15 @@ import numpy as np
 import random
 import tensorflow.keras as keras
 
+from self_supervised_3d_tasks.data.preproc_negative_sampling import NegativeSamplingPreprocessing
+
 
 class DataGeneratorBase(keras.utils.Sequence):
     def __init__(self,
                  file_list,
-                 batch_size=32,
-                 shuffle=True):
+                 batch_size,
+                 shuffle,
+                 pre_proc_func):
         super(DataGeneratorBase, self).__init__()
         
         self.batch_size = batch_size
@@ -15,12 +18,23 @@ class DataGeneratorBase(keras.utils.Sequence):
         self.shuffle = shuffle
         self.on_epoch_end()
         self.index_multiplicator = None
+        self.pre_proc_func = pre_proc_func
+
+        if isinstance(self.pre_proc_func, NegativeSamplingPreprocessing):
+            def neg_sampling(positive_ids):
+                neg_ids = [e for e in self.list_IDs if e not in positive_ids]
+                idx = np.random.randint(len(neg_ids))
+                x, y = self.data_generation([neg_ids[idx]])
+
+                return x[0], y[0]
+
+            self.pre_proc_func.set_negative_sampling(neg_sampling)
 
         assert len(file_list) > 0, "received no files"
 
     def get_multiplicator(self):
         # check how many examples preprocess produces for one file
-        self.index_multiplicator = DataGeneratorBase.get_batch_size(self.data_generation([self.list_IDs[0]])[0])
+        self.index_multiplicator = DataGeneratorBase.get_batch_size(self.__data_generation_intern([self.list_IDs[0]])[0])
         assert self.index_multiplicator > 0, "invalid preprocessing"
 
     def __len__(self):
@@ -64,7 +78,7 @@ class DataGeneratorBase(keras.utils.Sequence):
         relative_start = index_start % self.index_multiplicator
 
         list_files_temp = [self.list_IDs[k] for k in range(file_start, file_end + 1)]
-        X, Y = self.data_generation(list_files_temp)
+        X, Y = self.__data_generation_intern(list_files_temp)
 
         relative_end = relative_start + self.batch_size
 
@@ -82,6 +96,17 @@ class DataGeneratorBase(keras.utils.Sequence):
         if self.shuffle:
             # shuffle the files
             random.shuffle(self.list_IDs)
+
+    def __data_generation_intern(self, list_files_temp):
+        data_x, data_y = self.data_generation(list_files_temp)
+
+        if self.pre_proc_func:
+            if isinstance(self.pre_proc_func, NegativeSamplingPreprocessing):
+                data_x, data_y = self.pre_proc_func.preprocess_function(list_files_temp, data_x, data_y)
+            else:
+                data_x, data_y = self.pre_proc_func(data_x, data_y)
+
+        return data_x, data_y
 
     def data_generation(self, list_files_temp):
         raise NotImplementedError("should be implemented in subclass")

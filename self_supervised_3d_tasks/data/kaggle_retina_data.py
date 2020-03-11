@@ -18,7 +18,6 @@ class KaggleGenerator(DataGeneratorBase):
             dataset_table,
             batch_size=8,
             shuffle=False,
-            pre_proc_func=None,
             sample_classes_uniform=False,
             suffix=".jpeg",
             multilabel=False,
@@ -30,7 +29,6 @@ class KaggleGenerator(DataGeneratorBase):
         self.augment = augment
         self.multilabel = multilabel
         self.suffix = suffix
-        self.pre_proc_func = pre_proc_func
         self.dataset = dataset_table
 
         if sample_classes_uniform:
@@ -45,7 +43,7 @@ class KaggleGenerator(DataGeneratorBase):
         self.base_path = Path(base_path)
 
         file_list = list(range(len(self.dataset)))
-        super().__init__(file_list, batch_size, shuffle)
+        super().__init__(file_list, batch_size, shuffle, pre_proc_func)
 
     def load_image(self, index):
         path = self.base_path / self.dataset.iloc[index][0]
@@ -87,9 +85,6 @@ class KaggleGenerator(DataGeneratorBase):
 
         data_x = np.stack(data_x)
         data_y = np.stack(data_y)
-
-        if self.pre_proc_func:
-            data_x, data_y = self.pre_proc_func(data_x, data_y)
 
         return data_x, data_y
 

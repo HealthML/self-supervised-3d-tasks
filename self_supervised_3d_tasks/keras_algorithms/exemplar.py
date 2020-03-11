@@ -5,7 +5,7 @@ from tensorflow.python.keras.layers.pooling import Pooling3D
 
 from self_supervised_3d_tasks.custom_preprocessing.preprocessing_exemplar import (
     preprocessing_exemplar_training,
-)
+    get_exemplar_training_preprocessing)
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     apply_encoder_model_3d,
     apply_encoder_model,
@@ -28,6 +28,7 @@ class ExemplarBuilder:
             code_size=1024,
             lr=1e-4,
             model_checkpoint=None,
+            sample_neg_examples_from="batch",
             **kwargs
     ):
         """
@@ -42,6 +43,7 @@ class ExemplarBuilder:
         :param model_checkpoint: Dir to model checkpoint
         :param kwargs: ...
         """
+        self.sample_neg_examples_from = sample_neg_examples_from
         self.n_channels = n_channels
         self.train3D = train3D
         self.dim = (
@@ -127,13 +129,8 @@ class ExemplarBuilder:
         return model
 
     def get_training_preprocessing(self):
-        def f_train(x, y):
-            return preprocessing_exemplar_training(x, y, self.train3D)
-
-        def f_val(x, y):
-            return preprocessing_exemplar_training(x, y, self.train3D)
-
-        return f_train, f_val
+        f = get_exemplar_training_preprocessing(self.train3D, self.sample_neg_examples_from)
+        return f, f
 
     def get_finetuning_preprocessing(self):
         def f_identity(x, y):

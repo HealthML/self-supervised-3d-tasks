@@ -63,7 +63,7 @@ def preprocess_batch_3d(batch,  patches_per_side, patch_jitter=0, is_training=Tr
     for batch_index in range(batch_size):
         cropped_image = preprocess_image_3d(batch[batch_index], patches_per_side, patch_jitter, is_training)
 
-        class_id = np.random.random_integers(patch_count - 1) - 1
+        class_id = np.random.randint(patch_count - 1)
         patch_id = class_id
         if class_id >= center_id:
             patch_id = class_id + 1

@@ -1,3 +1,4 @@
+import functools
 import random
 
 import numpy as np
@@ -7,7 +8,18 @@ import scipy.ndimage as ndimage
 
 from self_supervised_3d_tasks.custom_preprocessing.crop import crop_3d
 from self_supervised_3d_tasks.custom_preprocessing.pad import pad_to_final_size_3d
+from self_supervised_3d_tasks.data.preproc_negative_sampling import NegativeSamplingPreprocessing
 
+
+def augment_exemplar_2d(image):
+    return ab.Compose(
+        [
+            ab.RandomRotate90(p=1),
+            ab.VerticalFlip(),
+            ab.HorizontalFlip(),
+            ab.RandomBrightnessContrast(p=1),
+        ]
+    )(image=image)["image"]
 
 def augment_exemplar_3d(image):
     # prob to apply transforms
@@ -90,26 +102,49 @@ def make_derangement(indices):
     return indices
 
 
-def preprocessing_exemplar_training(x, y, process_3d=False):
+def preprocessing_exemplar_training_neg_sampling(nsp, ids, x, y, process_3d):
+    batch_size = len(y)
+    x_processed = np.empty(shape=(batch_size, 3, *x.shape[1:]))
+    triplet = np.empty(shape=(3, *x.shape[1:]))
+
+    for i, image in enumerate(x):
+        if process_3d:
+            processed_image = augment_exemplar_3d(image)
+        else:
+            processed_image = augment_exemplar_2d(image)
+        triplet[0] = processed_image  # augmented
+        triplet[1] = image.copy()  # original (pos.)
+        x, _ = nsp.draw_neg_sample([ids[i]])
+        triplet[2] = x  # negative
+        x_processed[i] = triplet.copy()
+
+    return x_processed, y
+
+
+def preprocessing_exemplar_training(x, y, process_3d):
     batch_size = len(y)
     x_processed = np.empty(shape=(batch_size, 3, *x.shape[1:]))
     triplet = np.empty(shape=(3, *x.shape[1:]))
     derangement = make_derangement(list(range(len(x))))
     random_shuffled = x.copy()[derangement]
+
     for i, image in enumerate(x):
         if process_3d:
             processed_image = augment_exemplar_3d(image)
         else:
-            processed_image = ab.Compose(
-                [
-                    ab.RandomRotate90(p=1),
-                    ab.VerticalFlip(),
-                    ab.HorizontalFlip(),
-                    ab.RandomBrightnessContrast(p=1),
-                ]
-            )(image=image)["image"]
+            processed_image = augment_exemplar_2d(image)
         triplet[0] = processed_image  # augmented
         triplet[1] = image.copy()  # original (pos.)
         triplet[2] = random_shuffled[i].copy()  # negative
         x_processed[i] = triplet.copy()
     return x_processed, y
+
+def get_exemplar_training_preprocessing(process_3d=False, sample_neg_examples_from="batch"):
+    if sample_neg_examples_from == "dataset":
+        pp_f = functools.partial(preprocessing_exemplar_training_neg_sampling, process_3d=process_3d)
+        nsp = NegativeSamplingPreprocessing(pp_f)
+        return nsp
+    elif sample_neg_examples_from == "batch":
+        return functools.partial(preprocessing_exemplar_training, process_3d=process_3d)
+    else:
+        raise ValueError(f"Value {sample_neg_examples_from} is invalid")

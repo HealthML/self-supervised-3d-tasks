@@ -19,9 +19,8 @@ class SegmentationGenerator3D(DataGeneratorBase):
         self.label_stem = label_stem
         self.label_dir = data_path + "_labels"
         self.data_dir = data_path
-        self.pre_proc_func = pre_proc_func
 
-        super(SegmentationGenerator3D, self).__init__(file_list, batch_size, shuffle)
+        super(SegmentationGenerator3D, self).__init__(file_list, batch_size, shuffle, pre_proc_func)
 
     def load_image(self, index):
         file_name = self.input_images[index]
@@ -46,9 +45,6 @@ class SegmentationGenerator3D(DataGeneratorBase):
 
         data_x = np.stack(data_x)
         data_y = np.stack(data_y)
-
-        if self.pre_proc_func:
-            data_x, data_y = self.pre_proc_func(data_x, data_y)
 
         data_y = np.rint(data_y).astype(np.int)
         data_y = np.eye(3)[data_y]

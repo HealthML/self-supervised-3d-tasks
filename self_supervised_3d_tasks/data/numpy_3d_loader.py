@@ -6,9 +6,8 @@ class DataGeneratorUnlabeled3D(DataGeneratorBase):
 
     def __init__(self, data_path, file_list, batch_size=32, shuffle=True, pre_proc_func=None):
         self.path_to_data = data_path
-        self.pre_proc_func = pre_proc_func
 
-        super().__init__(file_list, batch_size, shuffle)
+        super().__init__(file_list, batch_size, shuffle, pre_proc_func)
 
     def data_generation(self, list_files_temp):
         data_x = []
@@ -24,8 +23,5 @@ class DataGeneratorUnlabeled3D(DataGeneratorBase):
 
         data_x = np.stack(data_x)
         data_y = np.stack(data_y)
-
-        if self.pre_proc_func:
-            data_x, data_y = self.pre_proc_func(data_x, data_y)
 
         return data_x, data_y
