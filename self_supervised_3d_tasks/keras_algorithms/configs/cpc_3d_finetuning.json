@@ -7,7 +7,6 @@
   "train_data_generator_args": {"shuffle": true},
 
   "train3D": true,
-<<<<<<< HEAD
   "val_split": 0.05,
 
   "code_size": 1024,

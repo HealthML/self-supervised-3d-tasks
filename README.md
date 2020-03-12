@@ -52,6 +52,9 @@ Based on rotation_2d
   "lr": "Learning rate as a float.",
   "epochs": "Amount of epochs as integer.",
 
+  "encoder_architecture": "Name of the encoder architecture. ('DenseNet121'|'InceptionV3'|'ResNet50'|'ResNet50V2'|'ResNet101'|'ResNet101V2'|'ResNet152'|'InceptionResNetV2')",
+  "top_architecture": "Name of the top level architecture. ('big_fully'|'simple_multiclass'|'unet_3d_upconv'|'unet_3d_upconv_patches') ",
+    
   "dataset_name": "Name of the dataset, only used for labeling the log data.",
   "train3D": "Is the dataset 3D? As a boolean.",
   "data_dir": "The string representation of the path to of the data directory.",
@@ -59,7 +62,7 @@ Based on rotation_2d
   "number_channels": "The number of channels of the image as integer.",
 
   "cpc, rpl": "",
-  "patch_jitter": "CPC, RPL specific. Amount of pixels the jitter every patch should have as an integer.",
+  "patch_jitter": "CPC, RPL, jigsaw specific. Amount of pixels the jitter every patch should have as an integer.",
   "patches_per_side": "CPC, RPL specific. Amount of patches per dimension. 2 patches per side result in 8 patches for a 2D and 16 patches for a 3D image. As integer.",
   "crop_size": "CPC specific. ???",
 
@@ -69,8 +72,6 @@ Based on rotation_2d
     "shuffle": true
   },
   "val_data_generator_args": {"augment": false},
-  "encoder_architecture": "Name of the encoder architecture. Possibilities are 'DenseNet121'",
-  "top_architecture": "Name of the top level architecture. Possibilities are 'big_fully'",
   "embed_dim": 1024,
   "save_checkpoint_every_n_epochs": "Backup epoch even without improvements every n epochs. As Integer.",
   "alpha_triplet": 0.2,
@@ -87,59 +88,61 @@ Based on roation2d_finetunging
   "algorithm": "'cpc'|'rotation'|'rpl'|'jigsaw'|'exemplar'",
   "lr": "Learning rate as a float.",
   "batch_size": "Batch size as an integer.",
-  "val_split": 0.05,
+  "val_split": "Percentage of images used for test, None for no validation set. Float between 0 and 1.",
+  "epochs_warmup": 2,
   "epochs": "Amount of epochs as integer.",
-  "repetitions": 3,
-  "exp_splits": [100,10,1,50,25],
+  "repetitions": "Repetitions of the experiment as integer.",
+  "exp_splits": "Percentages of training data that should be used for the experiments. Array of integers ([100,10,1,50,25])",
 
 
-  "top_architecture": "big_fully",
-  "encoder_architecture": "DenseNet121",
+  "encoder_architecture": "Name of the encoder architecture. ('DenseNet121'|'InceptionV3'|'ResNet50'|'ResNet50V2'|'ResNet101'|'ResNet101V2'|'ResNet152'|'InceptionResNetV2')",
+  "top_architecture": "Name of the top level architecture. ('big_fully'|'simple_multiclass'|'unet_3d_upconv'|'unet_3d_upconv_patches') ",
   "prediction_architecture": "simple_multiclass",
-  "pooling": "avg",
+  "pooling": "avg|max",
 
 
   "dataset_name": "Name of the dataset, only used for labeling the log data.",
   "train3D": "Is the dataset 3D? As a boolean.",
   "data_dim": "Dimension of image as an integer.",
   "number_channels": "The number of channels of the image as integer.",
-  "data_dir": "The string representation of the path to of the data directory.",
-  "data_dir_train": "???",
-  "data_dir_test": "???",
-  "csv_file_train": "???",
-  "csv_file_test": "???",
+  "data_dir": "Path to the data directory the model was trained on as a string",
+  "data_dir_train": "Path to the data directory containing the finetuning train data as a string.",
+  "data_dir_test": "Path to the data directory containing the finetuning test data as a string.",
+  "csv_file_train": "Path to the csv file containing the finetuning train data as a string.",
+  "csv_file_test": "Path to the csv file containing the finetuning test data as a string.",
   "train_data_generator_args": {
-    "suffix":  ".png",
-    "multilabel": true,
-    "augment": true,
-    "shuffle": true
+    "suffix":  "(.png|.jpeg)",
+    "multilabel": "Shall data be transformed to multilabel representation. (0 => [0, 0], 1 => [1, 0], 2 => [1, 1]",
+    "augment": "Shall the data be randomly augmented with horizontally/vertically flip and/or zoom. Boolean.",
+    "augment_zoom_only": "Shall the data be augmented with zoom. Boolean.",
+    "shuffle": "Shall the data be shuffled after each epoch. Boolean."
   },
   "val_data_generator_args": {
-    "suffix":  ".png",
-    "multilabel": true,
-    "augment": false
+    "suffix":  "(.png|.jpeg)",
+    "multilabel": "Shall data be transformed to multilabel representation. (0 => [0, 0], 1 => [1, 0], 2 => [1, 1]",
+    "augment": "Shall the data be randomly augmented with horizontally/vertically flip and/or zoom.",
+    "augment_zoom_only": "Shall the data be augmented with zoom.",
   },
   "test_data_generator_args": {
-    "suffix":  ".png",
-    "multilabel": true,
-    "augment": false
+    "suffix":  "(.png|.jpeg)",
+    "multilabel": "Shall data be transformed to multilabel representation. (0 => [0, 0], 1 => [1, 0], 2 => [1, 1]",
+    "augment": "Shall the data be randomly augmented with horizontally/vertically flip and/or zoom.",
+    "augment_zoom_only": "Shall the data be augmented with zoom.",
   },
 
-  "metrics": ["accuracy"],
-  "loss": "binary_crossentropy",
-  "scores": ["qw_kappa_kaggle", "cat_acc_kaggle"],
-  "clipnorm": 1,
-  "clipvalue": 1,
+  "metrics": "Array of metrics to be used. Array of strings. ('accuracy'|'mse')",
+  "loss": "Loss to be used. String('binary_crossentropy'|'weighted_dice_loss'|'weighted_sum_loss'|'weighted_categorical_crossentropy'|'jaccard_distance')",
+  "scores": "Array of scores to be used. Array of strings. ('qw_kappa'|'qw_kappa_kaggle'|'cat_accuracy'|'cat_acc_kaggle'|'dice'|'jaccard')",
+  "clipnorm": "Gradients will be clipped when their L2 norm exceeds this value.",
+  "clipvalue": "Gradients will be clipped when their absolute value exceeds this value.",
 
-  "embed_dim": 128,
-  "epochs_warmup": 2,
+  "embed_dim": "Size of the embedding vector of the model. Integer",
 
-  "load_weights": true,
-  "model_checkpoint":"/home/Shared.Workspace/workspace/self-supervised-transfer-learning/shared_models/cpc_kaggle_retina/weights-250.hdf5",
+  "load_weights": "Shall weights be loaded from model checkpoint. Boolean.",
+  "model_checkpoint":"Path to model checkpoint. String.",
 
-  "patches_per_side": 4,
-  "patch_dim": 64,
-  "alpha_triplet": 0.2,
+  "patches_per_side": "CPC, RPL specific. Amount of patches per dimension. 2 patches per side result in 8 patches for a 2D and 16 patches for a 3D image. As integer.",
+  "alpha_triplet": "The alpha value used for triplet loss.",
   "enc_filters": 8
 }
 ```
