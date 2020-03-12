@@ -357,9 +357,9 @@ def test_preprocessing():
     with tf.Session() as sess:
         f = get_crop(is_training=True, crop_size=(256, 256))
         # f = chain(f, get_random_flip_ud(is_training=True)) also for new version?
-        # f = get_crop_patches_fn(is_training=True, split_per_side=7, patch_jitter=-32)
+        # f = get_crop_patches_fn(is_training=True, patches_per_side=7, patch_jitter=-32)
         f = chain(
-            f, get_crop_patches_fn(is_training=True, split_per_side=7, patch_jitter=-32)
+            f, get_crop_patches_fn(is_training=True, patches_per_side=7, patch_jitter=-32)
         )
 
         f = chain(f, get_random_flip_ud(is_training=True))
@@ -493,7 +493,7 @@ def test_exemplar_preprocess_3d():
     batch_size = 10
     f_train, f_val = ExemplarBuilder(
         data_dim=224,
-        n_channels=3,
+        number_channels=3,
         batch_size=batch_size,
         train3D=False,
         alpha_triplet=0.2,
@@ -743,7 +743,7 @@ def test_cpc_preprocess():
     csv_training = "/mnt/mpws2019cl1/kaggle_retina_2019/train.csv"
     data_dir = "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224"
 
-    instance = cpc.create_instance(data_dim=224, crop_size=224, split_per_side=5)
+    instance = cpc.create_instance(data_dim=224, crop_size=224, patches_per_side=5)
     gen_norm = get_kaggle_generator(data_dir, csv_training, train_data_generator_args={
         "pre_proc_func": instance.get_finetuning_preprocessing()[0],
         "batch_size": 1,
@@ -830,7 +830,7 @@ def test_jigsaw_3d():
     import self_supervised_3d_tasks.keras_algorithms.jigsaw as jig
     data_dir = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128"
 
-    instance = jig.create_instance(train3D=True, data_dim=128, patch_dim=64, split_per_side=2)
+    instance = jig.create_instance(train3D=True, data_dim=128, patch_dim=64, patches_per_side=2)
     gen_norm = get_data_generators(data_dir, DataGeneratorUnlabeled3D, train_data_generator_args={
         "pre_proc_func": instance.get_training_preprocessing()[0],
         "batch_size": 1,
@@ -877,7 +877,7 @@ def test_nans():
 
     import self_supervised_3d_tasks.keras_algorithms.jigsaw as jig
 
-    instance = jig.create_instance(train3D=True, data_dim=128, patch_dim=48, split_per_side=3)
+    instance = jig.create_instance(train3D=True, data_dim=128, patch_dim=48, patches_per_side=3)
     gen = get_data_generators(path, SegmentationGenerator3D, train_data_generator_args=
     {
         "pre_proc_func": instance.get_finetuning_preprocessing()[0],

@@ -19,7 +19,7 @@
 
   "prediction_architecture": "unet_3d_upconv",
   "pooling": "avg",
-  "n_channels": 1,
+  "number_channels": 1,
   "batch_size": 7,
 
   "lr": 0.001,

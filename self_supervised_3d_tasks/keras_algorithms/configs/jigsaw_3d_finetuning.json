@@ -12,7 +12,7 @@
   "val_split": 0.05,
 
   "enc_filters": 16,
-  "split_per_side": 3,
+  "patches_per_side": 3,
   "data_dim": 128,
 
   "loss": "weighted_dice_loss",
@@ -22,7 +22,7 @@
   "top_architecture": "big_fully",
   "prediction_architecture": "unet_3d_upconv",
   "pooling": "max",
-  "n_channels": 1,
+  "number_channels": 1,
   "batch_size": 3,
 
   "exp_splits": [100,10,5,50,25],

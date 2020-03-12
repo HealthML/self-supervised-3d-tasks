@@ -97,7 +97,7 @@ def train_model(epochs,
                 work_dir,
                 data_dir,
                 batch_size=8,
-                n_channels=3,
+                number_channels=3,
                 dim_3d=True,
                 model_params={}):
     """
@@ -108,7 +108,7 @@ def train_model(epochs,
     :param data_dir: path to images
     :param batch_size: batch size
     :param model_params: additional Params for the model
-    :param n_channels: number of channels
+    :param number_channels: number of channels
     :param dim_3d: defines whether 2d or 3d is used
     :return:
     """
@@ -128,7 +128,7 @@ def train_model(epochs,
 
     # compile model
     # TODO Generate Model
-    model = get_exemplar_model(input_shape=(*dim, n_channels), **model_params)
+    model = get_exemplar_model(input_shape=(*dim, number_channels), **model_params)
     print(model.summary())
 
     # Train the model
@@ -217,7 +217,7 @@ if __name__ == "__main__":
                 batch_size=4,
                 work_dir=working_dir,
                 data_dir=data_path,
-                n_channels=number_channels,
+                number_channels=number_channels,
                 dim_3d=False,
                 model_params={
                     "alpha_triplet": 0.2,

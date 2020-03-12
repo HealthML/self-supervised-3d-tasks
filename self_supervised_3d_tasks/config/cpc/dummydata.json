@@ -19,7 +19,7 @@
   "throttle_secs": 400.0,
   "keep_checkpoint_every_n_hours": 8,
   "use_tpu": false,
-  "splits_per_side": 3,
+  "patches_per_side": 3,
   "patch_jitter": 10,
   "perm_subset_size": 8,
   "embed_dim": 1000,

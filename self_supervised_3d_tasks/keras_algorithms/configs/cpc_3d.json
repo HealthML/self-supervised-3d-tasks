@@ -7,12 +7,13 @@
 
   "code_size": 1024,
   "enc_filters": 16,
-  "split_per_side": 4,
+  "patches_per_side": 4,
   "data_dim": 128,
 
   "top_architecture": "big_fully",
-  "n_channels": 1,
+  "number_channels": 1,
   "batch_size": 32,
+  "embed_dim": 64,
 
   "lr": 1e-4,
   "epochs": 1000

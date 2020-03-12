@@ -589,7 +589,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--splits_per_side",
+        "--patches_per_side",
         type=int,
         help="For the `crop_patches` "
         "preprocessor, how many times to split a side. "

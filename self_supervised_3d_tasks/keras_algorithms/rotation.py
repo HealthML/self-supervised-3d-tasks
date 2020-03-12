@@ -27,23 +27,23 @@ class RotationBuilder:
             self,
             data_dim=384,
             embed_dim=0,  # not using embed dim anymore
-            n_channels=3,
+            number_channels=3,
             lr=1e-4,
             train3D=False,
             top_architecture="big_fully",
             **kwargs
     ):
         self.data_dim = data_dim
-        self.n_channels = n_channels
+        self.number_channels = number_channels
         self.lr = lr
         self.image_size = data_dim
         self.embed_dim = 0
-        self.img_shape = (self.image_size, self.image_size, n_channels)
+        self.img_shape = (self.image_size, self.image_size, number_channels)
         self.img_shape_3d = (
             self.image_size,
             self.image_size,
             self.image_size,
-            n_channels,
+            number_channels,
         )
         self.top_architecture = top_architecture
         self.train3D = train3D

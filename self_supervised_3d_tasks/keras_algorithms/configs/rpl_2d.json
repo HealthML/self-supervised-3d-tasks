@@ -5,7 +5,7 @@
   "train3D": false,
   "batch_size": 16,
   "data_dim": 224,
-  "n_channels": 3,
+  "number_channels": 3,
   "patches_per_side": 3,
   "patch_jitter": 8,
   "encoder_architecture": "DenseNet121",

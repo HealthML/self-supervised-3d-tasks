@@ -11,7 +11,7 @@
   "data_dim": 128,
 
   "top_architecture": "big_fully",
-  "n_channels": 1,
+  "number_channels": 1,
   "batch_size": 2,
 
   "lr": 1e-4,

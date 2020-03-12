@@ -6,12 +6,13 @@
   "train3D": true,
 
   "enc_filters": 16,
-  "split_per_side": 3,
+  "patches_per_side": 3,
   "patch_jitter": 3,
   "data_dim": 128,
 
   "top_architecture": "big_fully",
-  "n_channels": 1,
+  "number_channels": 1,
+
   "batch_size": 8,
 
   "lr": 1e-4,

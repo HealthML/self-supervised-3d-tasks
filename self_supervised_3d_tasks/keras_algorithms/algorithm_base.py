@@ -3,7 +3,7 @@ class AlgorithmBuilderBase:
     def __init__(
             self,
             data_dim=384,
-            n_channels=3,
+            number_channels=3,
             lr=1e-4,
             train3D=False,
             top_architecture="big_fully",
@@ -12,7 +12,7 @@ class AlgorithmBuilderBase:
         self.top_architecture = top_architecture
         self.data_dim = data_dim
 
-        self.n_channels = n_channels
+        self.number_channels = number_channels
         self.lr = lr
         self.train3D = train3D
 

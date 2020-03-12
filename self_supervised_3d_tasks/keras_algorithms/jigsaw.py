@@ -21,9 +21,9 @@ class JigsawBuilder:
     def __init__(
             self,
             data_dim=384,
-            split_per_side=3,
+            patches_per_side=3,
             patch_jitter=0,
-            n_channels=3,
+            number_channels=3,
             lr=1e-4,
             embed_dim=0,  # not using embed dim anymore
             train3D=False,
@@ -32,15 +32,15 @@ class JigsawBuilder:
     ):
         self.top_architecture = top_architecture
         self.data_dim = data_dim
-        self.split_per_side = split_per_side
+        self.patches_per_side = patches_per_side
         self.patch_jitter = patch_jitter
-        self.n_channels = n_channels
+        self.number_channels = number_channels
         self.lr = lr
         self.embed_dim = 0
-        self.n_patches = split_per_side * split_per_side
-        self.n_patches3D = split_per_side * split_per_side * split_per_side
+        self.n_patches = patches_per_side * patches_per_side
+        self.n_patches3D = patches_per_side * patches_per_side * patches_per_side
 
-        self.patch_dim = (data_dim // split_per_side) - patch_jitter
+        self.patch_dim = (data_dim // patches_per_side) - patch_jitter
         self.train3D = train3D
         self.kwargs = kwargs
         self.cleanup_models = []
@@ -58,21 +58,21 @@ class JigsawBuilder:
                     self.patch_dim,
                     self.patch_dim,
                     self.patch_dim,
-                    self.n_channels,
+                    self.number_channels,
                 )
             )
             self.enc_model, _ = apply_encoder_model_3d(
-                (self.patch_dim, self.patch_dim, self.patch_dim, self.n_channels,),
+                (self.patch_dim, self.patch_dim, self.patch_dim, self.number_channels,),
                 self.embed_dim, **self.kwargs
             )
         else:
             perms, _ = load_permutations()
 
             input_x = Input(
-                (self.n_patches, self.patch_dim, self.patch_dim, self.n_channels)
+                (self.n_patches, self.patch_dim, self.patch_dim, self.number_channels)
             )
             self.enc_model = apply_encoder_model(
-                (self.patch_dim, self.patch_dim, self.n_channels,), self.embed_dim, **self.kwargs
+                (self.patch_dim, self.patch_dim, self.number_channels,), self.embed_dim, **self.kwargs
             )
 
         x = TimeDistributed(self.enc_model)(input_x)
@@ -110,7 +110,7 @@ class JigsawBuilder:
         def f_train(x, y):  # not using y here, as it gets generated
             x, y = preprocess(
                 x,
-                self.split_per_side,
+                self.patches_per_side,
                 self.patch_jitter,
                 perms,
                 is_training=True,
@@ -121,7 +121,7 @@ class JigsawBuilder:
         def f_val(x, y):
             x, y = preprocess(
                 x,
-                self.split_per_side,
+                self.patches_per_side,
                 self.patch_jitter,
                 perms,
                 is_training=False,
@@ -149,7 +149,7 @@ class JigsawBuilder:
 
         if self.train3D:
             model_skips, self.layer_data = make_finetuning_encoder_3d(
-                (self.data_dim, self.data_dim, self.data_dim, self.n_channels,),
+                (self.data_dim, self.data_dim, self.data_dim, self.number_channels,),
                 self.enc_model,
                 **self.kwargs
             )
@@ -157,7 +157,7 @@ class JigsawBuilder:
             return model_skips
         else:
             new_enc = make_finetuning_encoder_2d(
-                (self.data_dim, self.data_dim, self.n_channels,),
+                (self.data_dim, self.data_dim, self.number_channels,),
                 self.enc_model,
                 **self.kwargs
             )

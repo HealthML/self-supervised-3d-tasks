@@ -21,7 +21,7 @@ class ExemplarBuilder:
     def __init__(
             self,
             data_dim=384,
-            n_channels=3,
+            number_channels=3,
             train3D=False,
             embed_dim=0,  # not using embed dim anymore
             code_size=1024,
@@ -33,7 +33,7 @@ class ExemplarBuilder:
         """
         init
         :param data_dim: int
-        :param n_channels: int
+        :param number_channels: int
         :param batch_size: int
         :param train3D: bool
         :param embed_dim: int
@@ -42,7 +42,7 @@ class ExemplarBuilder:
         :param kwargs: ...
         """
         self.sample_neg_examples_from = sample_neg_examples_from
-        self.n_channels = n_channels
+        self.number_channels = number_channels
         self.train3D = train3D
         self.dim = (
             (data_dim, data_dim, data_dim) if self.train3D else (data_dim, data_dim)
@@ -86,15 +86,15 @@ class ExemplarBuilder:
         if self.train3D:
             # KEEP setting the layer data here, as we will use the enc directly without copying
             self.enc_model, self.layer_data = apply_encoder_model_3d(
-                (*self.dim, self.n_channels), self.embed_dim, **self.kwargs
+                (*self.dim, self.number_channels), self.embed_dim, **self.kwargs
             )
         else:
             self.enc_model = apply_encoder_model(
-                (*self.dim, self.n_channels), self.embed_dim, **self.kwargs
+                (*self.dim, self.number_channels), self.embed_dim, **self.kwargs
             )
 
         # Define the tensors for the three input images
-        input_layer = Input((3, *self.dim, self.n_channels), name="Input")
+        input_layer = Input((3, *self.dim, self.number_channels), name="Input")
         anchor_input = Lambda(lambda x: x[:, 0, :], name="anchor_input")(input_layer)
         positive_input = Lambda(lambda x: x[:, 1, :], name="positive_input")(
             input_layer
@@ -164,6 +164,7 @@ class ExemplarBuilder:
             del self.cleanup_models[i]
         del self.cleanup_models
         self.cleanup_models = []
+
 
 def create_instance(*params, **kwargs):
     return ExemplarBuilder(*params, **kwargs)
