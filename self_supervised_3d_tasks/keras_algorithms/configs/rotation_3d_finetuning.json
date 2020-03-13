@@ -22,7 +22,7 @@
   "prediction_architecture": "unet_3d_upconv",
   "pooling": "max",
   "number_channels": 1,
-  "batch_size": 3,
+  "batch_size": 2,
 
   "exp_splits": [100,10,5,50,25],
   "lr": 1e-3,

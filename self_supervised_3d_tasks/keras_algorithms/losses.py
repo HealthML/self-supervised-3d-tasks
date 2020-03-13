@@ -90,6 +90,22 @@ def jaccard_distance(y_true, y_pred, smooth=5):
 
     return (1 - jd) * smooth
 
+def weighted_dice_coefficient_per_class(y_true, y_pred, class_to_predict=0, smooth=0.00001):
+    """
+    Weighted dice coefficient.
+    :param smooth:
+    :param y_true:
+    :param y_pred:
+    :param class_to_predict:
+    :return:
+    """
+    axis = tuple(range(y_pred.shape.rank - 1))
+
+    return (2. * (K.sum(y_true * y_pred,
+                              axis=axis) + smooth / 2) / (K.sum(y_true,
+                                                                axis=axis) + K.sum(y_pred,
+                                                                                   axis=axis) + smooth))[class_to_predict]
+
 
 def weighted_dice_coefficient(y_true, y_pred, smooth=0.00001):
     """

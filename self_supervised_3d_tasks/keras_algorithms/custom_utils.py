@@ -116,8 +116,6 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         assert algorithm_instance is not None, "no algorithm instance for 3d skip connections found"
         assert algorithm_instance.layer_data is not None, "no layer data for 3d skip connections found"
 
-        print(in_shape)
-
         first_input = Input(in_shape)
         includes_pooling = algorithm_instance.layer_data[2]
 

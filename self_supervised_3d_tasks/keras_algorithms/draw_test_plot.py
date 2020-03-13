@@ -6,13 +6,13 @@ import matplotlib.pyplot as plt
 import pandas
 
 
-def draw_curve(path, name, metric, min_max_avg="avg", batch_size=32, repetitions=3, epochs=12, dataset_name="kaggle", train3D=False, **kwargs):
+def draw_curve(path, metric, min_max_avg="avg", batch_size=2, repetitions=3, epochs=150, dataset_name="pancreas", train3D=True, **kwargs):
     df = pandas.read_csv(path)
     df['split'] = [int(i[:-1]) for i in df['Train Split']]
     df = df.sort_values(by=['split'])
 
-    plt.plot(df["Train Split"], df["Weights_initialized_"+metric+"_"+min_max_avg], label=name + ' - Encoder Trainable')
-    plt.plot(df["Train Split"], df["Weights_frozen_"+metric+"_"+min_max_avg], label=name + ' - Encoder Frozen')
+    plt.plot(df["Train Split"], df["Weights_initialized_"+metric+"_"+min_max_avg], label="Rotation" + ' - Encoder Trainable')
+    # plt.plot(df["Train Split"], df["Weights_frozen_"+metric+"_"+min_max_avg], label=name + ' - Encoder Frozen')
     plt.plot(df["Train Split"], df["Weights_random_"+metric+"_"+min_max_avg], label='Random')
 
     plt.title(f"Comparison of {min_max_avg} {metric} for {dataset_name} ({'3D' if train3D else '2D'}). \nbatch_size={batch_size},repetitions={repetitions},epochs={epochs}", pad=30)
@@ -39,10 +39,12 @@ if __name__ == "__main__":
     # path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina_2/weights-improvement-183_test_3/results.csv"
     # draw_convergence()
 
+    path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/RRR.txt"
+
     args = {}
     for filename in glob.glob(str(Path(path).parent) + "/*.json"):
         with open(filename, "r") as file:
             args = json.load(file)
         break
 
-    draw_curve(path, "exemplar", "dice", "avg", **args)
+    draw_curve(path, "dice", "avg", **args)

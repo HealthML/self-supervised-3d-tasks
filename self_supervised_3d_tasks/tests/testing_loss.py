@@ -4,7 +4,8 @@ import os
 import tensorflow as tf
 from sklearn.metrics import jaccard_score
 
-from self_supervised_3d_tasks.keras_algorithms.keras_test_algo import score_jaccard
+from self_supervised_3d_tasks.keras_algorithms.keras_test_algo import get_score_dice_avg_numpy, \
+    get_score_dice_per_class_numpy, score_jaccard
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -86,15 +87,15 @@ def jaccard_distance_XX(y_true, y_pred, smooth=100):
     return (1 - jac) * smooth
 
 
-def jaccard_distance(y_true, y_pred, smooth=25):
+def jaccard_distance(y_true, y_pred, smooth=0.00001):
     """ Calculates mean of Jaccard distance as a loss function """
     intersection = np.sum(np.abs(y_true * y_pred), axis=tuple(range(y_pred.ndim - 1)))
     sum_ = np.sum(np.abs(y_true) + np.abs(y_pred), axis=tuple(range(y_pred.ndim - 1)))
 
-    jac = (intersection + smooth) / (sum_ - intersection + smooth + EPSILON)
+    jac = (intersection + smooth) / (sum_ - intersection + smooth)
     jd = np.mean(jac)
 
-    return (1 - jd) * smooth
+    return jd
 
 
 
@@ -119,7 +120,37 @@ def test_triplet(y_pred):
     )
     return np.mean(np.maximum(0.0, positive_distance - negative_distance + 0.5))
 
+def score_jaccard_XX():
+    path = "/home/Shared.Workspace/data/pancreas/images_resized_128_labeled/train"
+    gen = get_data_generators(path, SegmentationGenerator3D)
+
+    y_batch = gen[0][1]
+    y_pred = np.zeros(y_batch.shape)
+    # print(np.sum(np.abs(y_pred - y_batch)))
+    # print(y_pred.shape)
+
+    y_pred[:, :, :, :, 1] = 0.8
+    y_pred[:, :, :, 3:30, 0] = 0.4
+    y_pred[:, :, :, 20:25, 2] = 0.6
+    # print(np.sum(np.abs(y_pred - y_batch)))
+
+    jj = score_jaccard(y_batch, y_pred)
+    jj2 = np.average(jaccard_distance(y_batch, y_pred))
+
+    y = np.argmax(y_batch, axis=-1).flatten()
+    y_pred = np.argmax(y_pred, axis=-1).flatten()
+
+    jaccard = jaccard_score(y, y_pred, average="macro")
+
+    print(jaccard)
+    print(jj2)
+    print(jj)
+    print("SAME!!!")
+
 if __name__ == "__main__":
+    score_jaccard_XX()
+    exit(0)
+
     a = np.zeros((1, 10,))
     b = np.ones((1, 10,))
     c = np.zeros((1, 10,))
@@ -134,23 +165,23 @@ if __name__ == "__main__":
     print(test_triplet(np.array([xxx])))
     exit()
 
-
-
-
-
-
     path = "/home/Shared.Workspace/data/pancreas/images_resized_128_labeled/train"
     gen = get_data_generators(path, SegmentationGenerator3D)
 
-    loss = weighted_categorical_crossentropy([0.1,100,125])
+    loss = weighted_categorical_crossentropy([0.1, 100, 125])
 
     y_batch = gen[0][1]
     y_pred = np.zeros(y_batch.shape)
-    #print(np.sum(np.abs(y_pred - y_batch)))
-    #print(y_pred.shape)
+    # print(np.sum(np.abs(y_pred - y_batch)))
+    # print(y_pred.shape)
 
     y_pred[:, :, :, :, 1] = 1
-    #print(np.sum(np.abs(y_pred - y_batch)))
+    # print(np.sum(np.abs(y_pred - y_batch)))
+
+
+
+
+
 
     xx = loss(y_batch, y_pred)
     xxxxx = weighted_sum_loss()(y_batch, y_pred)

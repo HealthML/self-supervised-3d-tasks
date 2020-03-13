@@ -18,8 +18,7 @@ from self_supervised_3d_tasks.custom_preprocessing.rotation_preprocess import (
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
     apply_encoder_model,
     apply_encoder_model_3d,
-    apply_prediction_model,
-    flatten_model, print_flat_summary, apply_prediction_model_to_encoder)
+    apply_prediction_model, apply_prediction_model_to_encoder)
 
 
 class RotationBuilder:

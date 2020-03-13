@@ -1,9 +1,11 @@
+import functools
 import os
 import random
 
 from self_supervised_3d_tasks.keras_algorithms.callbacks import TerminateOnNaN, NaNLossError, LogCSVWithStart
 from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance, \
-    weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss
+    weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss, \
+    weighted_dice_coefficient_per_class
 from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long, print_flat_summary
 
 import csv
@@ -72,21 +74,66 @@ def score_cat_acc_kaggle(y, y_pred, threshold=0.5):
 def score_cat_acc(y, y_pred):
     return accuracy_score(y, y_pred)
 
+def get_score_dice_per_class_numpy(y_true, y_pred, class_to_predict):
+    axis = tuple(range(y_pred.ndim - 1))
+    smooth = 0.00001
+
+    b = np.zeros_like(y_pred)
+    row_maxes = y_pred.max(axis=-1)[...,None]
+    b[np.where(y_pred == row_maxes)] = 1
+    y_pred = b
+
+    return (2. * (np.sum(y_true * y_pred,
+                              axis=axis) + smooth / 2) / (np.sum(y_true,
+                                                                axis=axis) + np.sum(y_pred,
+                                                                                   axis=axis) + smooth))[class_to_predict]
+
+def get_score_dice_avg_numpy(y_true, y_pred):
+    axis = tuple(range(y_pred.ndim - 1))
+    smooth = 0.00001
+
+    b = np.zeros_like(y_pred)
+    row_maxes = y_pred.max(axis=-1)[...,None]
+    b[np.where(y_pred == row_maxes)] = 1
+    y_pred = b
+
+    return np.mean(2. * (np.sum(y_true * y_pred,
+                              axis=axis) + smooth / 2) / (np.sum(y_true,
+                                                                axis=axis) + np.sum(y_pred,
+                                                                                   axis=axis) + smooth))
+
 
 def score_jaccard(y, y_pred):
+    s = get_score_dice_per_class_numpy(y, y_pred, 0)
+    s1 = get_score_dice_per_class_numpy(y, y_pred, 1)
+    s2 = get_score_dice_per_class_numpy(y, y_pred, 2)
+
+    jj = (s / (2 - s)) + (s1 / (2 - s1)) + (s2 / (2 - s2))
+    jj /= 3
+
     y = np.argmax(y, axis=-1).flatten()
     y_pred = np.argmax(y_pred, axis=-1).flatten()
 
-    return jaccard_score(y, y_pred, average="macro")
+    jaccard = jaccard_score(y, y_pred, average="macro")
+
+    print(jaccard)
+    print(jj)
+    print("SAME")
+
+    return jj
 
 
 def score_dice(y, y_pred):
-    y = np.argmax(y, axis=-1).flatten()
-    y_pred = np.argmax(y_pred, axis=-1).flatten()
+    return get_score_dice_avg_numpy(y, y_pred)
 
-    j = jaccard_score(y, y_pred, average=None)
+def score_dice_pancreas_0(y, y_pred):
+    return get_score_dice_per_class_numpy(y, y_pred, class_to_predict=0)
 
-    return np.average(np.array([(2 * x) / (1 + x) for x in j]))
+def score_dice_pancreas_1(y, y_pred):
+    return get_score_dice_per_class_numpy(y, y_pred, class_to_predict=1)
+
+def score_dice_pancreas_2(y, y_pred):
+    return get_score_dice_per_class_numpy(y, y_pred, class_to_predict=2)
 
 
 def get_score(score_name):
@@ -98,6 +145,12 @@ def get_score(score_name):
         return score_cat_acc
     elif score_name == "dice":
         return score_dice
+    elif score_name == "dice_pancreas_0":
+        return score_dice_pancreas_0
+    elif score_name == "dice_pancreas_1":
+        return score_dice_pancreas_1
+    elif score_name == "dice_pancreas_2":
+        return score_dice_pancreas_2
     elif score_name == "jaccard":
         return score_jaccard
     elif score_name == "qw_kappa_kaggle":
@@ -303,6 +356,20 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
         metrics.remove("weighted_dice_coefficient")
         metrics.append(weighted_dice_coefficient)
 
+    if "weighted_dice_coefficient_per_class_pancreas" in metrics:
+        metrics.remove("weighted_dice_coefficient_per_class_pancreas")
+
+        def dice_class_0(y_true,y_pred):
+            return weighted_dice_coefficient_per_class(y_true,y_pred,class_to_predict = 0)
+        def dice_class_1(y_true,y_pred):
+            return weighted_dice_coefficient_per_class(y_true,y_pred,class_to_predict = 1)
+        def dice_class_2(y_true,y_pred):
+            return weighted_dice_coefficient_per_class(y_true,y_pred,class_to_predict = 2)
+
+        metrics.append(dice_class_0)
+        metrics.append(dice_class_1)
+        metrics.append(dice_class_2)
+
     f_train, f_val = algorithm_def.get_finetuning_preprocessing()
     gen_train, gen_val = get_dataset_train(
         dataset_name, batch_size, f_train, f_val, train_split, kwargs
@@ -319,7 +386,7 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
     outputs = pred_model(enc_model.outputs)
     model = Model(inputs=enc_model.inputs[0], outputs=outputs)
 
-    print_flat_summary(model)
+    # print_flat_summary(model)
 
     # TODO: remove debugging
     # plot_model(model, to_file=Path("~/test_architecture.png").expanduser(), expand_nested=True)
@@ -479,7 +546,18 @@ def run_complex_test(
     results = []
     header = ["Train Split"]
 
-    for exp_type in ["Weights_frozen_", "Weights_initialized_", "Weights_random_"]:
+    exp_types = []
+
+    if epochs_frozen > 0:
+        exp_types.append("Weights_frozen_")
+
+    if epochs_initialized > 0:
+        exp_types.append("Weights_initialized_")
+
+    if epochs_random > 0:
+        exp_types.append("Weights_random_")
+
+    for exp_type in exp_types:
         for sc in scores:
             for min_avg_max in ["_min", "_avg", "_max"]:
                 header.append(exp_type + sc + min_avg_max)
@@ -490,7 +568,9 @@ def run_complex_test(
 
     for train_split in exp_splits:
         percentage = 0.01 * train_split
+        print("\n--------------------")
         print("running test for: {}%".format(train_split))
+        print("--------------------\n")
 
         a_s = []
         b_s = []
@@ -498,41 +578,36 @@ def run_complex_test(
 
         for i in range(repetitions):
             logging_base_path = working_dir / "logs"
-            logging_a_path = logging_base_path / f"split{train_split}frozen_rep{i}.log"
-            logging_b_path = logging_base_path / f"split{train_split}initialized_rep{i}.log"
-            logging_c_path = logging_base_path / f"split{train_split}random_rep{i}.log"
 
             # Use the same seed for all experiments in one repetition
             tf.random.set_seed(i)
             np.random.seed(i)
             random.seed(i)
 
-            b = try_until_no_nan(
-                lambda: run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
-                                        batch_size, epochs_initialized, epochs_warmup, model_checkpoint, scores, loss, metrics,
-                                        logging_b_path, kwargs, clipnorm=clipnorm, clipvalue=clipvalue))
-
-            c = try_until_no_nan(
-                lambda: run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
-                                        batch_size, epochs_random, epochs_warmup, model_checkpoint, scores, loss, metrics,
-                                        logging_c_path,
-                                        kwargs, clipnorm=clipnorm, clipvalue=clipvalue))  # random
-
-            a = try_until_no_nan(
-                lambda: run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
-                                        batch_size, epochs_frozen, epochs_warmup, model_checkpoint, scores, loss, metrics,
-                                        logging_a_path,
-                                        kwargs, clipnorm=clipnorm, clipvalue=clipvalue))  # frozen
-
-            print(
-                "train split:{} model accuracy frozen: {}, initialized: {}, random: {}".format(
-                    percentage, a, b, c
-                )
-            )
-
-            a_s.append(a)
-            b_s.append(b)
-            c_s.append(c)
+            if epochs_frozen > 0:
+                logging_a_path = logging_base_path / f"split{train_split}frozen_rep{i}.log"
+                a = try_until_no_nan(
+                    lambda: run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
+                                            batch_size, epochs_frozen, epochs_warmup, model_checkpoint, scores, loss,
+                                            metrics,
+                                            logging_a_path,
+                                            kwargs, clipnorm=clipnorm, clipvalue=clipvalue))  # frozen
+                a_s.append(a)
+            if epochs_initialized > 0:
+                logging_b_path = logging_base_path / f"split{train_split}initialized_rep{i}.log"
+                b = try_until_no_nan(
+                    lambda: run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
+                                            batch_size, epochs_initialized, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                            logging_b_path, kwargs, clipnorm=clipnorm, clipvalue=clipvalue))
+                b_s.append(b)
+            if epochs_random > 0:
+                logging_c_path = logging_base_path / f"split{train_split}random_rep{i}.log"
+                c = try_until_no_nan(
+                    lambda: run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
+                                            batch_size, epochs_random, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                            logging_c_path,
+                                            kwargs, clipnorm=clipnorm, clipvalue=clipvalue))  # random
+                c_s.append(c)
 
         def get_avg_score(list_abc, index):
             sc = [x[index][1] for x in list_abc]
@@ -551,19 +626,32 @@ def run_complex_test(
         scores_c = []
 
         for i in range(len(scores)):
-            scores_a.append(get_min_score(a_s, i))
-            scores_a.append(get_avg_score(a_s, i))
-            scores_a.append(get_max_score(a_s, i))
+            if epochs_frozen > 0:
+                scores_a.append(get_min_score(a_s, i))
+                scores_a.append(get_avg_score(a_s, i))
+                scores_a.append(get_max_score(a_s, i))
 
-            scores_b.append(get_min_score(b_s, i))
-            scores_b.append(get_avg_score(b_s, i))
-            scores_b.append(get_max_score(b_s, i))
+            if epochs_initialized > 0:
+                scores_b.append(get_min_score(b_s, i))
+                scores_b.append(get_avg_score(b_s, i))
+                scores_b.append(get_max_score(b_s, i))
 
-            scores_c.append(get_min_score(c_s, i))
-            scores_c.append(get_avg_score(c_s, i))
-            scores_c.append(get_max_score(c_s, i))
+            if epochs_random > 0:
+                scores_c.append(get_min_score(c_s, i))
+                scores_c.append(get_avg_score(c_s, i))
+                scores_c.append(get_max_score(c_s, i))
 
-        data = [str(train_split) + "%", *scores_a, *scores_b, *scores_c]
+        data = [str(train_split) + "%"]
+
+        if epochs_frozen > 0:
+            data += scores_a
+
+        if epochs_initialized > 0:
+            data += scores_b
+
+        if epochs_random > 0:
+            data += scores_c
+
         results.append(data)
         write_result(working_dir, data)
 
