@@ -74,66 +74,29 @@ def score_cat_acc_kaggle(y, y_pred, threshold=0.5):
 def score_cat_acc(y, y_pred):
     return accuracy_score(y, y_pred)
 
-def get_score_dice_per_class_numpy(y_true, y_pred, class_to_predict):
-    axis = tuple(range(y_pred.ndim - 1))
-    smooth = 0.00001
-
-    b = np.zeros_like(y_pred)
-    row_maxes = y_pred.max(axis=-1)[...,None]
-    b[np.where(y_pred == row_maxes)] = 1
-    y_pred = b
-
-    return (2. * (np.sum(y_true * y_pred,
-                              axis=axis) + smooth / 2) / (np.sum(y_true,
-                                                                axis=axis) + np.sum(y_pred,
-                                                                                   axis=axis) + smooth))[class_to_predict]
-
-def get_score_dice_avg_numpy(y_true, y_pred):
-    axis = tuple(range(y_pred.ndim - 1))
-    smooth = 0.00001
-
-    b = np.zeros_like(y_pred)
-    row_maxes = y_pred.max(axis=-1)[...,None]
-    b[np.where(y_pred == row_maxes)] = 1
-    y_pred = b
-
-    return np.mean(2. * (np.sum(y_true * y_pred,
-                              axis=axis) + smooth / 2) / (np.sum(y_true,
-                                                                axis=axis) + np.sum(y_pred,
-                                                                                   axis=axis) + smooth))
-
 
 def score_jaccard(y, y_pred):
-    s = get_score_dice_per_class_numpy(y, y_pred, 0)
-    s1 = get_score_dice_per_class_numpy(y, y_pred, 1)
-    s2 = get_score_dice_per_class_numpy(y, y_pred, 2)
-
-    jj = (s / (2 - s)) + (s1 / (2 - s1)) + (s2 / (2 - s2))
-    jj /= 3
-
     y = np.argmax(y, axis=-1).flatten()
     y_pred = np.argmax(y_pred, axis=-1).flatten()
 
-    jaccard = jaccard_score(y, y_pred, average="macro")
-
-    print(jaccard)
-    print(jj)
-    print("SAME")
-
-    return jj
+    return jaccard_score(y, y_pred, average="macro")
 
 
 def score_dice(y, y_pred):
-    return get_score_dice_avg_numpy(y, y_pred)
+    y = np.argmax(y, axis=-1).flatten()
+    y_pred = np.argmax(y_pred, axis=-1).flatten()
 
-def score_dice_pancreas_0(y, y_pred):
-    return get_score_dice_per_class_numpy(y, y_pred, class_to_predict=0)
+    j = jaccard_score(y, y_pred, average=None)
 
-def score_dice_pancreas_1(y, y_pred):
-    return get_score_dice_per_class_numpy(y, y_pred, class_to_predict=1)
+    return np.average(np.array([(2 * x) / (1 + x) for x in j]))
 
-def score_dice_pancreas_2(y, y_pred):
-    return get_score_dice_per_class_numpy(y, y_pred, class_to_predict=2)
+def score_dice_class(y, y_pred, class_to_predict):
+    y = np.argmax(y, axis=-1).flatten()
+    y_pred = np.argmax(y_pred, axis=-1).flatten()
+
+    j = jaccard_score(y, y_pred, average=None)
+
+    return np.array([(2 * x) / (1 + x) for x in j])[class_to_predict]
 
 
 def get_score(score_name):
@@ -146,11 +109,11 @@ def get_score(score_name):
     elif score_name == "dice":
         return score_dice
     elif score_name == "dice_pancreas_0":
-        return score_dice_pancreas_0
+        return functools.partial(score_dice_class, class_to_predict=0)
     elif score_name == "dice_pancreas_1":
-        return score_dice_pancreas_1
+        return functools.partial(score_dice_class, class_to_predict=1)
     elif score_name == "dice_pancreas_2":
-        return score_dice_pancreas_2
+        return functools.partial(score_dice_class, class_to_predict=2)
     elif score_name == "jaccard":
         return score_jaccard
     elif score_name == "qw_kappa_kaggle":

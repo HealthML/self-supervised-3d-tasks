@@ -16,21 +16,21 @@
   "data_dim": 128,
 
   "loss": "weighted_dice_loss",
-  "scores": ["dice", "jaccard"],
-  "metrics": ["accuracy", "weighted_dice_coefficient"],
+  "scores": ["dice", "jaccard", "dice_pancreas_0", "dice_pancreas_1", "dice_pancreas_2"],
+  "metrics": ["accuracy", "weighted_dice_coefficient", "weighted_dice_coefficient_per_class_pancreas"],
 
   "top_architecture": "big_fully",
   "prediction_architecture": "unet_3d_upconv",
   "pooling": "max",
   "number_channels": 1,
-  "batch_size": 3,
+  "batch_size": 2,
 
   "exp_splits": [100,10,5,50,25],
   "lr": 1e-3,
-  "epochs_initialized": 0,
+  "epochs_initialized": 1,
   "epochs_frozen": 0,
-  "epochs_random": 150,
-  "epochs_warmup": 25,
+  "epochs_random": 0,
+  "epochs_warmup": 0,
   "repetitions": 3,
 
   "clipnorm": 1,
