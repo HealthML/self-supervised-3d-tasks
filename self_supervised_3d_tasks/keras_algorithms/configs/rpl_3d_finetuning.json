@@ -27,10 +27,10 @@
 
   "exp_splits": [100,10,5,50,25],
   "lr": 1e-3,
-  "epochs_initialized": 1,
+  "epochs_initialized": 150,
   "epochs_frozen": 0,
   "epochs_random": 0,
-  "epochs_warmup": 0,
+  "epochs_warmup": 25,
   "repetitions": 3,
 
   "clipnorm": 1,

@@ -2,7 +2,7 @@
   "algorithm": "exemplar",
   "data_dir_train": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/train",
   "data_dir_test": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/test",
-  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/exemplar_pancreas3d/weights-improvement-216.hdf5",
+  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/exemplar_pancreas3d_42/weights-300.hdf5",
   "dataset_name": "pancreas3d",
   "train_data_generator_args": { "label_stem": "", "shuffle": true},
   "val_data_generator_args": {"label_stem": ""},
@@ -16,8 +16,8 @@
   "data_dim": 128,
 
   "loss": "weighted_dice_loss",
-  "scores": ["dice", "jaccard"],
-  "metrics": ["accuracy", "weighted_dice_coefficient"],
+  "scores": ["dice", "jaccard", "dice_pancreas_0", "dice_pancreas_1", "dice_pancreas_2"],
+  "metrics": ["accuracy", "weighted_dice_coefficient", "weighted_dice_coefficient_per_class_pancreas"],
 
   "top_architecture": "big_fully",
   "prediction_architecture": "unet_3d_upconv",
