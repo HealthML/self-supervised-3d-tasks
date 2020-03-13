@@ -2,22 +2,22 @@ import numpy as np
 import albumentations as ab
 
 
-def crop_patches_3d(image, is_training, split_per_side, patch_jitter=0):
+def crop_patches_3d(image, is_training, patches_per_side, patch_jitter=0):
     h, w, d, _ = image.shape
 
     patch_overlap = -patch_jitter if patch_jitter < 0 else 0
 
-    h_grid = (h - patch_overlap) // split_per_side
-    w_grid = (w - patch_overlap) // split_per_side
-    d_grid = (d - patch_overlap) // split_per_side
+    h_grid = (h - patch_overlap) // patches_per_side
+    w_grid = (w - patch_overlap) // patches_per_side
+    d_grid = (d - patch_overlap) // patches_per_side
     h_patch = h_grid - patch_jitter
     w_patch = w_grid - patch_jitter
     d_patch = d_grid - patch_jitter
 
     patches = []
-    for i in range(split_per_side):
-        for j in range(split_per_side):
-            for k in range(split_per_side):
+    for i in range(patches_per_side):
+        for j in range(patches_per_side):
+            for k in range(patches_per_side):
 
                 p = do_crop_3d(image,
                             i * h_grid,
@@ -35,19 +35,19 @@ def crop_patches_3d(image, is_training, split_per_side, patch_jitter=0):
     return patches
 
 
-def crop_patches(image, is_training, split_per_side, patch_jitter=0):
+def crop_patches(image, is_training, patches_per_side, patch_jitter=0):
     h, w, _ = image.shape
 
     patch_overlap = - patch_jitter if patch_jitter < 0 else 0
 
-    h_grid = (h - patch_overlap) // split_per_side
-    w_grid = (w - patch_overlap) // split_per_side
+    h_grid = (h - patch_overlap) // patches_per_side
+    w_grid = (w - patch_overlap) // patches_per_side
     h_patch = h_grid - patch_jitter
     w_patch = w_grid - patch_jitter
 
     patches = []
-    for i in range(split_per_side):
-        for j in range(split_per_side):
+    for i in range(patches_per_side):
+        for j in range(patches_per_side):
 
             p = do_crop(image,
                         i * h_grid,

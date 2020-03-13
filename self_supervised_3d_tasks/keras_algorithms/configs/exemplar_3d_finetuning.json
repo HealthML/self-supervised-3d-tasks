@@ -19,7 +19,7 @@
 
   "top_architecture": "big_fully",
   "prediction_architecture": "unet_3d_upconv",
-  "n_channels": 1,
+  "number_channels": 1,
   "batch_size": 3,
 
   "exp_splits": [100,10,1,50,25],

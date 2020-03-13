@@ -16,7 +16,7 @@ python train_and_eval.py \
   --optimizer adam \
   \
   --preprocessing duplicate_channels3d,crop_patches3d \
-  --splits_per_side 3 \
+  --patches_per_side 3 \
   --patch_jitter 10 \
   --perm_subset_size 8 \
   --embed_dim 1000 \

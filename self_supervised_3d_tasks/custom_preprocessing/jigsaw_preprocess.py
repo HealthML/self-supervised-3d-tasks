@@ -8,13 +8,13 @@ from self_supervised_3d_tasks.custom_preprocessing.crop import crop_patches, cro
 from self_supervised_3d_tasks.custom_preprocessing.pad import pad_to_final_size_3d, pad_to_final_size_2d
 
 
-def preprocess_image(image, is_training, split_per_side, patch_jitter, permutations, mode3d):
+def preprocess_image(image, is_training, patches_per_side, patch_jitter, permutations, mode3d):
     label = random.randint(0, len(permutations) - 1)
 
     if mode3d:
-        patches = crop_patches_3d(image, is_training, split_per_side, patch_jitter)
+        patches = crop_patches_3d(image, is_training, patches_per_side, patch_jitter)
     else:
-        patches = crop_patches(image, is_training, split_per_side, patch_jitter)
+        patches = crop_patches(image, is_training, patches_per_side, patch_jitter)
 
     b = np.zeros((len(permutations),))
     b[label] = 1
@@ -22,12 +22,12 @@ def preprocess_image(image, is_training, split_per_side, patch_jitter, permutati
     return np.array(patches)[np.array(permutations[label])], np.array(b)
 
 
-def preprocess(batch, split_per_side, patch_jitter, permutations, is_training=True, mode3d=False):
+def preprocess(batch, patches_per_side, patch_jitter, permutations, is_training=True, mode3d=False):
     xs = []
     ys = []
 
     for image in batch:
-        x, y = preprocess_image(image, is_training, split_per_side, patch_jitter, permutations, mode3d)
+        x, y = preprocess_image(image, is_training, patches_per_side, patch_jitter, permutations, mode3d)
         xs.append(x)
         ys.append(y)
 
@@ -37,19 +37,19 @@ def preprocess(batch, split_per_side, patch_jitter, permutations, is_training=Tr
     return xs, ys
 
 
-def preprocess_image_crop_only(image, split_per_side, is_training, mode3d):
+def preprocess_image_crop_only(image, patches_per_side, is_training, mode3d):
     if mode3d:
-        patches = crop_patches_3d(image, is_training, split_per_side, 0)
+        patches = crop_patches_3d(image, is_training, patches_per_side, 0)
     else:
-        patches = crop_patches(image, is_training, split_per_side, 0)
+        patches = crop_patches(image, is_training, patches_per_side, 0)
     return np.stack(patches)
 
 
-def preprocess_crop_only(batch, split_per_side, is_training=True, mode3d=False):
+def preprocess_crop_only(batch, patches_per_side, is_training=True, mode3d=False):
     xs = []
 
     for image in batch:
-        x = preprocess_image_crop_only(image, split_per_side, is_training, mode3d)
+        x = preprocess_image_crop_only(image, patches_per_side, is_training, mode3d)
         xs.append(x)
 
     return np.stack(xs)

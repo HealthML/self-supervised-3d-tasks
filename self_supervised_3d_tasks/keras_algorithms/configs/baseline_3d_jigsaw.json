@@ -5,7 +5,7 @@
   "train_data_generator_args": {"shuffle": true},
   "dataset_name": "pancreas3d",
   "data_dim": 128,
-  "n_channels": 1,
+  "number_channels": 1,
   "train3D": true,
   "batch_size": 1,
   "prediction_architecture": "unet_3d_upconv",

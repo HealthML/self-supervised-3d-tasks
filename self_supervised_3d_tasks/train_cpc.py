@@ -29,20 +29,20 @@ def train_model(epochs, code_size, lr=1e-4, terms=4, predict_terms=4, image_size
     data_dir = "/mnt/mpws2019cl1/retinal_fundus/left/max_256/"
 
     crop_size = 186
-    split_per_side = 7
-    n_channels = 3
+    patches_per_side = 7
+    number_channels = 3
 
-    f_train = lambda x, y: preprocess_grid(preprocess(x, crop_size, split_per_side))
-    f_val = lambda x, y: preprocess_grid(preprocess(x, crop_size, split_per_side, is_training=False))
+    f_train = lambda x, y: preprocess_grid(preprocess(x, crop_size, patches_per_side))
+    f_val = lambda x, y: preprocess_grid(preprocess(x, crop_size, patches_per_side, is_training=False))
 
     train_data, validation_data = get_data_generators(data_dir, train_split=0.7,
                                                       train_data_generator_args={"batch_size": batch_size,
                                                                                  "dim": (192, 192),
-                                                                                 "n_channels": n_channels,
+                                                                                 "number_channels": number_channels,
                                                                                  "pre_proc_func": f_train},
                                                       test_data_generator_args={"batch_size": batch_size,
                                                                                 "dim": (192, 192),
-                                                                                "n_channels": n_channels,
+                                                                                "number_channels": number_channels,
                                                                                 "pre_proc_func": f_val}
                                                       )
 
@@ -51,7 +51,7 @@ def train_model(epochs, code_size, lr=1e-4, terms=4, predict_terms=4, image_size
     # validation_data = PatchMatcher(is_training=False, session=session, batch_size=batch_size)
 
     # Prepares the model
-    model, _ = network_cpc(image_shape=(image_size, image_size, n_channels), terms=terms, predict_terms=predict_terms,
+    model, _ = network_cpc(image_shape=(image_size, image_size, number_channels), terms=terms, predict_terms=predict_terms,
                         code_size=code_size, learning_rate=lr)
 
     # Logs the progress

@@ -22,7 +22,7 @@ class RelativePatchLocationBuilder:
             self,
             data_dim=384,
             embed_dim=0,  # not using embed dim anymore
-            n_channels=3,
+            number_channels=3,
             patches_per_side=3,
             patch_jitter=0,
             lr=1e-3,
@@ -33,7 +33,7 @@ class RelativePatchLocationBuilder:
         self.cleanup_models = []
         self.data_dim = data_dim
         self.embed_dim = 0
-        self.n_channels = n_channels
+        self.number_channels = number_channels
         self.patch_jitter = patch_jitter
         self.lr = lr
         self.train3D = train3D
@@ -43,7 +43,7 @@ class RelativePatchLocationBuilder:
         self.patches_per_side = patches_per_side
         self.patch_dim = (data_dim // patches_per_side) - patch_jitter
 
-        self.patch_shape = (self.patch_dim, self.patch_dim, n_channels)
+        self.patch_shape = (self.patch_dim, self.patch_dim, number_channels)
         self.patch_count = patches_per_side**2
         if self.train3D:
             self.patch_shape = (self.patch_dim,) + self.patch_shape
@@ -117,7 +117,7 @@ class RelativePatchLocationBuilder:
 
         if self.train3D:
             model_skips, self.layer_data = make_finetuning_encoder_3d(
-                (self.data_dim, self.data_dim, self.data_dim, self.n_channels,),
+                (self.data_dim, self.data_dim, self.data_dim, self.number_channels,),
                 self.enc_model,
                 **self.kwargs
             )
@@ -125,7 +125,7 @@ class RelativePatchLocationBuilder:
             return model_skips
         else:
             new_enc = make_finetuning_encoder_2d(
-                (self.data_dim, self.data_dim, self.n_channels,),
+                (self.data_dim, self.data_dim, self.number_channels,),
                 self.enc_model,
                 **self.kwargs
             )

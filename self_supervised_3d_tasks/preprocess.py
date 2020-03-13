@@ -568,13 +568,13 @@ def get_preprocess_fn(fn_names, is_training, **dependend_params):
             elif fn_name == "crop_patches":
                 yield pp_lib.get_crop_patches_fn(
                     is_training,
-                    split_per_side=dependend_params["splits_per_side"],
+                    patches_per_side=dependend_params["patches_per_side"],
                     patch_jitter=dependend_params.get("patch_jitter", 0),
                 )
             elif fn_name == "crop_patches3d":
                 yield pp_lib.get_crop_patches3d_fn(
                     is_training,
-                    split_per_side=dependend_params["splits_per_side"],
+                    patches_per_side=dependend_params["patches_per_side"],
                     patch_jitter=dependend_params.get("patch_jitter", 0),
                 )
             elif fn_name == "standardization":

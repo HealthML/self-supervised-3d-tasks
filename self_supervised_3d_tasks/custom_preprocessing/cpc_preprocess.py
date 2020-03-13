@@ -10,7 +10,7 @@ def resize(batch, new_size):
     return np.array([ab.Resize(new_size, new_size)(image=image)["image"] for image in batch])
 
 
-def preprocess_image(image, patch_jitter, split_per_side, crop_size, is_training=True):
+def preprocess_image(image, patch_jitter, patches_per_side, crop_size, is_training=True):
     result = []
     w, h, _ = image.shape
 
@@ -18,7 +18,7 @@ def preprocess_image(image, patch_jitter, split_per_side, crop_size, is_training
         image = crop(image, is_training, (crop_size, crop_size))
         image = pad_to_final_size_2d(image, w)
 
-    for patch in crop_patches(image, is_training, split_per_side, patch_jitter):
+    for patch in crop_patches(image, is_training, patches_per_side, patch_jitter):
         if is_training:
             normal_patch_size = patch.shape[0]
             patch_crop_size = int(normal_patch_size * (11.0 / 12.0))
@@ -41,13 +41,13 @@ def preprocess_image(image, patch_jitter, split_per_side, crop_size, is_training
     return np.asarray(result)
 
 
-def preprocess(batch, crop_size, split_per_side, is_training=True):
+def preprocess(batch, crop_size, patches_per_side, is_training=True):
     _, w, h, _ = batch.shape
     assert w == h, "accepting only squared images"
 
-    patch_jitter = int(- w / (split_per_side + 1))  # overlap half of the patch size
+    patch_jitter = int(- w / (patches_per_side + 1))  # overlap half of the patch size
     return np.array([preprocess_image(image=image, patch_jitter=patch_jitter,
-                                      split_per_side=split_per_side, crop_size=crop_size,
+                                      patches_per_side=patches_per_side, crop_size=crop_size,
                                       is_training=is_training) for image in batch])
 
 

@@ -5,13 +5,12 @@
   "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_pancreas3d_5/weights-improvement-001.hdf5",
   "dataset_name": "pancreas3d",
   "train_data_generator_args": {"shuffle": true},
-
   "train3D": true,
   "val_split": 0.05,
 
   "code_size": 1024,
   "enc_filters": 8,
-  "split_per_side": 4,
+  "patches_per_side": 4,
   "data_dim": 128,
 
   "loss": "weighted_dice_loss",
@@ -20,7 +19,7 @@
 
   "prediction_architecture": "unet_3d_upconv",
   "pooling": "avg",
-  "n_channels": 1,
+  "number_channels": 1,
   "batch_size": 7,
 
   "lr": 0.001,

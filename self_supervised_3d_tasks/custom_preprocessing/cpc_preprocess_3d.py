@@ -4,7 +4,7 @@ from self_supervised_3d_tasks.custom_preprocessing.crop import crop_patches_3d, 
 from self_supervised_3d_tasks.custom_preprocessing.pad import pad_to_final_size_3d
 
 
-def preprocess_volume_3d(volume, crop_size, split_per_side, patch_overlap, is_training=True):
+def preprocess_volume_3d(volume, crop_size, patches_per_side, patch_overlap, is_training=True):
     result = []
     w, _, _, _ = volume.shape
 
@@ -12,7 +12,7 @@ def preprocess_volume_3d(volume, crop_size, split_per_side, patch_overlap, is_tr
         volume = crop_3d(volume, is_training, (crop_size, crop_size, crop_size))
         volume = pad_to_final_size_3d(volume, w)
 
-    for patch in crop_patches_3d(volume, is_training, split_per_side, -patch_overlap):
+    for patch in crop_patches_3d(volume, is_training, patches_per_side, -patch_overlap):
         if is_training:
             normal_patch_size = patch.shape[0]
             patch_crop_size = int(normal_patch_size * (7.0 / 8.0))
@@ -32,12 +32,12 @@ def preprocess_volume_3d(volume, crop_size, split_per_side, patch_overlap, is_tr
     return np.asarray(result)
 
 
-def preprocess_3d(batch, crop_size, split_per_side, is_training=True):
+def preprocess_3d(batch, crop_size, patches_per_side, is_training=True):
     _, w, h, d, _ = batch.shape
     assert w == h and h == d, "accepting only cube volumes"
 
     patch_overlap = 0  # dont use overlap here
-    return np.stack([preprocess_volume_3d(volume, crop_size, split_per_side, patch_overlap, is_training=is_training)
+    return np.stack([preprocess_volume_3d(volume, crop_size, patches_per_side, patch_overlap, is_training=is_training)
                      for volume in batch])
 
 

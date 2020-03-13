@@ -29,13 +29,13 @@ def run_single_test(train_split, test_split, load_weights, freeze_weights, save_
     predict_terms = 3
     image_size = 46
     batch_size = 64
-    n_channels = 3
+    number_channels = 3
     crop_size = 186
-    split_per_side = 7
-    img_shape = (image_size, image_size, n_channels)
+    patches_per_side = 7
+    img_shape = (image_size, image_size, number_channels)
 
-    f_train = lambda x, y: (preprocess(resize(x, 192), crop_size, split_per_side, is_training=False), y)
-    f_val = lambda x, y: (preprocess(resize(x, 192), crop_size, split_per_side, is_training=False), y)
+    f_train = lambda x, y: (preprocess(resize(x, 192), crop_size, patches_per_side, is_training=False), y)
+    f_val = lambda x, y: (preprocess(resize(x, 192), crop_size, patches_per_side, is_training=False), y)
 
     gen = KaggleGenerator(batch_size=batch_size, split=train_split, shuffle=False, pre_proc_func_train=f_train,
                           pre_proc_func_val=f_val)
@@ -53,7 +53,7 @@ def run_single_test(train_split, test_split, load_weights, freeze_weights, save_
     if freeze_weights:
         enc_model.trainable = False
 
-    layer_in = keras.layers.Input((split_per_side * split_per_side,) + img_shape)
+    layer_in = keras.layers.Input((patches_per_side * patches_per_side,) + img_shape)
     layer_out = keras.layers.TimeDistributed(enc_model)(layer_in)
 
     x = Flatten()(layer_out)

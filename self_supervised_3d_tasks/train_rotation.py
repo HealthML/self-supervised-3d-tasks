@@ -49,7 +49,7 @@ def train_model(epochs,
                 data_dir,
                 batch_size=8,
                 lr=1e-3,
-                n_channels=3):
+                number_channels=3):
     """
     This method trains a resnet on Rotation task
     :param epochs: number of epochs
@@ -58,24 +58,24 @@ def train_model(epochs,
     :param data_dir: path to images
     :param batch_size: batch size
     :param lr: learning rate
-    :param n_channels: number of channels
+    :param number_channels: number of channels
     :return:
     """
     # init data generator
     train_data, validation_data = get_data_generators(data_dir, train_split=0.7,
                                                       train_data_generator_args={"batch_size": batch_size,
                                                                                  "dim": dim,
-                                                                                 "n_channels": n_channels,
+                                                                                 "number_channels": number_channels,
                                                                                  "pre_proc_func": rotation_2d},
                                                       test_data_generator_args={"batch_size": batch_size,
                                                                                 "dim": dim,
-                                                                                "n_channels": n_channels,
+                                                                                "number_channels": number_channels,
                                                                                 "pre_proc_func": rotation_2d}
                                                       )
 
 
     # compile model
-    model = get_res_net_2d(input_shape=[*dim, n_channels], classes=4, architecture="ResNet50", learning_rate=lr)
+    model = get_res_net_2d(input_shape=[*dim, number_channels], classes=4, architecture="ResNet50", learning_rate=lr)
 
     # Callbacks
     tb_callback = keras.callbacks.TensorBoard(log_dir=work_dir, histogram_freq=0,
@@ -124,6 +124,6 @@ if __name__ == "__main__":
                 lr=1e-4,
                 work_dir=working_dir,
                 data_dir=data_path,
-                n_channels=number_channels
+                number_channels=number_channels
             )
 

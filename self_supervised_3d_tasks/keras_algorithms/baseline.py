@@ -24,7 +24,7 @@ def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-
         data = get_data_norm_npy(p1)
 
         import self_supervised_3d_tasks.keras_algorithms.jigsaw as jig
-        instance = jig.create_instance(train3D=True, data_dim=128, patch_dim=48, split_per_side=3)
+        instance = jig.create_instance(train3D=True, data_dim=128, patch_dim=48, patches_per_side=3)
 
         data = np.expand_dims(data, axis=0)
         data, _ = instance.get_finetuning_preprocessing()[0](data, data)
