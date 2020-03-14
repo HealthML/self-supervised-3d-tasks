@@ -336,7 +336,6 @@ def apply_encoder_model_3d(
         raise ValueError("code size not allowed here anymore")
         x = Flatten()(model.outputs[0])
         x = Dense(code_size, activation="sigmoid")(x)
-
         enc_model = Model(model.inputs[0], x, name="encoder")
     else:
         enc_model = model
@@ -367,7 +366,10 @@ def apply_encoder_model(
 
         x = Dense(code_size)(x)
 
-    enc_model = Model(model.inputs[0], x, name="encoder")
+        enc_model = Model(model.inputs[0], x, name="encoder")
+    else:
+        enc_model = model
+
     return enc_model
 
 
