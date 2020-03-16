@@ -9,10 +9,10 @@ from tensorflow.keras.layers import Flatten, TimeDistributed
 from self_supervised_3d_tasks.algorithms.algorithm_base import AlgorithmBuilderBase
 from self_supervised_3d_tasks.custom_utils import apply_encoder_model_3d, apply_encoder_model
 from self_supervised_3d_tasks.preprocessing.preprocess_cpc import (
-    preprocess_grid,
-    preprocess,
+    preprocess_grid_2d,
     preprocess_3d,
-    preprocess_grid_3d
+    preprocess_grid_3d,
+    preprocess_2d
 )
 
 def network_autoregressive(x):
@@ -118,7 +118,7 @@ class CPCBuilder(AlgorithmBuilderBase):
 
     def get_training_preprocessing(self):
         def f(x, y):  # not using y here, as it gets generated
-            return preprocess_grid(preprocess(x, self.crop_size, self.patches_per_side))
+            return preprocess_grid_2d(preprocess_2d(x, self.crop_size, self.patches_per_side))
 
         def f_3d(x, y):  # not using y here, as it gets generated
             return preprocess_grid_3d(preprocess_3d(x, self.crop_size, self.patches_per_side))

@@ -1,11 +1,9 @@
 import random
 
-import albumentations as ab
-import cv2
 import numpy as np
 
-from self_supervised_3d_tasks.preprocessing.crop import crop_patches, crop_patches_3d
-from self_supervised_3d_tasks.preprocessing.pad import pad_to_final_size_3d, pad_to_final_size_2d
+from self_supervised_3d_tasks.preprocessing.utils.crop import crop_patches, crop_patches_3d
+from self_supervised_3d_tasks.preprocessing.utils.pad import pad_to_final_size_3d, pad_to_final_size_2d
 
 
 def preprocess_image(image, is_training, patches_per_side, patch_jitter, permutations, mode3d):
