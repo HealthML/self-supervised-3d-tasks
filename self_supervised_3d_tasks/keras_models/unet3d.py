@@ -89,14 +89,13 @@ def downconv_model_3d(
     elif pooling == "avg":
         x = AveragePooling3D((2, 2, 2))(x)
 
-
     model = Model(inputs=[inputs], outputs=[x])
     return model, [down_layers, filters]
 
-
+# FIXME set the num_classes in the config file
 def upconv_model_3d(
         input_shape,
-        num_classes=3,
+        num_classes=4,
         use_batch_norm=True,
         upsample_mode="deconv",  # 'deconv' or 'simple'
         use_dropout_on_upsampling=True,

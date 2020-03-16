@@ -1,4 +1,4 @@
-name: conda-env
+name: conda-env2
 dependencies:
   - absl-py
   - h5py
@@ -14,8 +14,15 @@ dependencies:
   - cudnn
   - pip
   - networkx==2.2
+  - seaborn
+  - tqdm
+  - pydot
   - pip:
     - tensorflow_hub
     - tensorflow==2.1
     - tensorflow-gpu==2.1
+    - nibabel
+    - hyperopt
+    - albumentations
+    - tensorflow_addons
 

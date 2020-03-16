@@ -41,7 +41,7 @@ class CPCLayer(keras.layers.Layer):
     def __init__(self, **kwargs):
         super(CPCLayer, self).__init__(**kwargs)
 
-    def call(self, inputs):
+    def call(self, inputs, **kwargs):
         # Compute dot product among vectors
         preds, y_encoded = inputs
         dot_product = K.mean(y_encoded * preds, axis=-1)

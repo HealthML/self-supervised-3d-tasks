@@ -19,7 +19,9 @@ keras_algorithm_list = {
 
 data_gen_list = {
     "kaggle_retina": DataGeneratorUnlabeled2D,
-    "pancreas3d": DataGeneratorUnlabeled3D
+    "pancreas3d": DataGeneratorUnlabeled3D,
+    "brats": DataGeneratorUnlabeled3D,
+    "ukb": DataGeneratorUnlabeled3D
 }
 
 
@@ -29,10 +31,10 @@ def get_dataset(data_dir, batch_size, f_train, f_val, train_val_split, dataset_n
 
     train_data, validation_data = get_data_generators(data_dir, train_split=train_val_split,
                                                       train_data_generator_args={**{"batch_size": batch_size,
-                                                                                 "pre_proc_func": f_train},
+                                                                                    "pre_proc_func": f_train},
                                                                                  **train_data_generator_args},
                                                       val_data_generator_args={**{"batch_size": batch_size,
-                                                                                "pre_proc_func": f_val},
+                                                                                  "pre_proc_func": f_val},
                                                                                **val_data_generator_args},
                                                       data_generator=data_gen_type)
 
