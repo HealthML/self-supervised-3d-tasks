@@ -1,42 +1,30 @@
-import numpy as np
-from tensorflow.keras.layers import Flatten
-
-from tensorflow.keras.layers import MaxPooling3D
-from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import Reshape
-from tensorflow.keras.models import load_model, Model
-from tensorflow.python.keras import Input
-from tensorflow.python.keras.layers import UpSampling3D
-from tensorflow.python.keras.layers.pooling import Pooling3D
 
+from self_supervised_3d_tasks.algorithms.algorithm_base import AlgorithmBuilderBase
+from self_supervised_3d_tasks.custom_utils import (
+    apply_encoder_model,
+    apply_encoder_model_3d,
+    apply_prediction_model_to_encoder)
 from self_supervised_3d_tasks.preprocessing.rotation_preprocess import (
     rotate_batch,
     rotate_batch_3d,
 )
-from self_supervised_3d_tasks.algorithms.custom_utils import (
-    apply_encoder_model,
-    apply_encoder_model_3d,
-    apply_prediction_model, apply_prediction_model_to_encoder)
 
 
-class RotationBuilder:
+class RotationBuilder(AlgorithmBuilderBase):
     def __init__(
             self,
             data_dim=384,
-            embed_dim=0,  # not using embed dim anymore
             number_channels=3,
             lr=1e-4,
             train3D=False,
             top_architecture="big_fully",
             **kwargs
     ):
-        self.data_dim = data_dim
-        self.number_channels = number_channels
-        self.lr = lr
+        super(RotationBuilder, self).__init__(data_dim, number_channels, lr, train3D, **kwargs)
+
         self.image_size = data_dim
-        self.embed_dim = 0
         self.img_shape = (self.image_size, self.image_size, number_channels)
         self.img_shape_3d = (
             self.image_size,
@@ -45,22 +33,16 @@ class RotationBuilder:
             number_channels,
         )
         self.top_architecture = top_architecture
-        self.train3D = train3D
-
-        self.kwargs = kwargs
-        self.enc_model = None
-        self.cleanup_models = []
-        self.layer_data = []
 
     def apply_model(self):
         if self.train3D:
             self.enc_model, self.layer_data = apply_encoder_model_3d(
-                self.img_shape_3d, self.embed_dim, **self.kwargs
+                self.img_shape_3d, 0, **self.kwargs
             )
             x = Dense(10, activation="softmax")
         else:
             self.enc_model = apply_encoder_model(
-                self.img_shape, self.embed_dim, **self.kwargs
+                self.img_shape, 0, **self.kwargs
             )
             x = Dense(4, activation="softmax")
 
@@ -93,35 +75,6 @@ class RotationBuilder:
         else:
             return f, f
 
-    def get_finetuning_preprocessing(self):
-        def f_identity(x, y):
-            return x, y
-
-        return f_identity, f_identity
-
-    def get_finetuning_model(self, model_checkpoint=None):
-        org_model = self.apply_model()
-        assert self.enc_model is not None, "no encoder model"
-
-        if model_checkpoint is not None:
-            org_model.load_weights(model_checkpoint)
-
-        self.cleanup_models.append(org_model)
-
-        if self.train3D:
-            assert self.layer_data is not None, "no layer data for 3D"
-
-            self.layer_data.append(isinstance(self.enc_model.layers[-1], Pooling3D))
-            self.cleanup_models.append(self.enc_model)
-
-            self.enc_model = Model(
-                inputs=[self.enc_model.layers[0].input],
-                outputs=[
-                    self.enc_model.layers[-1].output,
-                    *reversed(self.layer_data[0])
-                ])
-
-        return self.enc_model
 
     def purge(self):
         for i in reversed(range(len(self.cleanup_models))):

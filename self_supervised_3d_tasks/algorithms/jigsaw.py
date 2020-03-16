@@ -1,15 +1,11 @@
-import numpy as np
-from tensorflow.keras.layers import Reshape
-from tensorflow.keras import Input, Model, Sequential
-from tensorflow.keras.layers import TimeDistributed, Flatten, Dense, MaxPooling3D, UpSampling3D
+from tensorflow.keras import Input, Model
+from tensorflow.keras.layers import TimeDistributed, Flatten, Dense
 from tensorflow.keras.optimizers import Adam
-from tensorflow.python.keras.layers.pooling import Pooling3D
 
+from self_supervised_3d_tasks.algorithms.algorithm_base import AlgorithmBuilderBase
 from self_supervised_3d_tasks.preprocessing.jigsaw_preprocess import (
-    preprocess,
-    preprocess_pad,
-    preprocess_crop_only)
-from self_supervised_3d_tasks.algorithms.custom_utils import (
+    preprocess)
+from self_supervised_3d_tasks.custom_utils import (
     apply_encoder_model,
     apply_encoder_model_3d,
     load_permutations,
@@ -17,7 +13,7 @@ from self_supervised_3d_tasks.algorithms.custom_utils import (
     apply_prediction_model, make_finetuning_encoder_3d, make_finetuning_encoder_2d)
 
 
-class JigsawBuilder:
+class JigsawBuilder(AlgorithmBuilderBase):
     def __init__(
             self,
             data_dim=384,
@@ -25,28 +21,19 @@ class JigsawBuilder:
             patch_jitter=0,
             number_channels=3,
             lr=1e-4,
-            embed_dim=0,  # not using embed dim anymore
             train3D=False,
             top_architecture="big_fully",
             **kwargs
     ):
+        super(JigsawBuilder, self).__init__(data_dim, number_channels, lr, train3D, **kwargs)
+
         self.top_architecture = top_architecture
-        self.data_dim = data_dim
         self.patches_per_side = patches_per_side
         self.patch_jitter = patch_jitter
-        self.number_channels = number_channels
-        self.lr = lr
-        self.embed_dim = 0
         self.n_patches = patches_per_side * patches_per_side
         self.n_patches3D = patches_per_side * patches_per_side * patches_per_side
 
         self.patch_dim = (data_dim // patches_per_side) - patch_jitter
-        self.train3D = train3D
-        self.kwargs = kwargs
-        self.cleanup_models = []
-
-        self.layer_data = None
-        self.enc_model = None
 
     def apply_model(self):
         if self.train3D:
@@ -63,7 +50,7 @@ class JigsawBuilder:
             )
             self.enc_model, _ = apply_encoder_model_3d(
                 (self.patch_dim, self.patch_dim, self.patch_dim, self.number_channels,),
-                self.embed_dim, **self.kwargs
+                0, **self.kwargs
             )
         else:
             perms, _ = load_permutations()
@@ -72,7 +59,7 @@ class JigsawBuilder:
                 (self.n_patches, self.patch_dim, self.patch_dim, self.number_channels)
             )
             self.enc_model = apply_encoder_model(
-                (self.patch_dim, self.patch_dim, self.number_channels,), self.embed_dim, **self.kwargs
+                (self.patch_dim, self.patch_dim, self.number_channels,), 0, **self.kwargs
             )
 
         x = TimeDistributed(self.enc_model)(input_x)
@@ -131,38 +118,8 @@ class JigsawBuilder:
 
         return f_train, f_val
 
-    def get_finetuning_preprocessing(self):
-        def f_identity(x, y):
-            return x, y,
-
-        return f_identity, f_identity
-
     def get_finetuning_model(self, model_checkpoint=None):
-        model_full = self.apply_model()
-        assert self.enc_model is not None, "no encoder model"
-
-        if model_checkpoint is not None:
-            model_full.load_weights(model_checkpoint)
-
-        self.cleanup_models.append(model_full)
-        self.cleanup_models.append(self.enc_model)
-
-        if self.train3D:
-            model_skips, self.layer_data = make_finetuning_encoder_3d(
-                (self.data_dim, self.data_dim, self.data_dim, self.number_channels,),
-                self.enc_model,
-                **self.kwargs
-            )
-
-            return model_skips
-        else:
-            new_enc = make_finetuning_encoder_2d(
-                (self.data_dim, self.data_dim, self.number_channels,),
-                self.enc_model,
-                **self.kwargs
-            )
-
-            return new_enc
+        return super(JigsawBuilder, self).get_finetuning_model_patches(model_checkpoint)
 
     def purge(self):
         for i in reversed(range(len(self.cleanup_models))):

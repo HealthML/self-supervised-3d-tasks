@@ -5,7 +5,7 @@ import sys
 sys.path.append('/home/Aiham.Taleb/workspace/self-supervised-3d-tasks/')
 from pathlib import Path
 
-from self_supervised_3d_tasks.algorithms.custom_utils import init
+from self_supervised_3d_tasks.custom_utils import init
 from self_supervised_3d_tasks.train import keras_algorithm_list
 from self_supervised_3d_tasks import test as ts
 import numpy as np

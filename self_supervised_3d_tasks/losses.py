@@ -2,17 +2,23 @@ import numpy as np
 from tensorflow.keras import backend as K
 
 
-def metrics(weights):
-    xx = weighted_categorical_crossentropy(weights)
+def triplet_loss(y_true, y_pred, _alpha=1.0):
+    """
+    This function returns the calculated triplet loss for y_pred
+    :param y_true: not needed
+    :param y_pred: predictions of the model
+    :param embedding_size: length of embedding
+    :param _alpha: defines the shift of the loss
+    :return: calculated loss
+    """
 
-    def m1(y_true, y_pred):
-        return jaccard_distance(y_true, y_pred)
-
-    def m2(y_true, y_pred):
-        return xx(y_true, y_pred)
-
-    def m3(y_true, y_pred):
-        pass
+    positive_distance = K.mean(
+        K.square(y_pred[:, 0] - y_pred[:, 1]), axis=-1
+    )
+    negative_distance = K.mean(
+        K.square(y_pred[:, 0] - y_pred[:, 2]), axis=-1
+    )
+    return K.mean(K.maximum(0.0, positive_distance - negative_distance + _alpha))
 
 
 def weighted_categorical_crossentropy(weights, debug=False):
@@ -43,9 +49,6 @@ def weighted_categorical_crossentropy(weights, debug=False):
         loss_a = y_true * K.log(yb) * weights
         loss_b = -K.sum(loss_a, -1)
         loss_c = K.mean(loss_b)
-
-        if debug:
-            return loss_a, loss_b, loss_c, yb,
 
         return loss_c
 

@@ -2,11 +2,11 @@ import functools
 import os
 import random
 
-from self_supervised_3d_tasks.algorithms.callbacks import TerminateOnNaN, NaNLossError, LogCSVWithStart
-from self_supervised_3d_tasks.algorithms.losses import weighted_sum_loss, jaccard_distance, \
+from self_supervised_3d_tasks.callbacks import TerminateOnNaN, NaNLossError, LogCSVWithStart
+from self_supervised_3d_tasks.losses import weighted_sum_loss, jaccard_distance, \
     weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss, \
     weighted_dice_coefficient_per_class
-from self_supervised_3d_tasks.algorithms.custom_utils import init
+from self_supervised_3d_tasks.custom_utils import init
 
 import csv
 import gc
@@ -27,7 +27,7 @@ from self_supervised_3d_tasks.data.make_data_generator import get_data_generator
 from self_supervised_3d_tasks.data.segmentation_task_loader import (
     SegmentationGenerator3D,
 )
-from self_supervised_3d_tasks.algorithms.custom_utils import (
+from self_supervised_3d_tasks.custom_utils import (
     apply_prediction_model,
     get_writing_path,
 )
