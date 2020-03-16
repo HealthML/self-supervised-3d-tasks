@@ -4,10 +4,10 @@ Keras implementation of multiple self-supervised methods on 2D and 3D medical da
 
 ## Overview
 
-This codebase contains a re-implementation of five self-supervised representation learning
+This codebase contains a implementation of five self-supervised representation learning
 techniques, utility code for running training and evaluation loops.
 
-Specifically, we provide a re-implementation of the following self-supervised representation learning techniques:
+Specifically, we provide a implementation of the following self-supervised representation learning techniques:
 
 1.  [Unsupervised Representation Learning by Predicting Image Rotations](https://arxiv.org/abs/1803.07728)
 2.  [Unsupervised Visual Representation Learning by Context Prediction](https://arxiv.org/abs/1505.05192)
