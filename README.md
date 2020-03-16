@@ -75,7 +75,7 @@ Training:
     "shuffle": true
   },
   "val_data_generator_args": {"augment": false},
-  "embed_dim": 1024,
+  "code_size": "CPC, Exemplar specific. Specify the dimension of the latent space",
   "save_checkpoint_every_n_epochs": "Backup epoch even without improvements every n epochs. As Integer.",
   "alpha_triplet": 0.2,
   "val_split": 0.05,
