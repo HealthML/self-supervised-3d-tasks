@@ -164,7 +164,7 @@ if __name__ == "__main__":
     # draw_train_split_plot(combined_3d_path, combined_labels, split_3d_metric, skips=[25])
 
     epoch_2d_metric = "val_accuracy"
-    draw_epoch_plot(combined_2d_path, combined_labels, epoch_2d_metric, nth_epoch=1, )
+    draw_epoch_plot(combined_2d_path, combined_labels, epoch_2d_metric, nth_epoch=1)
     epoch_3d_metric = "val_dice_class_1"
     # draw_epoch_plot(combined_3d_path, combined_labels, epoch_3d_metric, nth_epoch=1, neighbour_count=10)
 
