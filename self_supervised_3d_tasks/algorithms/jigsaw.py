@@ -5,7 +5,7 @@ from tensorflow.keras.layers import TimeDistributed, Flatten, Dense, MaxPooling3
 from tensorflow.keras.optimizers import Adam
 from tensorflow.python.keras.layers.pooling import Pooling3D
 
-from self_supervised_3d_tasks.preprocessing.jigsaw_preprocess import (
+from self_supervised_3d_tasks.preprocessing.preprocess_jigsaw import (
     preprocess,
     preprocess_pad,
     preprocess_crop_only)

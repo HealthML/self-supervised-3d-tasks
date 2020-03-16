@@ -2,7 +2,7 @@ import albumentations as ab
 from math import ceil
 import numpy as np
 from self_supervised_3d_tasks.preprocessing.crop import crop_patches, crop_patches_3d
-from self_supervised_3d_tasks.preprocessing.jigsaw_preprocess import preprocess_image_pad
+from self_supervised_3d_tasks.preprocessing.preprocess_jigsaw import preprocess_image_pad
 
 def preprocess_image(image, patches_per_side, patch_jitter, is_training):
     cropped_image = crop_patches(image, is_training, patches_per_side, patch_jitter)

@@ -11,7 +11,7 @@ from tensorflow.python.keras import Input
 from tensorflow.python.keras.layers import UpSampling3D
 from tensorflow.python.keras.layers.pooling import Pooling3D
 
-from self_supervised_3d_tasks.preprocessing.rotation_preprocess import (
+from self_supervised_3d_tasks.preprocessing.preprocess_rotation import (
     rotate_batch,
     rotate_batch_3d,
 )

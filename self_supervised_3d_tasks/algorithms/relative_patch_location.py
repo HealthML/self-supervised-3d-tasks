@@ -4,8 +4,8 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.python.keras.layers.pooling import Pooling3D
 from tensorflow_core.python.keras.models import load_model
 
-from self_supervised_3d_tasks.preprocessing.jigsaw_preprocess import preprocess_pad
-from self_supervised_3d_tasks.preprocessing.relative_patch_location import (
+from self_supervised_3d_tasks.preprocessing.preprocess_jigsaw import preprocess_pad
+from self_supervised_3d_tasks.preprocessing.preprocess_rpl import (
     preprocess_batch,
     preprocess_batch_3d
 )
