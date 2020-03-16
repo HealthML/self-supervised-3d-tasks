@@ -8,12 +8,12 @@ from tensorflow.keras.layers import Flatten, TimeDistributed
 
 from self_supervised_3d_tasks.algorithms.algorithm_base import AlgorithmBuilderBase
 from self_supervised_3d_tasks.custom_utils import apply_encoder_model_3d, apply_encoder_model
-from self_supervised_3d_tasks.preprocessing.cpc_preprocess import (
+from self_supervised_3d_tasks.preprocessing.preprocess_cpc import (
     preprocess_grid,
-    preprocess
+    preprocess,
+    preprocess_3d,
+    preprocess_grid_3d
 )
-from self_supervised_3d_tasks.preprocessing.cpc_preprocess_3d import preprocess_3d, preprocess_grid_3d
-
 
 def network_autoregressive(x):
     x = keras.layers.GRU(units=256, return_sequences=False)(x)

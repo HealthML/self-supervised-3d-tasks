@@ -9,7 +9,7 @@ from self_supervised_3d_tasks.custom_utils import (
     apply_encoder_model,
 )
 from self_supervised_3d_tasks.losses import triplet_loss
-from self_supervised_3d_tasks.preprocessing.preprocessing_exemplar import (
+from self_supervised_3d_tasks.preprocessing.preprocess_exemplar import (
     get_exemplar_training_preprocessing)
 
 

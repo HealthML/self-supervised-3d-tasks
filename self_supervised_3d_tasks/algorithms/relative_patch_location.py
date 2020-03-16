@@ -3,7 +3,7 @@ from tensorflow.keras.layers import TimeDistributed, Dense
 from tensorflow.keras.optimizers import Adam
 
 from self_supervised_3d_tasks.algorithms.algorithm_base import AlgorithmBuilderBase
-from self_supervised_3d_tasks.preprocessing.relative_patch_location import (
+from self_supervised_3d_tasks.preprocessing.preprocess_rpl import (
     preprocess_batch,
     preprocess_batch_3d
 )

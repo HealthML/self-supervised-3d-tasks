@@ -6,7 +6,7 @@ from self_supervised_3d_tasks.custom_utils import (
     apply_encoder_model,
     apply_encoder_model_3d,
     apply_prediction_model_to_encoder)
-from self_supervised_3d_tasks.preprocessing.rotation_preprocess import (
+from self_supervised_3d_tasks.preprocessing.preprocess_rotation import (
     rotate_batch,
     rotate_batch_3d,
 )
