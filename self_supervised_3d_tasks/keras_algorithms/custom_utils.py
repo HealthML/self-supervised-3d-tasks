@@ -365,7 +365,6 @@ def apply_encoder_model(
             x = Dropout(dropout_rate_before_embed_layer)(x)
 
         x = Dense(code_size)(x)
-
         enc_model = Model(model.inputs[0], x, name="encoder")
     else:
         enc_model = model

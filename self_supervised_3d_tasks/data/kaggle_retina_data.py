@@ -95,7 +95,7 @@ def __prepare_dataset(csv_file, sample_classes_uniform, shuffle_before_split):
     return file_list, dataset
 
 
-def get_kaggle_cross_validation(data_path, csv_file, sample_classes_uniform=False, k_fold=5, files=None,
+def get_kaggle_cross_validation(data_path, csv_file, sample_classes_uniform=False, k_fold=5,
                         train_data_generator_args={},
                         test_data_generator_args={},
                         val_data_generator_args={},
@@ -103,7 +103,7 @@ def get_kaggle_cross_validation(data_path, csv_file, sample_classes_uniform=Fals
                         **kwargs):
     file_list, dataset = __prepare_dataset(csv_file, sample_classes_uniform, shuffle_before_split)
 
-    return make_cross_validation(data_path, KaggleGenerator, k_fold=k_fold, files=files,
+    return make_cross_validation(data_path, KaggleGenerator, k_fold=k_fold, files=file_list,
                             train_data_generator_args={**{"dataset_table": dataset}, **train_data_generator_args},
                             test_data_generator_args={**{"dataset_table": dataset}, **test_data_generator_args},
                             val_data_generator_args={**{"dataset_table": dataset}, **val_data_generator_args},

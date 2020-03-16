@@ -81,16 +81,17 @@ class CrossValidationDataset():
                                             val_split=val_split,  # val split can only be used to throw away some data
                                             train_data_generator_args=self.train_data_generator_args,
                                             val_data_generator_args=self.val_data_generator_args,
+                                            test_data_generator_args=self.test_data_generator_args,
                                             **self.kwargs)
         test = get_data_generators_internal(self.data_path, test, self.data_generator, train_split=None,
                                                  val_split=None,
                                                  train_data_generator_args=self.test_data_generator_args,
                                                  **self.kwargs)
 
-        if len(tuple(train_and_val)) > 2:
+        if len(train_and_val) > 2:
             train_and_val = train_and_val[:2]  # remove the test generator
 
-        return tuple(train_and_val) + tuple(test)
+        return train_and_val + (test, )
 
 def chunkify(lst,n):
     return [lst[i::n] for i in range(n)]

@@ -24,7 +24,7 @@ from tensorflow.python.keras import Model
 from tensorflow.python.keras.metrics import BinaryAccuracy, CategoricalAccuracy
 from tensorflow.python.keras.callbacks import CSVLogger
 
-from self_supervised_3d_tasks.data.kaggle_retina_data import get_kaggle_generator
+from self_supervised_3d_tasks.data.kaggle_retina_data import get_kaggle_generator, get_kaggle_cross_validation
 from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
 from self_supervised_3d_tasks.data.segmentation_task_loader import (
     SegmentationGenerator3D,
@@ -220,7 +220,7 @@ def get_dataset_kaggle_test(
         f_test,
         csv_file_test,
         data_dir,
-        train_data_generator_args={},
+        train_data_generator_args={},  # DO NOT remove
         test_data_generator_args={},
         **kwargs,
 ):
@@ -293,16 +293,64 @@ def get_dataset_test(dataset_name, batch_size, f_test, kwargs):
 
     return get_data_from_gen(gen_test)
 
-# TODO: use this function to generate data, could be replaced by cross val
-def get_dataset_(repetition, dataset_name, batch_size, f_train, f_val, train_split, kwargs):
-    gen_train, gen_val = get_dataset_train(
-        dataset_name, batch_size, f_train, f_val, train_split, kwargs
-    )
+class StandardDataLoader:
+    def __init__(self, dataset_name, batch_size, algorithm_def,
+                 **kwargs):
+        self.algorithm_def = algorithm_def
+        self.batch_size = batch_size
+        self.dataset_name = dataset_name
+        self.kwargs = kwargs
 
-    x_test, y_test = get_dataset_test(dataset_name, batch_size, f_val, kwargs)
-    return gen_train, gen_val, x_test, y_test
+    def get_dataset(self, repetition, train_split):
+        f_train, f_val = self.algorithm_def.get_finetuning_preprocessing()
 
-def run_single_test(algorithm_def, dataset_name, train_split, load_weights, freeze_weights, x_test, y_test, lr,
+        gen_train, gen_val = get_dataset_train(
+            self.dataset_name, self.batch_size, f_train, f_val, train_split, self.kwargs
+        )
+
+        x_test, y_test = get_dataset_test(self.dataset_name, self.batch_size, f_val, self.kwargs)
+        return gen_train, gen_val, x_test, y_test
+
+class CvDataKaggle:
+    def __init__(self, dataset_name, batch_size, algorithm_def,
+        n_repetitions,
+        csv_file,
+        data_dir,
+        val_split=0.1,
+        test_data_generator_args={},
+        val_data_generator_args={},
+        train_data_generator_args={},
+        **kwargs):
+
+        assert dataset_name == "kaggle_retina", "CV only implemented for kaggle"
+
+        f_train, f_val = algorithm_def.get_finetuning_preprocessing()
+        self.cv = get_kaggle_cross_validation(data_path=data_dir, csv_file=csv_file,
+                                              k_fold=n_repetitions,
+                                              train_data_generator_args={
+                                                  **{"batch_size": batch_size, "pre_proc_func": f_train},
+                                                  **train_data_generator_args,
+                                              },
+                                              val_data_generator_args={
+                                                  **{"batch_size": batch_size, "pre_proc_func": f_val},
+                                                  **val_data_generator_args,
+                                              },
+                                              test_data_generator_args={
+                                                  **{"batch_size": batch_size, "pre_proc_func": f_val},
+                                                  **test_data_generator_args,
+                                              }, **kwargs)
+        self.val_split = val_split
+
+    def get_dataset(self, repetition, train_split):
+        train_split = train_split * (1 - self.val_split)  # normalize train split
+
+        gen_train, gen_val, gen_test = self.cv.make_generators(test_chunk=repetition, train_split=train_split,
+                                                               val_split=self.val_split)
+
+        x_test, y_test = get_data_from_gen(gen_test)
+        return gen_train, gen_val, x_test, y_test
+
+def run_single_test(algorithm_def, gen_train, gen_val, load_weights, freeze_weights, x_test, y_test, lr,
                     batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, logging_path, kwargs,
                     clipnorm=None, clipvalue=None,
                     model_callback=None):
@@ -332,11 +380,6 @@ def run_single_test(algorithm_def, dataset_name, train_split, load_weights, free
         metrics.append(dice_class_0)
         metrics.append(dice_class_1)
         metrics.append(dice_class_2)
-
-    f_train, f_val = algorithm_def.get_finetuning_preprocessing()
-    gen_train, gen_val = get_dataset_train(
-        dataset_name, batch_size, f_train, f_val, train_split, kwargs
-    )
 
     if load_weights:
         enc_model = algorithm_def.get_finetuning_model(model_checkpoint)
@@ -484,7 +527,7 @@ def run_complex_test(
         metrics=("mse",),
         clipnorm=None,
         clipvalue=None,
-        make_random=False,
+        do_cross_val=False,
         **kwargs,
 ):
     if os.path.isdir(model_checkpoint):
@@ -526,8 +569,11 @@ def run_complex_test(
                 header.append(exp_type + sc + min_avg_max)
 
     write_result(working_dir, header)
-    f_train, f_val = algorithm_def.get_finetuning_preprocessing()
-    x_test, y_test = get_dataset_test(dataset_name, batch_size, f_val, kwargs)
+
+    if do_cross_val:
+        data_loader = CvDataKaggle(dataset_name, batch_size, algorithm_def, n_repetitions=repetitions, **kwargs)
+    else:
+        data_loader = StandardDataLoader(dataset_name, batch_size, algorithm_def, **kwargs)
 
     for train_split in exp_splits:
         percentage = 0.01 * train_split
@@ -547,10 +593,12 @@ def run_complex_test(
             np.random.seed(i)
             random.seed(i)
 
+            gen_train, gen_val, x_test, y_test = data_loader.get_dataset(i, percentage)
+
             if epochs_frozen > 0:
                 logging_a_path = logging_base_path / f"split{train_split}frozen_rep{i}.log"
                 a = try_until_no_nan(
-                    lambda: run_single_test(algorithm_def, dataset_name, percentage, True, True, x_test, y_test, lr,
+                    lambda: run_single_test(algorithm_def, gen_train, gen_val, True, True, x_test, y_test, lr,
                                             batch_size, epochs_frozen, epochs_warmup, model_checkpoint, scores, loss,
                                             metrics,
                                             logging_a_path,
@@ -559,14 +607,14 @@ def run_complex_test(
             if epochs_initialized > 0:
                 logging_b_path = logging_base_path / f"split{train_split}initialized_rep{i}.log"
                 b = try_until_no_nan(
-                    lambda: run_single_test(algorithm_def, dataset_name, percentage, True, False, x_test, y_test, lr,
+                    lambda: run_single_test(algorithm_def, gen_train, gen_val, True, False, x_test, y_test, lr,
                                             batch_size, epochs_initialized, epochs_warmup, model_checkpoint, scores, loss, metrics,
                                             logging_b_path, kwargs, clipnorm=clipnorm, clipvalue=clipvalue))
                 b_s.append(b)
             if epochs_random > 0:
                 logging_c_path = logging_base_path / f"split{train_split}random_rep{i}.log"
                 c = try_until_no_nan(
-                    lambda: run_single_test(algorithm_def, dataset_name, percentage, False, False, x_test, y_test, lr,
+                    lambda: run_single_test(algorithm_def, gen_train, gen_val, False, False, x_test, y_test, lr,
                                             batch_size, epochs_random, epochs_warmup, model_checkpoint, scores, loss, metrics,
                                             logging_c_path,
                                             kwargs, clipnorm=clipnorm, clipvalue=clipvalue))  # random

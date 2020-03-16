@@ -12,6 +12,7 @@ from scipy import ndimage
 
 from self_supervised_3d_tasks.custom_preprocessing.pad import pad_to_final_size_3d
 from self_supervised_3d_tasks.custom_preprocessing.preprocessing_exemplar import augment_exemplar_3d
+from self_supervised_3d_tasks.data.image_2d_loader import DataGeneratorUnlabeled2D
 from self_supervised_3d_tasks.data.segmentation_task_loader import SegmentationGenerator3D
 
 from self_supervised_3d_tasks.keras_algorithms.exemplar import ExemplarBuilder
@@ -959,6 +960,28 @@ def test_exppp():
     x_batch, y_batch = gen[0]
     plot_3d(x_batch[0], 2, step=3)
 
+def test_2d_stuff():
+    import self_supervised_3d_tasks.keras_algorithms.cpc as algo
+
+    algorithm_def = algo.create_instance(data_dim=224, sample_neg_examples_from="dataset")
+    f_train, f_val = algorithm_def.get_training_preprocessing()
+
+    data_dir = "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224"
+
+    gen = get_data_generators(data_dir,
+                        train_data_generator_args={"batch_size": 1,
+                                                   "pre_proc_func": f_train},
+                        data_generator=DataGeneratorUnlabeled2D)
+
+    batch = gen[0]
+
+    # show_batch(batch[0][0])
+
+    # CPC
+    show_batch(batch[0][0][0])
+    show_batch(batch[0][1][0])
+    print(batch[1][0])
+
 if __name__ == "__main__":
     # a = np.zeros((2,48,48,48,3))
     # b = np.zeros((2,48,48,48,3)) + 1
@@ -977,4 +1000,4 @@ if __name__ == "__main__":
     # test_nans()
     # test_prediction_3d()
 
-    test_exppp()
+    test_2d_stuff()

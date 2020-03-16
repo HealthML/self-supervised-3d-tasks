@@ -27,7 +27,7 @@
 
   "exp_splits": [100,10,5,50,25],
   "lr": 1e-3,
-  "epochs_initialized": 150,
+  "epochs_initialized": 400,
   "epochs_frozen": 0,
   "epochs_random": 0,
   "epochs_warmup": 25,

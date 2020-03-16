@@ -1,29 +1,38 @@
 {
   "algorithm": "cpc",
-  "dataset_name": "kaggle_retina",
-  "train3D": false,
-  "top_architecture": "big_fully",
-  "data_dim":224,
   "data_dir": "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224",
-  "csv_file_train": "/mnt/mpws2019cl1/kaggle_retina_2019/labels_shuffled_train.csv",
-  "csv_file_test": "/mnt/mpws2019cl1/kaggle_retina_2019/labels_shuffled_test.csv",
+  "csv_file": "/mnt/mpws2019cl1/kaggle_retina_2019/labels_shuffled.csv",
+  "model_checkpoint":"/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_kaggle_retina/weights-250.hdf5",
+  "dataset_name": "kaggle_retina",
+
   "train_data_generator_args": {"suffix":  ".png", "multilabel": true, "augment": true, "shuffle": true},
   "val_data_generator_args": {"suffix":  ".png", "multilabel": true, "augment": false},
   "test_data_generator_args": {"suffix":  ".png", "multilabel": true, "augment": false},
-  "batch_size": 16,
-  "encoder_architecture": "DenseNet121",
-  "metrics": ["accuracy"],
-  "lr": 0.00005,
-  "loss": "binary_crossentropy",
-  "prediction_architecture": "simple_multiclass",
-  "pooling": "avg",
-  "embed_dim": 128,
+
+  "train3D": false,
   "val_split": 0.05,
-  "epochs": 12,
-  "epochs_warmup": 2,
-  "load_weights": true,
-  "model_checkpoint":"/home/Shared.Workspace/workspace/self-supervised-transfer-learning/shared_models/cpc_kaggle_retina/weights-250.hdf5",
+
+  "code_size": 1024,
+  "patches_per_side": 5,
+  "data_dim":224,
+
+  "loss": "binary_crossentropy",
   "scores": ["qw_kappa_kaggle", "cat_acc_kaggle"],
-  "repetitions": 3,
-  "exp_splits": [100,10,1,50,25]
+  "metrics": ["accuracy"],
+
+  "top_architecture": "big_fully",
+  "prediction_architecture": "simple_multiclass",
+  "encoder_architecture": "DenseNet121",
+  "pooling": "avg",
+  "number_channels": 3,
+  "batch_size": 32,
+
+  "exp_splits": [100,10,5,50,25],
+  "lr": 5e-5,
+  "epochs_initialized": 15,
+  "epochs_frozen": 0,
+  "epochs_random": 0,
+  "epochs_warmup": 2,
+  "repetitions": 5,
+  "do_cross_val": true
 }
