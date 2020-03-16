@@ -95,7 +95,7 @@ def downconv_model_3d(
 # FIXME set the num_classes in the config file
 def upconv_model_3d(
         input_shape,
-        num_classes=4,
+        num_classes=3,
         use_batch_norm=True,
         upsample_mode="deconv",  # 'deconv' or 'simple'
         use_dropout_on_upsampling=True,

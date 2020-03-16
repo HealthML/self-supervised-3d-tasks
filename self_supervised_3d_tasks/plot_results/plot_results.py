@@ -1,10 +1,10 @@
 import json
 from pathlib import Path
-import pandas
-import glob
+
 import matplotlib.pyplot as plt
-import matplotlib.markers as markers
 import numpy as np
+import pandas
+
 
 def neighbour_smoothing(values, epochs, neighbour_count = 2):
     smoothed_values = []
@@ -30,8 +30,6 @@ def get_metric_over_split(args, path, metric):
 
 
 def get_metric_over_epochs(args, path, metric, split=100, nth_epoch=1):
-    epoch_count = args["epochs_initialized"]
-
     epochs = []
     values_per_rep = []
     for filename in (Path(path) / "logs/").glob(f"split{split}*.log"):

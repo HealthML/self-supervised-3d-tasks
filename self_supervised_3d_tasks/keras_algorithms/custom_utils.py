@@ -83,7 +83,7 @@ def init(f, name="training", NGPUS=1):
     print("{} {} with parameters: ".format(name, args))
     print("###########################################")
 
-    # aquire_free_gpus(amount=NGPUS, **args)
+    aquire_free_gpus(amount=NGPUS, **args)
     f(**args)
 
     # skip telegram notification
