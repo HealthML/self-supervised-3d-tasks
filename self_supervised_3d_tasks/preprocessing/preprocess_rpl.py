@@ -1,8 +1,6 @@
-import albumentations as ab
-from math import ceil
 import numpy as np
-from self_supervised_3d_tasks.preprocessing.crop import crop_patches, crop_patches_3d
-from self_supervised_3d_tasks.preprocessing.preprocess_jigsaw import preprocess_image_pad
+from self_supervised_3d_tasks.preprocessing.utils.crop import crop_patches, crop_patches_3d
+
 
 def preprocess_image(image, patches_per_side, patch_jitter, is_training):
     cropped_image = crop_patches(image, is_training, patches_per_side, patch_jitter)
@@ -63,7 +61,6 @@ def preprocess_batch_3d(batch,  patches_per_side, patch_jitter=0, is_training=Tr
             image_patches = np.array([cropped_image[center_id], cropped_image[patch_id]])
             patches.append(image_patches)
         else:
-            # TODO: this is probably not what we want
             patches.append(np.array(cropped_image))
 
         labels[batch_index, class_id] = 1

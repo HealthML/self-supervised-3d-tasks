@@ -3,11 +3,10 @@ import random
 
 import numpy as np
 import albumentations as ab
-import scipy
 import scipy.ndimage as ndimage
 
-from self_supervised_3d_tasks.preprocessing.crop import crop_3d
-from self_supervised_3d_tasks.preprocessing.pad import pad_to_final_size_3d
+from self_supervised_3d_tasks.preprocessing.utils.crop import crop_3d
+from self_supervised_3d_tasks.preprocessing.utils.pad import pad_to_final_size_3d
 from self_supervised_3d_tasks.data.preproc_negative_sampling import NegativeSamplingPreprocessing
 
 
@@ -88,8 +87,6 @@ def augment_exemplar_3d(image):
         # zooming
         processed_image = _distort_zoom(processed_image)
 
-    # norm to [0,1] again
-    # processed_image = (processed_image - processed_image.min()) / (processed_image.max() - processed_image.min())
     return processed_image
 
 

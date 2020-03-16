@@ -2,12 +2,8 @@ import numpy as np
 import albumentations as ab
 from math import sqrt
 
-from self_supervised_3d_tasks.preprocessing.crop import crop, crop_patches, crop_patches_3d, crop_3d
-from self_supervised_3d_tasks.preprocessing.pad import pad_to_final_size_2d, pad_to_final_size_3d
-
-
-def resize(batch, new_size):
-    return np.array([ab.Resize(new_size, new_size)(image=image)["image"] for image in batch])
+from self_supervised_3d_tasks.preprocessing.utils.crop import crop, crop_patches, crop_patches_3d, crop_3d
+from self_supervised_3d_tasks.preprocessing.utils.pad import pad_to_final_size_2d, pad_to_final_size_3d
 
 
 def preprocess_image(image, patch_jitter, patches_per_side, crop_size, is_training=True):
@@ -34,7 +30,7 @@ def preprocess_image(image, patch_jitter, patches_per_side, crop_size, is_traini
     return np.asarray(result)
 
 
-def preprocess(batch, crop_size, patches_per_side, is_training=True):
+def preprocess_2d(batch, crop_size, patches_per_side, is_training=True):
     _, w, h, _ = batch.shape
     assert w == h, "accepting only squared images"
 
@@ -44,7 +40,7 @@ def preprocess(batch, crop_size, patches_per_side, is_training=True):
                                       is_training=is_training) for image in batch])
 
 
-def preprocess_grid(image):
+def preprocess_grid_2d(image):
     patches_enc = []
     patches_pred = []
     labels = []
