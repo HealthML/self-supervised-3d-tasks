@@ -21,11 +21,11 @@ class RelativePatchLocationBuilder(AlgorithmBuilderBase):
             patches_per_side=3,
             patch_jitter=0,
             lr=1e-3,
-            train3D=False,
+            data_is_3D=False,
             top_architecture="big_fully",
             **kwargs
     ):
-        super(RelativePatchLocationBuilder, self).__init__(data_dim, number_channels, lr, train3D, **kwargs)
+        super(RelativePatchLocationBuilder, self).__init__(data_dim, number_channels, lr, data_is_3D, **kwargs)
 
         self.patch_jitter = patch_jitter
         self.top_architecture = top_architecture
@@ -36,7 +36,7 @@ class RelativePatchLocationBuilder(AlgorithmBuilderBase):
         self.patch_shape = (self.patch_dim, self.patch_dim, number_channels)
         self.patch_count = patches_per_side**2
 
-        if self.train3D:
+        if self.data_is_3D:
             self.patch_shape = (self.patch_dim,) + self.patch_shape
             self.patch_count = self.patches_per_side**3
 
@@ -45,7 +45,7 @@ class RelativePatchLocationBuilder(AlgorithmBuilderBase):
 
 
     def apply_model(self):
-        if self.train3D:
+        if self.data_is_3D:
             self.enc_model, _ = apply_encoder_model_3d(
                 self.patch_shape, **self.kwargs
             )
@@ -82,7 +82,7 @@ class RelativePatchLocationBuilder(AlgorithmBuilderBase):
         def f_3d(x, y):
             return preprocess_batch_3d(x, self.patches_per_side, self.patch_jitter)
 
-        if self.train3D:
+        if self.data_is_3D:
             return f_3d, f_3d
         else:
             return f, f

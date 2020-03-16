@@ -18,11 +18,11 @@ class RotationBuilder(AlgorithmBuilderBase):
             data_dim=384,
             number_channels=3,
             lr=1e-4,
-            train3D=False,
+            data_is_3D=False,
             top_architecture="big_fully",
             **kwargs
     ):
-        super(RotationBuilder, self).__init__(data_dim, number_channels, lr, train3D, **kwargs)
+        super(RotationBuilder, self).__init__(data_dim, number_channels, lr, data_is_3D, **kwargs)
 
         self.image_size = data_dim
         self.img_shape = (self.image_size, self.image_size, number_channels)
@@ -35,7 +35,7 @@ class RotationBuilder(AlgorithmBuilderBase):
         self.top_architecture = top_architecture
 
     def apply_model(self):
-        if self.train3D:
+        if self.data_is_3D:
             self.enc_model, self.layer_data = apply_encoder_model_3d(
                 self.img_shape_3d, **self.kwargs
             )
@@ -70,7 +70,7 @@ class RotationBuilder(AlgorithmBuilderBase):
         def f_3d(x, y):
             return rotate_batch_3d(x, y)
 
-        if self.train3D:
+        if self.data_is_3D:
             return f_3d, f_3d
         else:
             return f, f

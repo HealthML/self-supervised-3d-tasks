@@ -9,13 +9,13 @@ class AlgorithmBuilderBase:
             data_dim,
             number_channels,
             lr,
-            train3D,
+            data_is_3D,
             **kwargs
     ):
         self.data_dim = data_dim
         self.number_channels = number_channels
         self.lr = lr
-        self.train3D = train3D
+        self.data_is_3D = data_is_3D
 
         self.kwargs = kwargs
         self.cleanup_models = []
@@ -46,7 +46,7 @@ class AlgorithmBuilderBase:
 
         self.cleanup_models.append(model)
 
-        if self.train3D:
+        if self.data_is_3D:
             assert self.layer_data is not None, "no layer data for 3D"
 
             self.layer_data.append(isinstance(self.enc_model.layers[-1], Pooling3D))
@@ -71,7 +71,7 @@ class AlgorithmBuilderBase:
         self.cleanup_models.append(model)
         self.cleanup_models.append(self.enc_model)
 
-        if self.train3D:
+        if self.data_is_3D:
             model_skips, self.layer_data = make_finetuning_encoder_3d(
                 (self.data_dim, self.data_dim, self.data_dim, self.number_channels,),
                 self.enc_model,

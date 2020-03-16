@@ -21,11 +21,11 @@ class JigsawBuilder(AlgorithmBuilderBase):
             patch_jitter=0,
             number_channels=3,
             lr=1e-4,
-            train3D=False,
+            data_is_3D=False,
             top_architecture="big_fully",
             **kwargs
     ):
-        super(JigsawBuilder, self).__init__(data_dim, number_channels, lr, train3D, **kwargs)
+        super(JigsawBuilder, self).__init__(data_dim, number_channels, lr, data_is_3D, **kwargs)
 
         self.top_architecture = top_architecture
         self.patches_per_side = patches_per_side
@@ -36,7 +36,7 @@ class JigsawBuilder(AlgorithmBuilderBase):
         self.patch_dim = (data_dim // patches_per_side) - patch_jitter
 
     def apply_model(self):
-        if self.train3D:
+        if self.data_is_3D:
             perms, _ = load_permutations_3d()
 
             input_x = Input(
@@ -89,7 +89,7 @@ class JigsawBuilder(AlgorithmBuilderBase):
         return model
 
     def get_training_preprocessing(self):
-        if self.train3D:
+        if self.data_is_3D:
             perms, _ = load_permutations_3d()
         else:
             perms, _ = load_permutations()
@@ -101,7 +101,7 @@ class JigsawBuilder(AlgorithmBuilderBase):
                 self.patch_jitter,
                 perms,
                 is_training=True,
-                mode3d=self.train3D,
+                mode3d=self.data_is_3D,
             )
             return x, y
 
@@ -112,7 +112,7 @@ class JigsawBuilder(AlgorithmBuilderBase):
                 self.patch_jitter,
                 perms,
                 is_training=False,
-                mode3d=self.train3D,
+                mode3d=self.data_is_3D,
             )
             return x, y
 

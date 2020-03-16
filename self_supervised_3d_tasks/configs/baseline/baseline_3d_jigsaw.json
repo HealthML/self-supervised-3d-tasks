@@ -6,7 +6,7 @@
   "dataset_name": "pancreas3d",
   "data_dim": 128,
   "number_channels": 1,
-  "train3D": true,
+  "data_is_3D": true,
   "batch_size": 1,
   "prediction_architecture": "unet_3d_upconv",
   "scores": ["dice", "jaccard"],

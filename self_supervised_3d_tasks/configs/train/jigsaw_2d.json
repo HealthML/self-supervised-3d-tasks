@@ -5,7 +5,7 @@
   "val_data_generator_args": {"augment": false},
   "dataset_name": "kaggle_retina",
 
-  "train3D": false,
+  "data_is_3D": false,
   "data_dim": 224,
   "number_channels": 3,
   "patches_per_side": 3,

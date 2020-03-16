@@ -8,7 +8,7 @@
   "val_data_generator_args": {"suffix":  ".png", "multilabel": true, "augment": false},
   "test_data_generator_args": {"suffix":  ".png", "multilabel": true, "augment": false},
   "dataset_name": "kaggle_retina",
-  "train3D": false,
+  "data_is_3D": false,
   "batch_size": 32,
   "encoder_architecture": "DenseNet121",
   "lr": 0.00005,

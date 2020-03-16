@@ -4,7 +4,7 @@
   "dataset_name": "pancreas3d",
   "sample_neg_examples_from": "dataset",
 
-  "train3D": true,
+  "data_is_3D": true,
 
   "code_size": 1024,
   "enc_filters": 16,

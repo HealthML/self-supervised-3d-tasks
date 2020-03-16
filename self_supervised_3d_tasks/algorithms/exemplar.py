@@ -18,22 +18,22 @@ class ExemplarBuilder(AlgorithmBuilderBase):
             self,
             data_dim=384,
             number_channels=3,
-            train3D=False,
+            data_is_3D=False,
             code_size=1024,
             lr=1e-4,
             sample_neg_examples_from="batch",
             **kwargs
     ):
-        super(ExemplarBuilder, self).__init__(data_dim, number_channels, lr, train3D, **kwargs)
+        super(ExemplarBuilder, self).__init__(data_dim, number_channels, lr, data_is_3D, **kwargs)
 
         self.sample_neg_examples_from = sample_neg_examples_from
         self.dim = (
-            (data_dim, data_dim, data_dim) if self.train3D else (data_dim, data_dim)
+            (data_dim, data_dim, data_dim) if self.data_is_3D else (data_dim, data_dim)
         )
         self.code_size = code_size
 
     def apply_model(self):
-        if self.train3D:
+        if self.data_is_3D:
             self.enc_model, self.layer_data = apply_encoder_model_3d(
                 (*self.dim, self.number_channels), **self.kwargs
             )
@@ -69,7 +69,7 @@ class ExemplarBuilder(AlgorithmBuilderBase):
         return model
 
     def get_training_preprocessing(self):
-        f = get_exemplar_training_preprocessing(self.train3D, self.sample_neg_examples_from)
+        f = get_exemplar_training_preprocessing(self.data_is_3D, self.sample_neg_examples_from)
         return f, f
 
 def create_instance(*params, **kwargs):

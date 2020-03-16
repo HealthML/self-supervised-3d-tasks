@@ -59,10 +59,10 @@ class CPCBuilder(AlgorithmBuilderBase):
             patches_per_side=7,
             code_size=1024,
             lr=1e-3,
-            train3D=False,
+            data_is_3D=False,
             **kwargs,
     ):
-        super(CPCBuilder, self).__init__(data_dim, number_channels, lr, train3D, **kwargs)
+        super(CPCBuilder, self).__init__(data_dim, number_channels, lr, data_is_3D, **kwargs)
 
         if crop_size is None:
             crop_size = int(data_dim * 0.95)
@@ -73,7 +73,7 @@ class CPCBuilder(AlgorithmBuilderBase):
 
         # run a test to obtain data sizes
         prep_train = self.get_training_preprocessing()[0]
-        test_data = np.zeros((1, data_dim, data_dim, data_dim, number_channels), dtype=np.float32) if self.train3D \
+        test_data = np.zeros((1, data_dim, data_dim, data_dim, number_channels), dtype=np.float32) if self.data_is_3D \
             else np.zeros((1, data_dim, data_dim, number_channels), dtype=np.float32)
 
         test_x = prep_train(test_data, test_data)[0]
@@ -85,7 +85,7 @@ class CPCBuilder(AlgorithmBuilderBase):
         self.img_shape_3d = (self.image_size, self.image_size, self.image_size, self.number_channels)
 
     def apply_model(self):
-        if self.train3D:
+        if self.data_is_3D:
             self.enc_model, _ = apply_encoder_model_3d(self.img_shape_3d, **self.kwargs)
             x_input = Input((self.terms, self.image_size, self.image_size, self.image_size, self.number_channels))
             y_input = keras.layers.Input(
@@ -123,7 +123,7 @@ class CPCBuilder(AlgorithmBuilderBase):
         def f_3d(x, y):  # not using y here, as it gets generated
             return preprocess_grid_3d(preprocess_3d(x, self.crop_size, self.patches_per_side))
 
-        if self.train3D:
+        if self.data_is_3D:
             return f_3d, f_3d
         else:
             return f, f

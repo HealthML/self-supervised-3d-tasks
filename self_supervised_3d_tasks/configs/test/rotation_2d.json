@@ -11,7 +11,7 @@
   "val_data_generator_args": {"suffix":  ".png", "multilabel": true, "augment": false},
   "test_data_generator_args": {"suffix":  ".png", "multilabel": true, "augment": false},
 
-  "train3D": false,
+  "data_is_3D": false,
   "val_split": 0.05,
 
   "data_dim":224,

@@ -5,7 +5,7 @@
   "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_pancreas3d_5/weights-improvement-001.hdf5",
   "dataset_name": "pancreas3d",
   "train_data_generator_args": {"shuffle": true},
-  "train3D": true,
+  "data_is_3D": true,
   "val_split": 0.05,
 
   "code_size": 1024,

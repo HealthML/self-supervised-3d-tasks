@@ -8,7 +8,7 @@
   "val_data_generator_args": {"label_stem": ""},
   "test_data_generator_args": {"label_stem": ""},
 
-  "train3D": true,
+  "data_is_3D": true,
   "val_split": 0.05,
 
   "code_size": 1024,

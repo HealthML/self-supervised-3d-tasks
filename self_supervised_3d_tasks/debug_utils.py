@@ -133,7 +133,7 @@ def test_exppp():
     path = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/train"
 
     import self_supervised_3d_tasks.algorithms.exemplar as exp
-    instance = exp.create_instance(train3D=True, data_dim=128, sample_neg_examples_from="dataset")
+    instance = exp.create_instance(data_is_3D=True, data_dim=128, sample_neg_examples_from="dataset")
     gen = get_data_generators(path, DataGeneratorUnlabeled3D, train_data_generator_args=
     {
         "pre_proc_func": instance.get_training_preprocessing()[0],

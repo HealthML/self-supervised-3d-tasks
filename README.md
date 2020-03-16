@@ -59,7 +59,7 @@ Training:
   "top_architecture": "String. Name of the top level architecture. ('big_fully'|'simple_multiclass'|'unet_3d_upconv'|'unet_3d_upconv_patches') ",
     
   "dataset_name": "String. Name of the dataset, only used for labeling the log data.",
-  "train3D": "Boolean. Is the dataset 3D?.",
+  "data_is_3D": "Boolean. Is the dataset 3D?.",
   "data_dir": "String. Path to of the data directory.",
   "data_dim": "Integer. Dimension of image.",
   "number_channels": "Integer. The number of channels of the image.",
@@ -111,7 +111,7 @@ Testing:
 
 
   "dataset_name": "String. Name of the dataset, only used for labeling the log data.",
-  "train3D": "Boolean. Is the dataset 3D?.",
+  "data_is_3D": "Boolean. Is the dataset 3D?.",
   "data_dim": "Integer. Dimension of image.",
   "number_channels": "Integer. The number of channels of the image.",
   "data_dir": "String. Path to the data directory the model was trained on.",
