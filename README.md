@@ -44,7 +44,6 @@ To train a model with a specific algorithm run `python keras_train_algo.py confi
 
 ### Setting the configs
 Training
-Based on rotation_2d
 ```json 
 {
   "algorithm": "'cpc'|'rotation'|'rpl'|'jigsaw'|'exemplar'",
@@ -76,13 +75,12 @@ Based on rotation_2d
   "save_checkpoint_every_n_epochs": "Backup epoch even without improvements every n epochs. As Integer.",
   "alpha_triplet": 0.2,
   "val_split": 0.05,
-  "pooling": "none",
-  "enc_filters": 8
+  "pooling": "None|'avg'|'max'",
+  "enc_filters": "The amount of filters used for the encoder model."
 }
 ```
 
 Finetuning
-Based on roation2d_finetunging
 ```json
 {
   "algorithm": "'cpc'|'rotation'|'rpl'|'jigsaw'|'exemplar'",
@@ -98,7 +96,7 @@ Based on roation2d_finetunging
   "encoder_architecture": "Name of the encoder architecture. ('DenseNet121'|'InceptionV3'|'ResNet50'|'ResNet50V2'|'ResNet101'|'ResNet101V2'|'ResNet152'|'InceptionResNetV2')",
   "top_architecture": "Name of the top level architecture. ('big_fully'|'simple_multiclass'|'unet_3d_upconv'|'unet_3d_upconv_patches') ",
   "prediction_architecture": "simple_multiclass",
-  "pooling": "avg|max",
+  "pooling": "None|'avg'|'max'",
 
 
   "dataset_name": "Name of the dataset, only used for labeling the log data.",
@@ -121,13 +119,13 @@ Based on roation2d_finetunging
     "suffix":  "(.png|.jpeg)",
     "multilabel": "Shall data be transformed to multilabel representation. (0 => [0, 0], 1 => [1, 0], 2 => [1, 1]",
     "augment": "Shall the data be randomly augmented with horizontally/vertically flip and/or zoom.",
-    "augment_zoom_only": "Shall the data be augmented with zoom.",
+    "augment_zoom_only": "Shall the data be augmented with zoom."
   },
   "test_data_generator_args": {
     "suffix":  "(.png|.jpeg)",
     "multilabel": "Shall data be transformed to multilabel representation. (0 => [0, 0], 1 => [1, 0], 2 => [1, 1]",
     "augment": "Shall the data be randomly augmented with horizontally/vertically flip and/or zoom.",
-    "augment_zoom_only": "Shall the data be augmented with zoom.",
+    "augment_zoom_only": "Shall the data be augmented with zoom."
   },
 
   "metrics": "Array of metrics to be used. Array of strings. ('accuracy'|'mse')",
@@ -143,6 +141,6 @@ Based on roation2d_finetunging
 
   "patches_per_side": "CPC, RPL specific. Amount of patches per dimension. 2 patches per side result in 8 patches for a 2D and 16 patches for a 3D image. As integer.",
   "alpha_triplet": "The alpha value used for triplet loss.",
-  "enc_filters": 8
+  "enc_filters": "The amount of filters used for the encoder model."
 }
 ```
