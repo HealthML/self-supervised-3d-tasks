@@ -8,7 +8,7 @@ from self_supervised_3d_tasks.preprocessing.preprocess_rpl import (
     preprocess_batch_3d
 )
 
-from self_supervised_3d_tasks.custom_utils import (
+from self_supervised_3d_tasks.utils import (
     apply_encoder_model,
     apply_encoder_model_3d,
     apply_prediction_model_to_encoder, make_finetuning_encoder_3d, make_finetuning_encoder_2d)

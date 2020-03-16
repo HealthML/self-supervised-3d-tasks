@@ -28,8 +28,7 @@ def preprocess_batch(batch,  patches_per_side, patch_jitter=0, is_training=True)
         if is_training:
             patches.append(np.array([cropped_image[center_id], cropped_image[patch_id]]))
         else:
-            # TODO: this is probably not what we want
-            patches.append(cropped_image)
+            patches.append(np.array(cropped_image))
 
         labels[batch_index, class_id] = 1
     return np.array(patches), np.array(labels)

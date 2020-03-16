@@ -1,4 +1,4 @@
-from self_supervised_3d_tasks.custom_utils import init, print_flat_summary
+from self_supervised_3d_tasks.utils import init, print_flat_summary
 from pathlib import Path
 
 import tensorflow.keras as keras
@@ -7,7 +7,7 @@ from self_supervised_3d_tasks.data.numpy_3d_loader import DataGeneratorUnlabeled
 from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
 from self_supervised_3d_tasks.data.image_2d_loader import DataGeneratorUnlabeled2D
 from self_supervised_3d_tasks.algorithms import cpc, jigsaw, relative_patch_location, rotation, exemplar
-from self_supervised_3d_tasks.custom_utils import get_writing_path
+from self_supervised_3d_tasks.utils import get_writing_path
 
 keras_algorithm_list = {
     "cpc": cpc,
@@ -52,10 +52,6 @@ def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250,
     f_train, f_val = algorithm_def.get_training_preprocessing()
     train_data, validation_data = get_dataset(data_dir, batch_size, f_train, f_val, train_val_split, dataset_name, **kwargs)
     model = algorithm_def.get_training_model()
-    print_flat_summary(model)
-
-    # plot_model(model, to_file=expanduser("~/workspace/test.png"), expand_nested=True, show_shapes=True)
-    # uncomment if you want to plot the model
 
     tb_c = keras.callbacks.TensorBoard(log_dir=str(working_dir))
     mc_c = keras.callbacks.ModelCheckpoint(str(working_dir / "weights-improvement-{epoch:03d}.hdf5"), monitor="val_loss",

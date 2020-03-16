@@ -43,21 +43,6 @@ def print_flat_summary(model, long=True, printed_models=[]):
     elif isinstance(model, Wrapper):
         print_flat_summary(model.layer, long, printed_models)
 
-def flatten_model(model_nested):
-    def get_layers(layers):
-        layers_flat = []
-        for layer in layers:
-            try:
-                layers_flat.extend(get_layers(layer.layers))
-            except AttributeError:
-                layers_flat.append(layer)
-        return layers_flat
-
-    model_flat = Sequential(
-        get_layers(model_nested.layers)
-    )
-    return model_flat
-
 
 def init(f, name="training", n_gpus=1):
     config_filename = Path(__file__).parent / "config.json"

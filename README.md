@@ -70,9 +70,9 @@ Training:
   "crop_size": "CPC specific. For CPC the whole image can be randomly cropped to a smaller size to make the self-supervised task harder",
 
   "train_data_generator_args": {
-    "augment_zoom_only": true,
-    "augment": true,
-    "shuffle": true
+    "augment_zoom_only": "2D specific augmentations without rotating the image",
+    "augment": "Include additional augmentations during loading the data. 2D augmentations: zooming, rotating. 3D augmentations: flipping, color distortion, rotation",
+    "shuffle": "Shuffle the data after each epoch"
   },
   "val_data_generator_args": {"augment": false},
   "code_size": "CPC, Exemplar specific. Specify the dimension of the latent space",

@@ -1,8 +1,6 @@
-# TODO: Refactor
 from tensorflow_core.python.keras import Model
 from tensorflow_core.python.keras.layers.pooling import Pooling3D
-
-from self_supervised_3d_tasks.custom_utils import make_finetuning_encoder_3d, make_finetuning_encoder_2d
+from self_supervised_3d_tasks.utils import make_finetuning_encoder_3d, make_finetuning_encoder_2d
 
 
 class AlgorithmBuilderBase:

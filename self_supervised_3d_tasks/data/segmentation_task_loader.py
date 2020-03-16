@@ -1,14 +1,10 @@
 from pathlib import Path
 
 import numpy as np
-from tensorflow.keras.utils import to_categorical
 from scipy import ndimage
 
 from self_supervised_3d_tasks.data.generator_base import DataGeneratorBase
 
-# TODO: move these to the json config file
-NUM_CLASSES = 3
-AUGMENT_SCANS_TRAIN = True
 
 class SegmentationGenerator3D(DataGeneratorBase):
     def __init__(
@@ -18,8 +14,11 @@ class SegmentationGenerator3D(DataGeneratorBase):
             batch_size=8,
             pre_proc_func=None,
             shuffle=False,
+            augment=False,
             label_stem = "_label"
     ):
+        self.augment_scans_train = augment
+
         self.label_stem = label_stem
         self.label_dir = data_path + "_labels"
         self.data_dir = data_path
@@ -83,7 +82,7 @@ class SegmentationGenerator3D(DataGeneratorBase):
             mask = np.load(path_label)
             img = np.load(path)
             img = (img - img.min()) / (img.max() - img.min())
-            if AUGMENT_SCANS_TRAIN:
+            if self.augment_scans_train:
                 img, mask = self.augment_3d(img, mask)
             data_x.append(img)
             data_y.append(mask)
@@ -92,7 +91,8 @@ class SegmentationGenerator3D(DataGeneratorBase):
         data_y = np.stack(data_y)
 
         data_y = np.rint(data_y).astype(np.int)
-        data_y = np.eye(NUM_CLASSES)[data_y]
+        n_classes = np.max(data_y) + 1
+        data_y = np.eye(n_classes)[data_y]
         data_y = np.squeeze(data_y, axis=-2)  # remove second last axis, which is still 1
 
         return data_x, data_y
