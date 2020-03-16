@@ -50,7 +50,7 @@ class JigsawBuilder(AlgorithmBuilderBase):
             )
             self.enc_model, _ = apply_encoder_model_3d(
                 (self.patch_dim, self.patch_dim, self.patch_dim, self.number_channels,),
-                0, **self.kwargs
+                **self.kwargs
             )
         else:
             perms, _ = load_permutations()
@@ -59,7 +59,7 @@ class JigsawBuilder(AlgorithmBuilderBase):
                 (self.n_patches, self.patch_dim, self.patch_dim, self.number_channels)
             )
             self.enc_model = apply_encoder_model(
-                (self.patch_dim, self.patch_dim, self.number_channels,), 0, **self.kwargs
+                (self.patch_dim, self.patch_dim, self.number_channels,), **self.kwargs
             )
 
         x = TimeDistributed(self.enc_model)(input_x)

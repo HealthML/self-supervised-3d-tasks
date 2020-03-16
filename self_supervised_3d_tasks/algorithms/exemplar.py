@@ -35,11 +35,11 @@ class ExemplarBuilder(AlgorithmBuilderBase):
     def apply_model(self):
         if self.train3D:
             self.enc_model, self.layer_data = apply_encoder_model_3d(
-                (*self.dim, self.number_channels), 0, **self.kwargs
+                (*self.dim, self.number_channels), **self.kwargs
             )
         else:
             self.enc_model = apply_encoder_model(
-                (*self.dim, self.number_channels), 0, **self.kwargs
+                (*self.dim, self.number_channels), **self.kwargs
             )
 
         input_layer = Input((3, *self.dim, self.number_channels), name="Input")

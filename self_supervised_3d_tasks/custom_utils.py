@@ -1,31 +1,26 @@
 import os
 
-from tensorflow.python.keras.layers.pooling import Pooling3D
-from tensorflow_core.python.keras.layers import Wrapper
+from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import json
 import shutil
 import struct
 import sys
-from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
-
-import tensorflow.keras.backend as K
 import numpy as np
 import tensorflow as tf
+
+from tensorflow.python.keras.layers.pooling import Pooling3D
+from tensorflow_core.python.keras.layers import Wrapper
 from tensorflow.keras.layers import Reshape
 from tensorflow.keras import Model, Input
 from tensorflow.keras.applications import InceptionV3, InceptionResNetV2, ResNet152, DenseNet121
 from tensorflow.keras.applications import ResNet50, ResNet50V2, ResNet101, ResNet101V2
 from tensorflow.keras.layers import Dense, Flatten
-from tensorflow.python.keras import Sequential, regularizers
-from tensorflow.python.keras.layers import Lambda, Concatenate, TimeDistributed, MaxPooling3D, UpSampling3D, Permute, \
-    Dropout
-
-from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
-from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
+from tensorflow.python.keras import Sequential
+from tensorflow.python.keras.layers import Lambda, Concatenate, TimeDistributed, UpSampling3D, Dropout
 from self_supervised_3d_tasks.models.fully_connected import fully_connected_big, simple_multiclass
 from self_supervised_3d_tasks.models.unet import downconv_model
 from self_supervised_3d_tasks.models.unet3d import downconv_model_3d, upconv_model_3d
@@ -64,7 +59,7 @@ def flatten_model(model_nested):
     return model_flat
 
 
-def init(f, name="training", NGPUS=1):
+def init(f, name="training", n_gpus=1):
     config_filename = Path(__file__).parent / "config.json"
 
     if (len(sys.argv)) > 1:
@@ -83,22 +78,8 @@ def init(f, name="training", NGPUS=1):
     print("{} {} with parameters: ".format(name, args))
     print("###########################################")
 
-    # aquire_free_gpus(amount=NGPUS, **args)
+    aquire_free_gpus(amount=n_gpus, **args)
     f(**args)
-
-    # skip telegram notification
-    # (
-    #     c_stdout,
-    #     c_stderr,
-    # ) = shim_outputs()  # I redirect stdout / stderr to later inform us about errors
-    #
-    # with redirect_stdout(
-    #         Tee(c_stdout, sys.stdout)
-    # ):  # needed to actually capture stdout
-    #     with redirect_stderr(
-    #             Tee(c_stderr, sys.stderr)
-    #     ):  # needed to actually capture stderr
-    #         f(**args)
 
 
 def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs):
@@ -132,6 +113,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
 
         return Model(inputs=[first_input, *inputs_skip], outputs=model_up_out)
     elif name == "unet_3d_upconv_patches":
+        # This version of the unet3d model creates a separate unet for each patch. Currently unused
         assert algorithm_instance is not None, "no algorithm instance for 3d skip connections found"
         assert algorithm_instance.layer_data is not None, "no layer data for 3d skip connections found"
 
@@ -282,9 +264,8 @@ def get_encoder_model_3d(name, in_shape):
 
 
 def make_finetuning_encoder_2d(input_shape, enc_model, **kwargs):
-    # TODO: we cant have anything but 0 for embed dim to make this work
     new_enc_model = apply_encoder_model(
-        input_shape, 0, **kwargs
+        input_shape, **kwargs
     )
 
     weights = [layer.get_weights() for layer in enc_model.layers[1:]]
@@ -294,9 +275,8 @@ def make_finetuning_encoder_2d(input_shape, enc_model, **kwargs):
     return new_enc_model
 
 def make_finetuning_encoder_3d(input_shape, enc_model, **kwargs):
-    # TODO: we cant have anything but 0 for embed dim to make this work
     new_enc_model, layer_data = apply_encoder_model_3d(
-        input_shape, 0, **kwargs
+        input_shape, **kwargs
     )
 
     weights = [layer.get_weights() for layer in enc_model.layers[1:]]
@@ -312,7 +292,6 @@ def make_finetuning_encoder_3d(input_shape, enc_model, **kwargs):
 
 def apply_encoder_model_3d(
         input_shape,
-        code_size,
         num_layers=4,
         pooling="max",
         encoder_architecture=None,
@@ -331,24 +310,14 @@ def apply_encoder_model_3d(
             input_shape, num_layers=num_layers, pooling=pooling, filters=enc_filters, **model_params
         )
 
-    if code_size:
-        # TODO: Refactor this
-        raise ValueError("code size not allowed here anymore")
-        x = Flatten()(model.outputs[0])
-        x = Dense(code_size, activation="sigmoid")(x)
-        enc_model = Model(model.inputs[0], x, name="encoder")
-    else:
-        enc_model = model
-    return enc_model, layer_data
+    return model, layer_data
 
 
 def apply_encoder_model(
         input_shape,
-        code_size,
         num_layers=4,
         pooling="max",
         encoder_architecture=None,
-        dropout_rate_before_embed_layer=0,
         **kwargs
 ):
     if encoder_architecture is not None:
@@ -356,20 +325,7 @@ def apply_encoder_model(
     else:
         model, _ = downconv_model(input_shape, num_layers=num_layers, pooling=pooling)
 
-    if code_size:
-        # TODO: Refactor this
-        raise ValueError("code size not allowed here anymore")
-        x = Flatten()(model.outputs[0])
-
-        if dropout_rate_before_embed_layer > 0:
-            x = Dropout(dropout_rate_before_embed_layer)(x)
-
-        x = Dense(code_size)(x)
-        enc_model = Model(model.inputs[0], x, name="encoder")
-    else:
-        enc_model = model
-
-    return enc_model
+    return model
 
 
 def load_permutations_3d(
@@ -381,26 +337,6 @@ def load_permutations_3d(
         perms = np.load(f)
 
     return perms, len(perms)
-
-
-def load_permutations_3d_old(
-        permutation_path=str(
-            Path(__file__).parent.parent / "permutations" / "permutations3d_100_max.bin"
-        ),
-):
-    with open(permutation_path, "rb") as f:
-        int32_size = 4
-        s = f.read(int32_size * 2)
-        [num_perms, c] = struct.unpack("<ll", s)
-        perms = []
-        for _ in range(num_perms * c):
-            s = f.read(int32_size)
-            x = struct.unpack("<l", s)
-            perms.append(x[0])
-        perms = np.reshape(perms, [num_perms, c])
-
-    return perms, num_perms
-
 
 def load_permutations(
         permutation_path=str(

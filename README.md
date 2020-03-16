@@ -40,11 +40,14 @@ pip install -e .
 ```
 
 ### Running the experiments
-To train a model with a specific algorithm run `python keras_train_algo.py configs/{algorithm}_{dimension}.json`
+To train any of the self-supervised tasks with a specific algorithm, run `python train.py configs/train/{algorithm}_{dimension}.json`
+To run the downstream task and initialize the weights from a pretrained checkpoint, run `python test.py configs/test/{algorithm}_{dimension}.json`
 
 ### Setting the configs
-Training
-Based on rotation_2d
+
+In the two example configs below, the respective parameters for training and testing configs are explained.
+
+Training:
 ```json 
 {
   "algorithm": "'cpc'|'rotation'|'rpl'|'jigsaw'|'exemplar'",
@@ -64,7 +67,7 @@ Based on rotation_2d
   "cpc, rpl": "",
   "patch_jitter": "CPC, RPL, jigsaw specific. Amount of pixels the jitter every patch should have as an integer.",
   "patches_per_side": "CPC, RPL specific. Amount of patches per dimension. 2 patches per side result in 8 patches for a 2D and 16 patches for a 3D image. As integer.",
-  "crop_size": "CPC specific. ???",
+  "crop_size": "CPC specific. For CPC the whole image can be randomly cropped to a smaller size to make the self-supervised task harder",
 
   "train_data_generator_args": {
     "augment_zoom_only": true,
@@ -81,8 +84,7 @@ Based on rotation_2d
 }
 ```
 
-Finetuning
-Based on roation2d_finetunging
+Testing:
 ```json
 {
   "algorithm": "'cpc'|'rotation'|'rpl'|'jigsaw'|'exemplar'",

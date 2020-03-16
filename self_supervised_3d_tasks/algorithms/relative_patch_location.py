@@ -47,11 +47,11 @@ class RelativePatchLocationBuilder(AlgorithmBuilderBase):
     def apply_model(self):
         if self.train3D:
             self.enc_model, _ = apply_encoder_model_3d(
-                self.patch_shape, 0, **self.kwargs
+                self.patch_shape, **self.kwargs
             )
         else:
             self.enc_model = apply_encoder_model(
-                self.patch_shape, 0, **self.kwargs
+                self.patch_shape, **self.kwargs
             )
 
         x_input = Input(self.images_shape)

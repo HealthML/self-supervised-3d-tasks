@@ -86,12 +86,12 @@ class CPCBuilder(AlgorithmBuilderBase):
 
     def apply_model(self):
         if self.train3D:
-            self.enc_model, _ = apply_encoder_model_3d(self.img_shape_3d, 0, **self.kwargs)
+            self.enc_model, _ = apply_encoder_model_3d(self.img_shape_3d, **self.kwargs)
             x_input = Input((self.terms, self.image_size, self.image_size, self.image_size, self.number_channels))
             y_input = keras.layers.Input(
                 (self.predict_terms, self.image_size, self.image_size, self.image_size, self.number_channels))
         else:
-            self.enc_model = apply_encoder_model(self.img_shape, 0, **self.kwargs)
+            self.enc_model = apply_encoder_model(self.img_shape, **self.kwargs)
             x_input = Input((self.terms, self.image_size, self.image_size, self.number_channels))
             y_input = keras.layers.Input((self.predict_terms, self.image_size, self.image_size, self.number_channels))
 

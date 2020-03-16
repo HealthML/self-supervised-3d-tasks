@@ -37,12 +37,12 @@ class RotationBuilder(AlgorithmBuilderBase):
     def apply_model(self):
         if self.train3D:
             self.enc_model, self.layer_data = apply_encoder_model_3d(
-                self.img_shape_3d, 0, **self.kwargs
+                self.img_shape_3d, **self.kwargs
             )
             x = Dense(10, activation="softmax")
         else:
             self.enc_model = apply_encoder_model(
-                self.img_shape, 0, **self.kwargs
+                self.img_shape, **self.kwargs
             )
             x = Dense(4, activation="softmax")
 
