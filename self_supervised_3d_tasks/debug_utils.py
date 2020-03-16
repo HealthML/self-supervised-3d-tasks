@@ -132,7 +132,7 @@ def get_data_norm_npy(path):
 def test_exppp():
     path = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/train"
 
-    import self_supervised_3d_tasks.keras_algorithms.exemplar as exp
+    import self_supervised_3d_tasks.algorithms.exemplar as exp
     instance = exp.create_instance(train3D=True, data_dim=128, sample_neg_examples_from="dataset")
     gen = get_data_generators(path, DataGeneratorUnlabeled3D, train_data_generator_args=
     {
@@ -145,7 +145,7 @@ def test_exppp():
     plot_3d(x_batch[0], 2, step=3)
 
 def test_2d_algorithms():
-    import self_supervised_3d_tasks.keras_algorithms.cpc as algo
+    import self_supervised_3d_tasks.algorithms.cpc as algo
 
     algorithm_def = algo.create_instance(data_dim=224, sample_neg_examples_from="dataset")
     f_train, f_val = algorithm_def.get_training_preprocessing()

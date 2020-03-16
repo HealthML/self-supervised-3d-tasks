@@ -2,11 +2,11 @@ import functools
 import os
 import random
 
-from self_supervised_3d_tasks.keras_algorithms.callbacks import TerminateOnNaN, NaNLossError, LogCSVWithStart
-from self_supervised_3d_tasks.keras_algorithms.losses import weighted_sum_loss, jaccard_distance, \
+from self_supervised_3d_tasks.algorithms.callbacks import TerminateOnNaN, NaNLossError, LogCSVWithStart
+from self_supervised_3d_tasks.algorithms.losses import weighted_sum_loss, jaccard_distance, \
     weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss, \
     weighted_dice_coefficient_per_class
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import init, model_summary_long, print_flat_summary
+from self_supervised_3d_tasks.algorithms.custom_utils import init
 
 import csv
 import gc
@@ -18,7 +18,6 @@ import numpy as np
 from sklearn.metrics import cohen_kappa_score, jaccard_score, accuracy_score
 from tensorflow.keras import backend as K
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.utils import plot_model
 from tensorflow.python.keras import Model
 from tensorflow.python.keras.metrics import BinaryAccuracy
 from tensorflow.python.keras.callbacks import CSVLogger
@@ -28,11 +27,11 @@ from self_supervised_3d_tasks.data.make_data_generator import get_data_generator
 from self_supervised_3d_tasks.data.segmentation_task_loader import (
     SegmentationGenerator3D,
 )
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
+from self_supervised_3d_tasks.algorithms.custom_utils import (
     apply_prediction_model,
     get_writing_path,
 )
-from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import (
+from self_supervised_3d_tasks.train import (
     keras_algorithm_list,
 )
 

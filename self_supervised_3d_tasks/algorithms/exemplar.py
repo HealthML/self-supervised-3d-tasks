@@ -3,10 +3,10 @@ from tensorflow.keras.utils import plot_model
 from tensorflow.python.keras.layers import Reshape, Dense
 from tensorflow.python.keras.layers.pooling import Pooling3D
 
-from self_supervised_3d_tasks.custom_preprocessing.preprocessing_exemplar import (
+from self_supervised_3d_tasks.preprocessing.preprocessing_exemplar import (
     preprocessing_exemplar_training,
     get_exemplar_training_preprocessing)
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
+from self_supervised_3d_tasks.algorithms.custom_utils import (
     apply_encoder_model_3d,
     apply_encoder_model,
 )

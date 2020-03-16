@@ -1,7 +1,7 @@
 import numpy as np
 
-from self_supervised_3d_tasks.custom_preprocessing.crop import crop_patches_3d, crop_3d
-from self_supervised_3d_tasks.custom_preprocessing.pad import pad_to_final_size_3d
+from self_supervised_3d_tasks.preprocessing.crop import crop_patches_3d, crop_3d
+from self_supervised_3d_tasks.preprocessing.pad import pad_to_final_size_3d
 
 
 def preprocess_volume_3d(volume, crop_size, patches_per_side, patch_overlap, is_training=True):

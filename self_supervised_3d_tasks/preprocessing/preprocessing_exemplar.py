@@ -6,8 +6,8 @@ import albumentations as ab
 import scipy
 import scipy.ndimage as ndimage
 
-from self_supervised_3d_tasks.custom_preprocessing.crop import crop_3d
-from self_supervised_3d_tasks.custom_preprocessing.pad import pad_to_final_size_3d
+from self_supervised_3d_tasks.preprocessing.crop import crop_3d
+from self_supervised_3d_tasks.preprocessing.pad import pad_to_final_size_3d
 from self_supervised_3d_tasks.data.preproc_negative_sampling import NegativeSamplingPreprocessing
 
 

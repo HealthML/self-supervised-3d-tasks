@@ -26,9 +26,9 @@ from tensorflow.python.keras.layers import Lambda, Concatenate, TimeDistributed,
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 from self_supervised_3d_tasks.ifttt_notify_me import shim_outputs, Tee
-from self_supervised_3d_tasks.keras_models.fully_connected import fully_connected_big, simple_multiclass
-from self_supervised_3d_tasks.keras_models.unet import downconv_model
-from self_supervised_3d_tasks.keras_models.unet3d import downconv_model_3d, upconv_model_3d
+from self_supervised_3d_tasks.models.fully_connected import fully_connected_big, simple_multiclass
+from self_supervised_3d_tasks.models.unet import downconv_model
+from self_supervised_3d_tasks.models.unet3d import downconv_model_3d, upconv_model_3d
 
 
 def print_flat_summary(model, long=True, printed_models=[]):

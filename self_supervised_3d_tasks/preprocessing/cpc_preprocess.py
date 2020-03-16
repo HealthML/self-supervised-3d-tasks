@@ -2,8 +2,8 @@ from math import sqrt
 
 import albumentations as ab
 import numpy as np
-from self_supervised_3d_tasks.custom_preprocessing.crop import crop, crop_patches
-from self_supervised_3d_tasks.custom_preprocessing.pad import pad_to_final_size_2d
+from self_supervised_3d_tasks.preprocessing.crop import crop, crop_patches
+from self_supervised_3d_tasks.preprocessing.pad import pad_to_final_size_2d
 
 
 def resize(batch, new_size):

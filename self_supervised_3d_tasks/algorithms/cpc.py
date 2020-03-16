@@ -9,12 +9,12 @@ from tensorflow.keras import Model, Input
 from tensorflow.keras.layers import Flatten, TimeDistributed
 from tensorflow.python.keras.layers.pooling import Pooling3D
 
-from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess import (
+from self_supervised_3d_tasks.preprocessing.cpc_preprocess import (
     preprocess_grid,
     preprocess
 )
-from self_supervised_3d_tasks.custom_preprocessing.cpc_preprocess_3d import preprocess_3d, preprocess_grid_3d
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import apply_encoder_model_3d, apply_encoder_model, \
+from self_supervised_3d_tasks.preprocessing.cpc_preprocess_3d import preprocess_3d, preprocess_grid_3d
+from self_supervised_3d_tasks.algorithms.custom_utils import apply_encoder_model_3d, apply_encoder_model, \
     make_finetuning_encoder_3d, make_finetuning_encoder_2d
 
 

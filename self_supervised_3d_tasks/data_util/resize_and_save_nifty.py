@@ -9,7 +9,7 @@ import numpy as np
 import skimage.transform as skTrans
 from joblib import Parallel, delayed
 
-from self_supervised_3d_tasks.data.nifti_utils import read_scan_find_bbox
+from self_supervised_3d_tasks.data_util.nifti_utils import read_scan_find_bbox
 
 
 def data_generation_pancreas():

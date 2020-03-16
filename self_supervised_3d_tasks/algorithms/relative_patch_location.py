@@ -4,14 +4,14 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.python.keras.layers.pooling import Pooling3D
 from tensorflow_core.python.keras.models import load_model
 
-from self_supervised_3d_tasks.custom_preprocessing.jigsaw_preprocess import preprocess_pad
-from self_supervised_3d_tasks.custom_preprocessing.relative_patch_location import (
+from self_supervised_3d_tasks.preprocessing.jigsaw_preprocess import preprocess_pad
+from self_supervised_3d_tasks.preprocessing.relative_patch_location import (
     preprocess_batch,
     preprocess_batch_3d
 )
-from self_supervised_3d_tasks.keras_models.res_net_2d import get_res_net_2d
+from self_supervised_3d_tasks.models.res_net_2d import get_res_net_2d
 
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import (
+from self_supervised_3d_tasks.algorithms.custom_utils import (
     apply_encoder_model,
     apply_encoder_model_3d,
     apply_prediction_model,

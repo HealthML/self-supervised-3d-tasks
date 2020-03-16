@@ -1,15 +1,13 @@
-from functools import partial
-
 from hyperopt import fmin, tpe, hp, STATUS_OK, Trials, STATUS_FAIL
 import sys
 
 from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
 
-from self_supervised_3d_tasks.keras_algorithms.keras_test_algo import (
+from self_supervised_3d_tasks.test import (
     get_dataset_test,
     run_single_test,
 )
-from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import (
+from self_supervised_3d_tasks.train import (
     keras_algorithm_list,
 )
 

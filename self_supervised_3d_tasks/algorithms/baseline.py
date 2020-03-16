@@ -5,9 +5,9 @@ import sys
 sys.path.append('/home/Aiham.Taleb/workspace/self-supervised-3d-tasks/')
 from pathlib import Path
 
-from self_supervised_3d_tasks.keras_algorithms.custom_utils import init
-from self_supervised_3d_tasks.keras_algorithms.keras_train_algo import keras_algorithm_list
-from self_supervised_3d_tasks.keras_algorithms import keras_test_algo as ts
+from self_supervised_3d_tasks.algorithms.custom_utils import init
+from self_supervised_3d_tasks.train import keras_algorithm_list
+from self_supervised_3d_tasks import test as ts
 import numpy as np
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -31,7 +31,7 @@ def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-
         p1 = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled/train/pancreas_052.npy"
         data = get_data_norm_npy(p1)
 
-        import self_supervised_3d_tasks.keras_algorithms.jigsaw as jig
+        import self_supervised_3d_tasks.algorithms.jigsaw as jig
         instance = jig.create_instance(train3D=True, data_dim=128, patch_dim=48, patches_per_side=3)
 
         data = np.expand_dims(data, axis=0)
