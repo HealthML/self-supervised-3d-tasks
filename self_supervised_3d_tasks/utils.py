@@ -67,9 +67,7 @@ def init(f, name="training", n_gpus=1):
     f(**args)
 
 
-def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs):
-    model_params = kwargs.get("model_params", {})
-
+def get_prediction_model(name, in_shape, include_top, algorithm_instance, num_classes, kwargs):
     if name == "big_fully":
         input_l = Input(in_shape)
         output_l = fully_connected_big(input_l, include_top=include_top, **kwargs)
@@ -94,7 +92,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
         inputs_up = [x] + inputs_skip
 
         model_up_out = upconv_model_3d(x.shape[1:], down_layers=algorithm_instance.layer_data[0],
-                                       filters=algorithm_instance.layer_data[1], **model_params)(inputs_up)
+                                       filters=algorithm_instance.layer_data[1], num_classes=num_classes)(inputs_up)
 
         return Model(inputs=[first_input, *inputs_skip], outputs=model_up_out)
     elif name == "unet_3d_upconv_patches":
@@ -130,7 +128,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, kwargs
 
         # prepare decoder
         model_up = upconv_model_3d(processed_first_input.shape[2:], down_layers=algorithm_instance.layer_data[0],
-                                   filters=algorithm_instance.layer_data[1], **model_params)
+                                   filters=algorithm_instance.layer_data[1], num_classes=num_classes)
 
         pred_patches = []
         large_inputs = [first_input]
@@ -187,10 +185,11 @@ def apply_prediction_model(
         prediction_architecture=None,
         include_top=True,
         algorithm_instance=None,
+        num_classes=3,
         **kwargs
 ):
     if prediction_architecture is not None:
-        model = get_prediction_model(prediction_architecture, input_shape, include_top, algorithm_instance, kwargs)
+        model = get_prediction_model(prediction_architecture, input_shape, include_top, algorithm_instance, num_classes, kwargs)
     else:
         layer_in = Input(input_shape)
         x = layer_in
