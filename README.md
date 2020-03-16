@@ -64,23 +64,30 @@ Training:
   "data_dim": "Dimension of image as an integer.",
   "number_channels": "The number of channels of the image as integer.",
 
-  "cpc, rpl": "",
   "patch_jitter": "CPC, RPL, jigsaw specific. Amount of pixels the jitter every patch should have as an integer.",
   "patches_per_side": "CPC, RPL specific. Amount of patches per dimension. 2 patches per side result in 8 patches for a 2D and 16 patches for a 3D image. As integer.",
   "crop_size": "CPC specific. For CPC the whole image can be randomly cropped to a smaller size to make the self-supervised task harder",
+  "code_size": "CPC, Exemplar specific. Specify the dimension of the latent space",
 
   "train_data_generator_args": {
-    "augment_zoom_only": "2D specific augmentations without rotating the image",
-    "augment": "Include additional augmentations during loading the data. 2D augmentations: zooming, rotating. 3D augmentations: flipping, color distortion, rotation",
-    "shuffle": "Shuffle the data after each epoch"
+    "suffix":  "(.png|.jpeg)",
+    "multilabel": "Shall data be transformed to multilabel representation. (0 => [0, 0], 1 => [1, 0], 2 => [1, 1]",
+    "augment": "Shall the data be randomly augmented with horizontally/vertically flip and/or zoom. Boolean.",
+    "augment_zoom_only": "Shall the data be augmented with zoom. Boolean.",
+    "shuffle": "Shall the data be shuffled after each epoch. Boolean."
   },
-  "val_data_generator_args": {"augment": false},
-  "code_size": "CPC, Exemplar specific. Specify the dimension of the latent space",
+
+  "val_data_generator_args": {
+    "suffix":  "(.png|.jpeg)",
+    "multilabel": "Shall data be transformed to multilabel representation. (0 => [0, 0], 1 => [1, 0], 2 => [1, 1]",
+    "augment": "Shall the data be randomly augmented with horizontally/vertically flip and/or zoom.",
+    "augment_zoom_only": "Shall the data be augmented with zoom.",
+  },
+
   "save_checkpoint_every_n_epochs": "Backup epoch even without improvements every n epochs. As Integer.",
-  "alpha_triplet": 0.2,
-  "val_split": 0.05,
-  "pooling": "none",
-  "enc_filters": 8
+  "val_split": "Percentage of images used for test, None for no validation set. Float between 0 and 1.",
+  "pooling": "None|'avg'|'max'",
+  "enc_filters": "Amount of filters used for the encoder model"
 }
 ```
 
@@ -100,7 +107,7 @@ Testing:
   "encoder_architecture": "Name of the encoder architecture. ('DenseNet121'|'InceptionV3'|'ResNet50'|'ResNet50V2'|'ResNet101'|'ResNet101V2'|'ResNet152'|'InceptionResNetV2')",
   "top_architecture": "Name of the top level architecture. ('big_fully'|'simple_multiclass'|'unet_3d_upconv'|'unet_3d_upconv_patches') ",
   "prediction_architecture": "simple_multiclass",
-  "pooling": "avg|max",
+  "pooling": "None|'avg'|'max'",
 
 
   "dataset_name": "Name of the dataset, only used for labeling the log data.",
@@ -123,13 +130,13 @@ Testing:
     "suffix":  "(.png|.jpeg)",
     "multilabel": "Shall data be transformed to multilabel representation. (0 => [0, 0], 1 => [1, 0], 2 => [1, 1]",
     "augment": "Shall the data be randomly augmented with horizontally/vertically flip and/or zoom.",
-    "augment_zoom_only": "Shall the data be augmented with zoom.",
+    "augment_zoom_only": "Shall the data be augmented with zoom."
   },
   "test_data_generator_args": {
     "suffix":  "(.png|.jpeg)",
     "multilabel": "Shall data be transformed to multilabel representation. (0 => [0, 0], 1 => [1, 0], 2 => [1, 1]",
     "augment": "Shall the data be randomly augmented with horizontally/vertically flip and/or zoom.",
-    "augment_zoom_only": "Shall the data be augmented with zoom.",
+    "augment_zoom_only": "Shall the data be augmented with zoom."
   },
 
   "metrics": "Array of metrics to be used. Array of strings. ('accuracy'|'mse')",
@@ -144,7 +151,6 @@ Testing:
   "model_checkpoint":"Path to model checkpoint. String.",
 
   "patches_per_side": "CPC, RPL specific. Amount of patches per dimension. 2 patches per side result in 8 patches for a 2D and 16 patches for a 3D image. As integer.",
-  "alpha_triplet": "The alpha value used for triplet loss.",
-  "enc_filters": 8
+  "enc_filters": "Amount of filters used for the encoder model"
 }
 ```
