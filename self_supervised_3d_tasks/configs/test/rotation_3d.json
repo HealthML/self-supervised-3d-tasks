@@ -2,7 +2,7 @@
   "algorithm": "rotation",
   "data_dir_train": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/train",
   "data_dir_test": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/test",
-  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_9",
+  "model_checkpoint": "~/workspace/self-supervised-transfer-learning/rotation_pancreas3d_9",
   "dataset_name": "pancreas3d",
   "train_data_generator_args": {"label_stem": "", "shuffle": true},
   "val_data_generator_args": {"label_stem": ""},

@@ -2,7 +2,7 @@
   "algorithm": "rotation",
   "data_dir_train": "/home/Shared.Workspace/data/pancreas/images_resized_128_labeled/train",
   "data_dir_test": "/home/Shared.Workspace/data/pancreas/images_resized_128_labeled/test",
-  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_3/weights-improvement-233.hdf5",
+  "model_checkpoint": "~/workspace/self-supervised-transfer-learning/rotation_pancreas3d_3/weights-improvement-233.hdf5",
   "dataset_name": "pancreas3d",
   "train_data_generator_args": {"shuffle": true},
 

@@ -21,6 +21,6 @@
   "epochs": 15,
   "epochs_warmup": 2,
   "load_weights": true,
-  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina_2/weights-improvement-183.hdf5",
+  "model_checkpoint": "~/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina_2/weights-improvement-183.hdf5",
   "scores": ["qw_kappa_kaggle"]
 }

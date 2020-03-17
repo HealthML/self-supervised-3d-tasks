@@ -17,7 +17,7 @@
   "enc_filters": 8,
   "val_split": 0.05,
   "lr": 0.0005,
-  "model_checkpoint": "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_pancreas3d_4/weights-improvement-224.hdf5",
+  "model_checkpoint": "~/workspace/self-supervised-transfer-learning/jigsaw_pancreas3d_4/weights-improvement-224.hdf5",
   "load_weights": false,
   "epochs": 1,
   "epochs_warmup": 0,

@@ -4,7 +4,7 @@
   "csv_file": "/mnt/mpws2019cl1/kaggle_retina_2019/labels_shuffled.csv",
   "csv_file_train": "/mnt/mpws2019cl1/kaggle_retina_2019/labels_shuffled_train.csv",
   "csv_file_test": "/mnt/mpws2019cl1/kaggle_retina_2019/labels_shuffled_test.csv",
-  "model_checkpoint":"/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_kaggle_retina",
+  "model_checkpoint":"~/workspace/self-supervised-transfer-learning/rotation_kaggle_retina",
   "dataset_name": "kaggle_retina",
 
   "train_data_generator_args": {"suffix":  ".png", "multilabel": true, "augment": true, "shuffle": true},

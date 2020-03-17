@@ -180,43 +180,43 @@ if __name__ == "__main__":
     combined_labels = []
 
     cpc_label = "cpc"
-    cpc_2d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_kaggle_retina/weights-250_test_4/"
-    cpc_3d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_pancreas3d_18/weights-400_test_3/"
+    cpc_2d_path = "~/workspace/self-supervised-transfer-learning/cpc_kaggle_retina/weights-250_test_4/"
+    cpc_3d_path = "~/workspace/self-supervised-transfer-learning/cpc_pancreas3d_18/weights-400_test_3/"
     combined_labels.append(cpc_label)
     combined_2d_path.append(cpc_2d_path)
     combined_3d_path.append(cpc_3d_path)
 
     jigsaw_label = "jigsaw"
-    jigsaw_2d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina/weights-improvement-929_test_3/"
-    jigsaw_3d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_pancreas3d_9/weights-improvement-671_test_13/"
+    jigsaw_2d_path = "~/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina/weights-improvement-929_test_3/"
+    jigsaw_3d_path = "~/workspace/self-supervised-transfer-learning/jigsaw_pancreas3d_9/weights-improvement-671_test_13/"
     combined_labels.append(jigsaw_label)
     combined_2d_path.append(jigsaw_2d_path)
     combined_3d_path.append(jigsaw_3d_path)
 
     rotation_label = "rotation"
-    rotation_2d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_kaggle_retina/weights-improvement-837_test_12/"
-    rotation_3d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_9/weights-improvement-885_test_14/"
+    rotation_2d_path = "~/workspace/self-supervised-transfer-learning/rotation_kaggle_retina/weights-improvement-837_test_12/"
+    rotation_3d_path = "~/workspace/self-supervised-transfer-learning/rotation_pancreas3d_9/weights-improvement-885_test_14/"
     combined_labels.append(rotation_label)
     combined_2d_path.append(rotation_2d_path)
     combined_3d_path.append(rotation_3d_path)
 
     rpl_label = "rpl"
-    rpl_2d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rpl_kaggle_retina/weights-improvement-879_test_16/"
-    rpl_3d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rpl_pancreas3d_9/weights-improvement-936_test_27/"
+    rpl_2d_path = "~/workspace/self-supervised-transfer-learning/rpl_kaggle_retina/weights-improvement-879_test_16/"
+    rpl_3d_path = "~/workspace/self-supervised-transfer-learning/rpl_pancreas3d_9/weights-improvement-936_test_27/"
     combined_labels.append(rpl_label)
     combined_2d_path.append(rpl_2d_path)
     combined_3d_path.append(rpl_3d_path)
 
     exemplar_label = "exemplar"
-    exemplar_2d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/exemplar_kaggle_retina/weights-improvement-641_test/"
-    exemplar_3d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/exemplar_pancreas3d_42/weights-300_test_3/"
+    exemplar_2d_path = "~/workspace/self-supervised-transfer-learning/exemplar_kaggle_retina/weights-improvement-641_test/"
+    exemplar_3d_path = "~/workspace/self-supervised-transfer-learning/exemplar_pancreas3d_42/weights-300_test_3/"
     combined_labels.append(exemplar_label)
     combined_2d_path.append(exemplar_2d_path)
     combined_3d_path.append(exemplar_3d_path)
 
     baseline_label = "baseline"
-    baseline_2d_path = "/home/Winfried.Loetzsch/workspace/random_test_3/"
-    baseline_3d_path = "/home/Winfried.Loetzsch/workspace/random_test_3D/"
+    baseline_2d_path = "~/workspace/random_test_3/"
+    baseline_3d_path = "~/workspace/random_test_3D/"
     combined_labels.append(baseline_label)
     combined_2d_path.append(baseline_2d_path)
     combined_3d_path.append(baseline_3d_path)
