@@ -25,13 +25,13 @@
   "number_channels": 1,
   "batch_size": 2,
 
-  "exp_splits": [10,5,50,25],
+  "exp_splits": [100],
   "lr": 1e-3,
   "epochs_initialized": 400,
   "epochs_frozen": 0,
   "epochs_random": 0,
   "epochs_warmup": 25,
-  "repetitions": 3,
+  "repetitions": 1,
 
   "clipnorm": 1,
   "clipvalue": 1

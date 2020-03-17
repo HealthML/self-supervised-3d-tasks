@@ -18,9 +18,8 @@ import numpy as np
 from sklearn.metrics import cohen_kappa_score, jaccard_score, accuracy_score
 from tensorflow.keras import backend as K
 from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.utils import plot_model
 from tensorflow.python.keras import Model
-from tensorflow.python.keras.metrics import BinaryAccuracy
+from tensorflow.python.keras.metrics import BinaryAccuracy, Metric
 from tensorflow.python.keras.callbacks import CSVLogger
 
 from self_supervised_3d_tasks.data.kaggle_retina_data import get_kaggle_generator, get_kaggle_cross_validation
@@ -449,6 +448,159 @@ class CvDataKaggle:
         x_test, y_test = get_data_from_gen(gen_test)
         return gen_train, gen_val, x_test, y_test
 
+
+def qwck(y_true, y_pred, num_classes=5):
+    y_true = tf.argmax(y_true, axis=-1)
+    y_pred = tf.argmax(y_pred, axis=-1)
+
+    y_true = tf.cast(y_true, dtype=tf.int32)
+    y_pred = tf.cast(y_pred, dtype=tf.int32)
+
+    if y_true.shape.as_list() != y_pred.shape.as_list():
+        raise ValueError(
+            "Number of samples in y_true and y_pred are different")
+
+    # compute the new values of the confusion matrix
+    new_conf_mtx = tf.math.confusion_matrix(
+        labels=y_true,
+        predictions=y_pred,
+        num_classes=num_classes,
+        weights=None)
+
+    nb_ratings = tf.shape(new_conf_mtx)[0]
+    weight_mtx = tf.ones([nb_ratings, nb_ratings], dtype=tf.int32)
+
+    # 2. Create a weight matrix
+    weight_mtx += tf.range(nb_ratings, dtype=tf.int32)
+    weight_mtx = tf.cast(weight_mtx, dtype=tf.float32)
+
+    weight_mtx = tf.pow((weight_mtx - tf.transpose(weight_mtx)), 2)
+    weight_mtx = tf.cast(weight_mtx, dtype=tf.float32)
+
+    # 3. Get counts
+    actual_ratings_hist = tf.reduce_sum(new_conf_mtx, axis=1)
+    pred_ratings_hist = tf.reduce_sum(new_conf_mtx, axis=0)
+
+    # 4. Get the outer product
+    out_prod = pred_ratings_hist[..., None] * \
+               actual_ratings_hist[None, ...]
+
+    # 5. Normalize the confusion matrix and outer product
+    conf_mtx = new_conf_mtx / tf.reduce_sum(new_conf_mtx)
+    out_prod = out_prod / tf.reduce_sum(out_prod)
+
+    conf_mtx = tf.cast(conf_mtx, dtype=tf.float32)
+    out_prod = tf.cast(out_prod, dtype=tf.float32)
+
+    # 6. Calculate Kappa score
+    numerator = tf.reduce_sum(conf_mtx * weight_mtx)
+    denominator = tf.reduce_sum(out_prod * weight_mtx)
+    kp = 1 - (numerator / denominator)
+    return kp
+
+class CohenKappa(Metric):
+    """
+    This metric is copied from TensorFlow Addons
+    """
+
+    def __init__(self,
+                 num_classes,
+                 name='cohen_kappa',
+                 weightage=None,
+                 dtype=tf.float32):
+        super(CohenKappa, self).__init__(name=name, dtype=dtype)
+
+        if weightage not in (None, 'linear', 'quadratic'):
+            raise ValueError("Unknown kappa weighting type.")
+        else:
+            self.weightage = weightage
+
+        self.num_classes = num_classes
+        self.conf_mtx = self.add_weight(
+            'conf_mtx',
+            shape=(self.num_classes, self.num_classes),
+            initializer=tf.keras.initializers.zeros,
+            dtype=tf.int32)
+
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        y_true = tf.argmax(y_true, axis=-1)
+        y_pred = tf.argmax(y_pred, axis=-1)
+
+        y_true = tf.cast(y_true, dtype=tf.int32)
+        y_pred = tf.cast(y_pred, dtype=tf.int32)
+
+        if y_true.shape.as_list() != y_pred.shape.as_list():
+            raise ValueError(
+                "Number of samples in y_true and y_pred are different")
+
+        # compute the new values of the confusion matrix
+        new_conf_mtx = tf.math.confusion_matrix(
+            labels=y_true,
+            predictions=y_pred,
+            num_classes=self.num_classes,
+            weights=sample_weight)
+
+        # update the values in the original confusion matrix
+        return self.conf_mtx.assign_add(new_conf_mtx)
+
+    def result(self):
+        nb_ratings = tf.shape(self.conf_mtx)[0]
+        weight_mtx = tf.ones([nb_ratings, nb_ratings], dtype=tf.int32)
+
+        # 2. Create a weight matrix
+        if self.weightage is None:
+            diagonal = tf.zeros([nb_ratings], dtype=tf.int32)
+            weight_mtx = tf.linalg.set_diag(weight_mtx, diagonal=diagonal)
+            weight_mtx = tf.cast(weight_mtx, dtype=tf.float32)
+
+        else:
+            weight_mtx += tf.range(nb_ratings, dtype=tf.int32)
+            weight_mtx = tf.cast(weight_mtx, dtype=tf.float32)
+
+            if self.weightage == 'linear':
+                weight_mtx = tf.abs(weight_mtx - tf.transpose(weight_mtx))
+            else:
+                weight_mtx = tf.pow((weight_mtx - tf.transpose(weight_mtx)), 2)
+            weight_mtx = tf.cast(weight_mtx, dtype=tf.float32)
+
+        # 3. Get counts
+        actual_ratings_hist = tf.reduce_sum(self.conf_mtx, axis=1)
+        pred_ratings_hist = tf.reduce_sum(self.conf_mtx, axis=0)
+
+        # 4. Get the outer product
+        out_prod = pred_ratings_hist[..., None] * \
+                   actual_ratings_hist[None, ...]
+
+        # 5. Normalize the confusion matrix and outer product
+        conf_mtx = self.conf_mtx / tf.reduce_sum(self.conf_mtx)
+        out_prod = out_prod / tf.reduce_sum(out_prod)
+
+        conf_mtx = tf.cast(conf_mtx, dtype=tf.float32)
+        out_prod = tf.cast(out_prod, dtype=tf.float32)
+
+        # 6. Calculate Kappa score
+        numerator = tf.reduce_sum(conf_mtx * weight_mtx)
+        denominator = tf.reduce_sum(out_prod * weight_mtx)
+        kp = 1 - (numerator / denominator)
+        return kp
+
+    def get_config(self):
+        """Returns the serializable config of the metric."""
+
+        config = {
+            "num_classes": self.num_classes,
+            "weightage": self.weightage,
+        }
+        base_config = super(CohenKappa, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+    def reset_states(self):
+        """Resets all of the metric state variables."""
+
+        for v in self.variables:
+            K.set_value(
+                v, np.zeros((self.num_classes, self.num_classes), np.int32))
+
 def run_single_test(algorithm_def, gen_train, gen_val, load_weights, freeze_weights, x_test, y_test, lr,
                     batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, logging_path, kwargs,
                     clipnorm=None, clipvalue=None,
@@ -461,6 +613,9 @@ def run_single_test(algorithm_def, gen_train, gen_val, load_weights, freeze_weig
         else:
             return Adam(lr=lr, clipnorm=clipnorm, clipvalue=clipvalue)
 
+    if "kaggle_kappa" in metrics:
+        metrics.remove("kaggle_kappa")
+        metrics.append(qwck)
     if "weighted_dice_coefficient" in metrics:
         metrics.remove("weighted_dice_coefficient")
         metrics.append(weighted_dice_coefficient)

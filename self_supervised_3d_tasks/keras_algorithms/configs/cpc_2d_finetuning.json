@@ -29,10 +29,10 @@
 
   "exp_splits": [100,10,5,50,25],
   "lr": 5e-5,
-  "epochs_initialized": 15,
+  "epochs_initialized": 20,
   "epochs_frozen": 0,
   "epochs_random": 0,
-  "epochs_warmup": 2,
+  "epochs_warmup": 3,
   "repetitions": 5,
   "do_cross_val": true
 }
