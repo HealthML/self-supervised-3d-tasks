@@ -5,6 +5,19 @@ import glob
 import matplotlib.pyplot as plt
 import matplotlib.markers as markers
 import numpy as np
+from math import inf
+
+def get_brats_data():
+    names = ["cpc", "jigsaw", "rotation", "rpl", "exemplar", "baseline"]
+    splits = [10, 25, 50, 100]
+    data = [[0.76, 0.78, 0.82, 0.91],
+            [0.71, 0.76, 0.81, 0.90],
+            [0.74, 0.77, 0.80, 0.90],
+            [0.74, 0.75, 0.80, 0.91],
+            [0.75, 0.77, 0.80, 0.91],
+            [0.42, 0.58, 0.72, 0.88]]
+
+    return names, data, splits
 
 def neighbour_smoothing(values, epochs, neighbour_count = 2):
     smoothed_values = []
@@ -16,9 +29,15 @@ def neighbour_smoothing(values, epochs, neighbour_count = 2):
 
 
 def get_metric_over_split(args, path, metric):
-    splits = args["exp_splits"]
     filename = Path(path) / "results.csv"
     df = pandas.read_csv(filename)
+
+    def percentage_string_to_int(string):
+        return int(string[:-1])
+
+    splits = df["Train Split"].to_numpy()
+    splits = map(percentage_string_to_int, splits)
+
     try:
         values = df[metric].to_numpy()
     except KeyError as e:
@@ -50,8 +69,13 @@ def draw_curve(x_data, y_data, label):
     return
 
 
-def draw_epoch_plot(paths, data_names, metric, nth_epoch, neighbour_count=1):
+def draw_epoch_plot(paths, data_names, metric, nth_epoch, neighbour_count=1, prefix="2d", metric_name=None):
     plt.figure(figsize=(15, 10))
+    min_value = inf
+    max_value = -inf
+
+    if metric_name is None:
+        metric_name = metric.replace("_", " ").title()
 
     for index, path in enumerate(paths):
         data_name = data_names[index]
@@ -64,25 +88,31 @@ def draw_epoch_plot(paths, data_names, metric, nth_epoch, neighbour_count=1):
             values, epochs = neighbour_smoothing(values, epochs, neighbour_count)
 
             draw_curve(epochs, values, data_name)
+            min_value = min([min_value, *values])
+            max_value = max([max_value, *values])
         except IndexError as e:
             raise FileNotFoundError("No JSON file found in provided directory:" + path)
 
-    plt.legend(loc=2, bbox_to_anchor=(0.70, 0.1 + len(data_names) * 0.06), fontsize=30, borderaxespad=0.)
+    plt.legend(loc=2, bbox_to_anchor=(0.65, 0.05 + len(data_names) * 0.08), fontsize=30, borderaxespad=0.)
 
-    plt.ylabel(metric.replace("_", " ").title(), fontsize=26, fontweight='bold')
+    plt.ylabel(metric_name, fontsize=26, fontweight='bold')
     plt.xlabel("Epochs", fontsize=26, fontweight='bold')
 
-    plt.yticks(fontsize=24)
+    plt.yticks(np.arange(round(min_value, 1), round(max_value, 1) + 0.04, 0.02), fontsize=24)
     plt.xticks(fontsize=24)
 
     plt.grid()
-    plt.savefig("plots/" + '_'.join(["epochs", *data_names]) + ".png")
+    plt.savefig("plots/" + '_'.join(["epochs", prefix, *data_names]) + ".pdf", bbox_inches='tight')
     plt.show()
 
 
-
-def draw_train_split_plot(paths, data_names, metric, skips = []):
+def draw_train_split_plot(paths, data_names, metric, skips = [], prefix="2d", metric_name=None):
     plt.figure(figsize=(15, 10))
+    min_value = inf
+    max_value = -inf
+
+    if metric_name is None:
+        metric_name = metric.replace("_", " ").title()
 
     for index, path in enumerate(paths):
         data_name = data_names[index]
@@ -97,17 +127,48 @@ def draw_train_split_plot(paths, data_names, metric, skips = []):
             values.pop(skip_index)
         draw_curve(splits, values, data_name)
 
-    #plt.title("Title")
-    plt.legend(loc=2, bbox_to_anchor=(0.70, 0.1 + len(data_names) * 0.06), fontsize=30, borderaxespad=0.)
+        min_value = min([min_value, *values])
+        max_value = max([max_value, *values])
 
-    plt.ylabel(metric.replace("_", " ").title(), fontsize=26, fontweight='bold')
+    plt.legend(loc=2, bbox_to_anchor=(0.65, 0.05 + len(data_names) * 0.08), fontsize=30, borderaxespad=0.)
+
+    plt.ylabel(metric_name, fontsize=26, fontweight='bold')
     plt.xlabel("Percentage of labelled images", fontsize=26, fontweight='bold')
 
-    plt.yticks(fontsize=24)
+    plt.yticks(np.arange(round(min_value, 1), round(max_value, 1) + 0.1, 0.05), fontsize=24)
     plt.xticks(splits, fontsize=24)
 
     plt.grid()
-    plt.savefig("plots/" + '_'.join(["trainsplit", *data_names]) + ".png")
+    plt.savefig("plots/" + '_'.join(["trainsplit", prefix, *data_names]) + ".pdf", bbox_inches='tight')
+    plt.show()
+
+
+def draw_brats_plot():
+    plt.figure(figsize=(15, 10))
+
+    min_value = inf
+    max_value = -inf
+
+    names, data, splits = get_brats_data()
+    for index in range(len(names)):
+        values = data[index]
+        data_name = names[index]
+        draw_curve(splits, values, data_name)
+
+        min_value = min([min_value, *values])
+        max_value = max([max_value, *values])
+
+    plt.legend(loc=2, bbox_to_anchor=(0.65, 0.05 + len(names) * 0.08), fontsize=30, borderaxespad=0.)
+
+    plt.ylabel("WT Dice Score", fontsize=26, fontweight='bold')
+    plt.xlabel("Percentage of labelled images", fontsize=26, fontweight='bold')
+
+    plt.yticks(np.arange(round(min_value, 1), round(max_value, 1) + 0.1, 0.05), fontsize=24)
+    plt.xticks(splits, fontsize=24)
+
+    plt.grid()
+    plt.savefig("plots/" + '_'.join(["trainsplit", "brats"]) + ".pdf", bbox_inches='tight')
+    plt.savefig("plots/" + '_'.join(["trainsplit", "brats"]) + ".pdf", bbox_inches='tight')
     plt.show()
 
 
@@ -158,15 +219,20 @@ if __name__ == "__main__":
     combined_2d_path.append(baseline_2d_path)
     combined_3d_path.append(baseline_3d_path)
 
-    split_2d_metric = "Weights_initialized_qw_kappa_kaggle_max"
-    draw_train_split_plot(combined_2d_path, combined_labels, split_2d_metric, skips=[])
-    split_3d_metric = "Weights_initialized_dice_pancreas_1_max"
-    # draw_train_split_plot(combined_3d_path, combined_labels, split_3d_metric, skips=[25])
+    split_2d_metric = "Weights_initialized_qw_kappa_kaggle_avg"
+    split_2d_metric_name = "Avg Qw Kappa"
+    draw_train_split_plot(combined_2d_path, combined_labels, split_2d_metric, skips=[1], metric_name=split_2d_metric_name)
+    split_3d_metric = "Weights_initialized_dice_avg"
+    split_3d_metric_name = "Avg Dice Scores"
+    draw_train_split_plot(combined_3d_path, combined_labels, split_3d_metric, skips=[25], prefix="3d", metric_name=split_3d_metric_name)
 
     epoch_2d_metric = "val_accuracy"
     draw_epoch_plot(combined_2d_path, combined_labels, epoch_2d_metric, nth_epoch=1)
-    epoch_3d_metric = "val_dice_class_1"
-    # draw_epoch_plot(combined_3d_path, combined_labels, epoch_3d_metric, nth_epoch=1, neighbour_count=10)
+    epoch_3d_metric = "val_weighted_dice_coefficient"
+    epoch_3d_metric_name = "Avg Dice Scores"
+    draw_epoch_plot(combined_3d_path, combined_labels, epoch_3d_metric, nth_epoch=1, neighbour_count=10, prefix="3d", metric_name=epoch_3d_metric_name)
+
+    draw_brats_plot()
 
     for index in range(len(combined_3d_path) - 1):
         algorithms_2d = [combined_2d_path[index], combined_2d_path[-1]]
@@ -174,8 +240,8 @@ if __name__ == "__main__":
         labels = [combined_labels[index], combined_labels[-1]]
         title = combined_labels[index]
 
-        draw_train_split_plot(algorithms_2d, labels, split_2d_metric, skips=[])
+        draw_train_split_plot(algorithms_2d, labels, split_2d_metric, skips=[1], metric_name=split_2d_metric_name)
         draw_epoch_plot(algorithms_2d, labels, epoch_2d_metric, nth_epoch=1)
 
-        # draw_train_split_plot(algorithms_3d, labels, split_3d_metric, skips=[25])
-        # draw_epoch_plot(algorithms_3d, labels, epoch_3d_metric, nth_epoch=1, neighbour_count=10)
+        draw_train_split_plot(algorithms_3d, labels, split_3d_metric, skips=[25], prefix="3d", metric_name=split_3d_metric_name)
+        draw_epoch_plot(algorithms_3d, labels, epoch_3d_metric, nth_epoch=1, neighbour_count=10, prefix="3d", metric_name=epoch_3d_metric_name)
