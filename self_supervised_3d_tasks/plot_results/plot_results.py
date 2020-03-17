@@ -122,9 +122,12 @@ def draw_train_split_plot(paths, data_names, metric, skips = [], prefix="2d", me
             args = json.load(file)
         splits, values = get_metric_over_split(args, path, metric)
         for skip in skips:
-            skip_index = splits.index(skip)
-            splits.pop(skip_index)
-            values.pop(skip_index)
+            try:
+                skip_index = splits.index(skip)
+                splits.pop(skip_index)
+                values.pop(skip_index)
+            except ValueError as e:
+                print(data_name + " does not have split " + str(skip))
         draw_curve(splits, values, data_name)
 
         min_value = min([min_value, *values])
@@ -168,7 +171,6 @@ def draw_brats_plot():
 
     plt.grid()
     plt.savefig("plots/" + '_'.join(["trainsplit", "brats"]) + ".pdf", bbox_inches='tight')
-    plt.savefig("plots/" + '_'.join(["trainsplit", "brats"]) + ".pdf", bbox_inches='tight')
     plt.show()
 
 
@@ -178,28 +180,28 @@ if __name__ == "__main__":
     combined_labels = []
 
     cpc_label = "cpc"
-    cpc_2d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_kaggle_retina/weights-250_test/"
-    cpc_3d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_pancreas3d_18/weights-400_test_1/"
+    cpc_2d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_kaggle_retina/weights-250_test_4/"
+    cpc_3d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/cpc_pancreas3d_18/weights-400_test_3/"
     combined_labels.append(cpc_label)
     combined_2d_path.append(cpc_2d_path)
     combined_3d_path.append(cpc_3d_path)
 
     jigsaw_label = "jigsaw"
-    jigsaw_2d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina/weights-improvement-929_test/"
-    jigsaw_3d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_pancreas3d_9/weights-improvement-671_test_7/"
+    jigsaw_2d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina/weights-improvement-929_test_3/"
+    jigsaw_3d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/jigsaw_pancreas3d_9/weights-improvement-671_test_13/"
     combined_labels.append(jigsaw_label)
     combined_2d_path.append(jigsaw_2d_path)
     combined_3d_path.append(jigsaw_3d_path)
 
     rotation_label = "rotation"
-    rotation_2d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_kaggle_retina/weights-improvement-837_test_1/"
-    rotation_3d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_9/weights-improvement-885_test_12/"
+    rotation_2d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_kaggle_retina/weights-improvement-837_test_12/"
+    rotation_3d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rotation_pancreas3d_9/weights-improvement-885_test_14/"
     combined_labels.append(rotation_label)
     combined_2d_path.append(rotation_2d_path)
     combined_3d_path.append(rotation_3d_path)
 
     rpl_label = "rpl"
-    rpl_2d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rpl_kaggle_retina/weights-improvement-879_test_13/"
+    rpl_2d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rpl_kaggle_retina/weights-improvement-879_test_16/"
     rpl_3d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/rpl_pancreas3d_9/weights-improvement-936_test_27/"
     combined_labels.append(rpl_label)
     combined_2d_path.append(rpl_2d_path)
@@ -207,14 +209,14 @@ if __name__ == "__main__":
 
     exemplar_label = "exemplar"
     exemplar_2d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/exemplar_kaggle_retina/weights-improvement-641_test/"
-    exemplar_3d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/exemplar_pancreas3d_42/weights-300_test_1/"
+    exemplar_3d_path = "/home/Winfried.Loetzsch/workspace/self-supervised-transfer-learning/exemplar_pancreas3d_42/weights-300_test_3/"
     combined_labels.append(exemplar_label)
     combined_2d_path.append(exemplar_2d_path)
     combined_3d_path.append(exemplar_3d_path)
 
     baseline_label = "baseline"
-    baseline_2d_path = "/home/Winfried.Loetzsch/workspace/random_test/"
-    baseline_3d_path = "/home/Julius.Severin/self-supervised-3d-taks/random_test/"
+    baseline_2d_path = "/home/Winfried.Loetzsch/workspace/random_test_3/"
+    baseline_3d_path = "/home/Winfried.Loetzsch/workspace/random_test_3D/"
     combined_labels.append(baseline_label)
     combined_2d_path.append(baseline_2d_path)
     combined_3d_path.append(baseline_3d_path)
@@ -224,7 +226,7 @@ if __name__ == "__main__":
     draw_train_split_plot(combined_2d_path, combined_labels, split_2d_metric, skips=[1], metric_name=split_2d_metric_name)
     split_3d_metric = "Weights_initialized_dice_avg"
     split_3d_metric_name = "Avg Dice Scores"
-    draw_train_split_plot(combined_3d_path, combined_labels, split_3d_metric, skips=[25], prefix="3d", metric_name=split_3d_metric_name)
+    draw_train_split_plot(combined_3d_path, combined_labels, split_3d_metric, skips=[25, 50], prefix="3d", metric_name=split_3d_metric_name)
 
     epoch_2d_metric = "val_accuracy"
     draw_epoch_plot(combined_2d_path, combined_labels, epoch_2d_metric, nth_epoch=1)
@@ -243,5 +245,5 @@ if __name__ == "__main__":
         draw_train_split_plot(algorithms_2d, labels, split_2d_metric, skips=[1], metric_name=split_2d_metric_name)
         draw_epoch_plot(algorithms_2d, labels, epoch_2d_metric, nth_epoch=1)
 
-        draw_train_split_plot(algorithms_3d, labels, split_3d_metric, skips=[25], prefix="3d", metric_name=split_3d_metric_name)
+        draw_train_split_plot(algorithms_3d, labels, split_3d_metric, skips=[25, 50], prefix="3d", metric_name=split_3d_metric_name)
         draw_epoch_plot(algorithms_3d, labels, epoch_3d_metric, nth_epoch=1, neighbour_count=10, prefix="3d", metric_name=epoch_3d_metric_name)
