@@ -1,3 +1,4 @@
+from self_supervised_3d_tasks.data.numpy_2d_loader import Numpy2DLoader
 from self_supervised_3d_tasks.utils import init, print_flat_summary
 from pathlib import Path
 
@@ -20,6 +21,7 @@ keras_algorithm_list = {
 data_gen_list = {
     "kaggle_retina": DataGeneratorUnlabeled2D,
     "pancreas3d": DataGeneratorUnlabeled3D,
+    "pancreas2d": Numpy2DLoader,
     "brats": DataGeneratorUnlabeled3D,
     "ukb": DataGeneratorUnlabeled3D
 }
