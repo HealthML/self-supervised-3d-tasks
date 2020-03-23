@@ -3,6 +3,7 @@ import multiprocessing
 import os
 import traceback
 import zipfile
+from pathlib import Path
 
 import nibabel as nib
 import numpy as np
@@ -11,6 +12,81 @@ from joblib import Parallel, delayed
 
 from self_supervised_3d_tasks.data_util.nifti_utils import read_scan_find_bbox
 
+def data_generation_self_supervised_pancreas_2D_slices():
+    result_path = "/home/Shared.Workspace/pancreas_data/images_slices_128_labeled"
+    path_to_data = "/mnt/mpws2019cl1/Task07_Pancreas/imagesPt"
+
+    dim_2d = (128, 128)
+    list_files_temp = os.listdir(path_to_data)
+
+    for i, file_name in enumerate(list_files_temp):
+        path_to_image = "{}/{}".format(path_to_data, file_name)
+
+        try:
+            img = nib.load(path_to_image)
+            img = img.get_fdata()
+
+            img, bb = read_scan_find_bbox(img)
+            dim = dim_2d + (img.shape[2], )
+            img = skTrans.resize(img, dim, order=1, preserve_range=True)
+
+            result = np.expand_dims(img, axis=3)
+
+            file_name = file_name[:file_name.index('.')] + ".npy"
+            np.save("{}/{}".format(result_path, file_name), result)
+
+            perc = (float(i) * 100.0) / len(list_files_temp)
+            print(f"{perc:.2f} % done")
+
+        except Exception as e:
+            print("Error while loading image {}.".format(path_to_image))
+            traceback.print_tb(e.__traceback__)
+            continue
+
+def data_generation_pancreas_2D_slices():
+    result_path = "/home/Shared.Workspace/pancreas_data/images_slices_128_labeled"
+    path_to_data = "/mnt/mpws2019cl1/Task07_Pancreas/imagesTr"
+    path_to_labels = "/mnt/mpws2019cl1/Task07_Pancreas/labelsTr"
+
+    dim_2d = (128, 128)
+    list_files_temp = os.listdir(path_to_data)
+
+    Path(result_path).mkdir(parents=True, exist_ok=True)
+
+    for i, file_name in enumerate(list_files_temp):
+        path_to_image = "{}/{}".format(path_to_data, file_name)
+        path_to_label = "{}/{}".format(path_to_labels, file_name)
+
+        try:
+            img = nib.load(path_to_image)
+            img = img.get_fdata()
+
+            label = nib.load(path_to_label)
+            label = label.get_fdata()
+
+            img, bb = read_scan_find_bbox(img)
+            label = label[bb[0]:bb[1], bb[2]:bb[3], bb[4]:bb[5]]
+
+            dim = dim_2d + (img.shape[2], )
+            img = skTrans.resize(img, dim, order=1, preserve_range=True)
+            label = skTrans.resize(label, dim, order=1, preserve_range=True)
+
+            result = np.expand_dims(img, axis=3)
+            label_result = np.expand_dims(label, axis=3)
+
+            file_name = file_name[:file_name.index('.')] + ".npy"
+            label_file_name = file_name[:file_name.index('.')] + "_label.npy"
+            np.save("{}/{}".format(result_path, file_name), result)
+            np.save("{}/{}".format(result_path, label_file_name), label_result)
+
+            perc = (float(i) * 100.0) / len(list_files_temp)
+            print(f"{perc:.2f} % done")
+
+        except Exception as e:
+            print("Error while loading image {}.".format(path_to_image))
+            print(e)
+            traceback.print_tb(e.__traceback__)
+            continue
 
 def data_generation_pancreas():
     result_path = "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_labeled"
@@ -182,7 +258,4 @@ def read_ukb_scan_multimodal(t1_files, t2_flair_files, i, result_path):
 
 
 if __name__ == "__main__":
-    # data_generation_pancreas()
-    # data_conversion_brats(split='train')
-    # data_conversion_ukb()
-    preprocess_ukb_3D_multimodal()
+    data_generation_pancreas_2D_slices()
