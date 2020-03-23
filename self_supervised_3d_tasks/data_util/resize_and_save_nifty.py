@@ -44,7 +44,8 @@ def data_generation_self_supervised_pancreas_2D_slices():
             continue
 
 def data_generation_pancreas_2D_slices():
-    result_path = "/home/Shared.Workspace/pancreas_data/images_slices_128_labeled"
+    result_path = "/home/Shared.Workspace/pancreas_data/images_slices_128_labeled/img"
+    result_path_label = "/home/Shared.Workspace/pancreas_data/images_slices_128_labeled/img_label"
     path_to_data = "/mnt/mpws2019cl1/Task07_Pancreas/imagesTr"
     path_to_labels = "/mnt/mpws2019cl1/Task07_Pancreas/labelsTr"
 
@@ -52,6 +53,7 @@ def data_generation_pancreas_2D_slices():
     list_files_temp = os.listdir(path_to_data)
 
     Path(result_path).mkdir(parents=True, exist_ok=True)
+    Path(result_path_label).mkdir(parents=True, exist_ok=True)
 
     for i, file_name in enumerate(list_files_temp):
         path_to_image = "{}/{}".format(path_to_data, file_name)
@@ -75,9 +77,8 @@ def data_generation_pancreas_2D_slices():
             label_result = np.expand_dims(label, axis=3)
 
             file_name = file_name[:file_name.index('.')] + ".npy"
-            label_file_name = file_name[:file_name.index('.')] + "_label.npy"
             np.save("{}/{}".format(result_path, file_name), result)
-            np.save("{}/{}".format(result_path, label_file_name), label_result)
+            np.save("{}/{}".format(result_path_label, file_name), label_result)
 
             perc = (float(i) * 100.0) / len(list_files_temp)
             print(f"{perc:.2f} % done")
@@ -258,4 +259,4 @@ def read_ukb_scan_multimodal(t1_files, t2_flair_files, i, result_path):
 
 
 if __name__ == "__main__":
-    data_generation_pancreas_2D_slices()
+    data_generation_self_supervised_pancreas_2D_slices()
