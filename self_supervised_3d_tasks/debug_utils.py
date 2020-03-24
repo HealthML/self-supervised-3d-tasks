@@ -146,7 +146,7 @@ def test_exppp():
 
 def get_2d_loader(f_train):
     # data_dir = "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224"
-    data_dir = "/home/Shared.Workspace/pancreas_data/images_slices_128_labeled/img"
+    data_dir = "/mnt/mpws2019cl1/pancreas_data/images_slices_128_labeled/img_single"
 
     gen = get_data_generators(data_dir,
                         train_data_generator_args={"batch_size": 256,
@@ -163,14 +163,15 @@ def test_2d_algorithms():
 
     gen = get_2d_loader(f_id)
     batch = gen[0]
+    print(batch[0].shape)
 
-    for x in range(10):
-        img = batch[0][x*4]
-        mask = batch[1][x * 4]
+    for x in range(15):
+        img = batch[0][10+x*2]
+        mask = batch[1][10+x * 2]
         print(img.max())
         print(img.min())
         print(mask.shape)
-        show_batch([img, mask])
+        show_batch([np.squeeze(img, axis=-1), mask])
 
     # CPC
     # show_batch(batch[0][0][0])

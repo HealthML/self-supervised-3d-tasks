@@ -10,9 +10,11 @@ class DataGeneratorBase(keras.utils.Sequence):
                  file_list,
                  batch_size,
                  shuffle,
-                 pre_proc_func):
+                 pre_proc_func,
+                 use_realistic_batch_size=True):
         super(DataGeneratorBase, self).__init__()
-        
+
+        self.use_realistic_batch_size = use_realistic_batch_size
         self.batch_size = batch_size
         self.list_IDs = file_list
         self.shuffle = shuffle
@@ -38,6 +40,9 @@ class DataGeneratorBase(keras.utils.Sequence):
         assert self.index_multiplicator > 0, "invalid preprocessing"
 
     def __len__(self):
+        if not self.use_realistic_batch_size:
+            return int(np.ceil(len(self.list_IDs) / self.batch_size))
+
         if self.index_multiplicator is None:
             self.get_multiplicator()
 
@@ -61,6 +66,18 @@ class DataGeneratorBase(keras.utils.Sequence):
             return x[start:end]
 
     def __getitem__(self, index):
+        if not self.use_realistic_batch_size:
+            index_start = index * self.batch_size  # inc
+            index_end = (index + 1) * self.batch_size  # exc
+
+            if index_end > len(self.list_IDs):
+                # last batch
+                index_end = len(self.list_IDs)
+
+            list_files_temp = [self.list_IDs[k] for k in range(index_start, index_end)]
+            X, Y = self.__data_generation_intern(list_files_temp)
+            return X, Y
+
         if self.index_multiplicator is None:
             self.get_multiplicator()
 
@@ -88,7 +105,7 @@ class DataGeneratorBase(keras.utils.Sequence):
         X = DataGeneratorBase.slice_input(X, relative_start, relative_end)
         Y = DataGeneratorBase.slice_input(Y, relative_start, relative_end)
 
-        return (X, Y)
+        return X, Y
 
     def on_epoch_end(self):
         # TODO: see issue: https://github.com/tensorflow/tensorflow/issues/35911 -- in fixing

@@ -12,6 +12,27 @@ from joblib import Parallel, delayed
 
 from self_supervised_3d_tasks.data_util.nifti_utils import read_scan_find_bbox
 
+def split_slices_to_single_files():
+    result_path = "/mnt/mpws2019cl1/pancreas_data/img_slices_128_single"
+    path_to_data = "/mnt/mpws2019cl1/pancreas_data/img_slices_128"
+
+    Path(result_path).mkdir(parents=True, exist_ok=True)
+    result_index = 0
+
+    list_files_temp = list(Path(path_to_data).glob("*.npy"))
+    for x, file_name in enumerate(list_files_temp):
+        # load 3d scans
+        source = np.load(str(file_name))
+
+        for i in range(source.shape[2]):
+            slice = source[:, :, i, :]
+            np.save("{}/{}".format(result_path, "slice"+str(result_index)+".npy"), slice)
+            result_index += 1
+
+        perc = (float(x) * 100.0) / len(list_files_temp)
+        print(f"{perc:.2f} % done")
+
+
 def data_generation_self_supervised_pancreas_2D_slices():
     result_path = "/home/Shared.Workspace/pancreas_data/images_slices_128_labeled"
     path_to_data = "/mnt/mpws2019cl1/Task07_Pancreas/imagesPt"
@@ -130,7 +151,6 @@ def data_generation_pancreas():
             traceback.print_tb(e.__traceback__)
             continue
 
-
 def data_conversion_ukb():
     source_path = "/mnt/30T/ukbiobank/original/imaging/brain_mri/"
     destination_path = "/mnt/30T/ukbiobank/derived/imaging/brain_mri/"
@@ -177,7 +197,6 @@ def data_conversion_ukb():
         if count % 100 == 0:
             print("Processed " + str(count) + " scans so far.")
 
-
 def data_conversion_brats(split='train'):
     """
     :param split: can be 'train' or 'val'
@@ -213,7 +232,6 @@ def data_conversion_brats(split='train'):
         perc = (float(i) * 100.0) / len(results)
         print(f"{perc:.2f} % done")
 
-
 def read_mm_slice_brats(flair_files, i, seg_files, t1_files, t1ce_files, t2_files, new_resolution):
     t1ce_image, nbbox = read_scan_find_bbox(nib.load(t1ce_files[i]).get_fdata(), normalize=False)
     t1ce_image = skTrans.resize(t1ce_image, new_resolution, order=1, preserve_range=True)
@@ -230,10 +248,8 @@ def read_mm_slice_brats(flair_files, i, seg_files, t1_files, t1ce_files, t2_file
     seg_image = np.expand_dims(seg_image, axis=-1)
     return np.stack([t1ce_image, flair_image, t1_image, t2_image], axis=-1), seg_image
 
-
 def read_scan(sbbox, nif_file):
     return nif_file.get_fdata()[sbbox[0]:sbbox[1], sbbox[2]:sbbox[3], sbbox[4]:sbbox[5]]
-
 
 def preprocess_ukb_3D_multimodal():
     base_path = "/mnt/30T/ukbiobank/derived/imaging/brain_mri/"
@@ -247,7 +263,6 @@ def preprocess_ukb_3D_multimodal():
         range(len(t2_flair_files)))
     print("done preprocessing images")
 
-
 def read_ukb_scan_multimodal(t1_files, t2_flair_files, i, result_path):
     t1_scan, sbbox = read_scan_find_bbox(np.load(t1_files[i]))
     t2_flair_scan = np.load(t2_flair_files[i])[sbbox[0]:sbbox[1], sbbox[2]:sbbox[3], sbbox[4]:sbbox[5]]
@@ -259,4 +274,4 @@ def read_ukb_scan_multimodal(t1_files, t2_flair_files, i, result_path):
 
 
 if __name__ == "__main__":
-    data_generation_self_supervised_pancreas_2D_slices()
+    split_slices_to_single_files()

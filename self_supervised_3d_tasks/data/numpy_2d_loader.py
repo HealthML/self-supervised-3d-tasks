@@ -10,7 +10,9 @@ class Numpy2DLoader(DataGeneratorBase):
                  file_list,
                  batch_size=32,
                  shuffle=False,
-                 pre_proc_func=None):
+                 pre_proc_func=None,
+                 n_classes = 3):
+        self.n_classes = n_classes
         self.path_to_data = data_path
         self.label_dir = data_path + "_labels"
 
@@ -34,26 +36,24 @@ class Numpy2DLoader(DataGeneratorBase):
 
                 path_to_image = "{}/{}".format(self.path_to_data, file_name)
                 img = np.load(path_to_image)
-                img = (img - img.min()) / (img.max() - img.min())
 
-                for z in range(img.shape[2]):
-                    data_x.append(img[:,:,z,0])
+                data_x.append(img)
 
-                    if self.label_dir:
-                        data_y.append(mask[:,:,z,0])
-                    else:
-                        data_y.append(0)
+                if self.label_dir:
+                    data_y.append(mask)
+                else:
+                    data_y.append(0)
+
             except Exception as e:
                 print("Error while loading image {}.".format(path_to_image))
                 continue
 
         data_x = np.stack(data_x)
-        data_x = np.expand_dims(data_x, axis=-1)
         data_y = np.stack(data_y)
 
         if self.label_dir:
             data_y = np.rint(data_y).astype(np.int)
-            n_classes = np.max(data_y) + 1
-            data_y = np.eye(n_classes)[data_y]
+            data_y = np.eye(self.n_classes)[data_y]
+            data_y = np.squeeze(data_y, axis=-2)  # remove second last axis, which is still 1
 
         return data_x, data_y
