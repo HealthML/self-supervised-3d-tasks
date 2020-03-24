@@ -94,7 +94,7 @@ def downconv_model(
 
 def upconv_model(
         input_shape,
-        num_classes=1,
+        num_classes=3,
         use_batch_norm=True,
         upsample_mode="deconv",  # 'deconv' or 'simple'
         use_dropout_on_upsampling=False,
@@ -102,7 +102,7 @@ def upconv_model(
         dropout_change_per_layer=0.0,
         filters=128,
         down_layers=(),
-        output_activation="sigmoid",  # 'sigmoid' or 'softmax'
+        output_activation="softmax",  # 'sigmoid' or 'softmax'
 ):
     inp = Input(input_shape)
     inputs = [inp]
@@ -135,7 +135,7 @@ def custom_unet(
         num_classes=1,
         use_batch_norm=True,
         upsample_mode="deconv",  # 'deconv' or 'simple'
-        use_dropout_on_upsampling=False,
+        use_dropout_on_upsampling=True,
         dropout=0.3,
         dropout_change_per_layer=0.0,
         filters=16,

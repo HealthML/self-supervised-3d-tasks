@@ -38,7 +38,7 @@ class ExemplarBuilder(AlgorithmBuilderBase):
                 (*self.dim, self.number_channels), **self.kwargs
             )
         else:
-            self.enc_model = apply_encoder_model(
+            self.enc_model, self.layer_data = apply_encoder_model(
                 (*self.dim, self.number_channels), **self.kwargs
             )
 

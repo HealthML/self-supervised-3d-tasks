@@ -12,7 +12,7 @@ class Numpy2DLoader(DataGeneratorBase):
                  shuffle=False,
                  pre_proc_func=None):
         self.path_to_data = data_path
-        self.label_dir = data_path + "_label"
+        self.label_dir = data_path + "_labels"
 
         if not Path(self.label_dir).exists():
             self.label_dir = None

@@ -54,6 +54,7 @@ def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250,
     f_train, f_val = algorithm_def.get_training_preprocessing()
     train_data, validation_data = get_dataset(data_dir, batch_size, f_train, f_val, train_val_split, dataset_name, **kwargs)
     model = algorithm_def.get_training_model()
+    print_flat_summary(model)
 
     tb_c = keras.callbacks.TensorBoard(log_dir=str(working_dir))
     mc_c = keras.callbacks.ModelCheckpoint(str(working_dir / "weights-improvement-{epoch:03d}.hdf5"), monitor="val_loss",

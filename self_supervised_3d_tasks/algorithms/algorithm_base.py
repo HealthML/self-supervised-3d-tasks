@@ -1,5 +1,5 @@
 from tensorflow_core.python.keras import Model
-from tensorflow_core.python.keras.layers.pooling import Pooling3D
+from tensorflow_core.python.keras.layers.pooling import Pooling3D, Pooling2D
 from self_supervised_3d_tasks.utils import make_finetuning_encoder_3d, make_finetuning_encoder_2d
 
 
@@ -45,12 +45,13 @@ class AlgorithmBuilderBase:
             model.load_weights(model_checkpoint)
 
         self.cleanup_models.append(model)
+        self.cleanup_models.append(self.enc_model)
 
-        if self.data_is_3D:
-            assert self.layer_data is not None, "no layer data for 3D"
-
-            self.layer_data.append(isinstance(self.enc_model.layers[-1], Pooling3D))
-            self.cleanup_models.append(self.enc_model)
+        if self.layer_data:
+            if self.data_is_3D:
+                self.layer_data.append(isinstance(self.enc_model.layers[-1], Pooling3D))
+            else:
+                self.layer_data.append(isinstance(self.enc_model.layers[-1], Pooling2D))
 
             self.enc_model = Model(
                 inputs=[self.enc_model.layers[0].input],
@@ -72,15 +73,15 @@ class AlgorithmBuilderBase:
         self.cleanup_models.append(self.enc_model)
 
         if self.data_is_3D:
-            model_skips, self.layer_data = make_finetuning_encoder_3d(
+            new_enc, self.layer_data = make_finetuning_encoder_3d(
                 (self.data_dim, self.data_dim, self.data_dim, self.number_channels,),
                 self.enc_model,
                 **self.kwargs
             )
 
-            return model_skips
+            return new_enc
         else:
-            new_enc = make_finetuning_encoder_2d(
+            new_enc, self.layer_data = make_finetuning_encoder_2d(
                 (self.data_dim, self.data_dim, self.number_channels,),
                 self.enc_model,
                 **self.kwargs

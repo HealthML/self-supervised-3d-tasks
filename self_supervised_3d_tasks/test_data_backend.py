@@ -1,5 +1,6 @@
 from self_supervised_3d_tasks.data.kaggle_retina_data import get_kaggle_generator, get_kaggle_cross_validation
 from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
+from self_supervised_3d_tasks.data.numpy_2d_loader import Numpy2DLoader
 from self_supervised_3d_tasks.data.segmentation_task_loader import SegmentationGenerator3D
 import numpy as np
 
@@ -151,6 +152,15 @@ def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split, kwa
             data_generator=SegmentationGenerator3D,
             **kwargs,
         )
+    elif dataset_name == "pancreas2d":
+        return get_dataset_regular_train(
+            batch_size,
+            f_train,
+            f_val,
+            train_split,
+            data_generator=Numpy2DLoader,
+            **kwargs,
+        )
     else:
         raise ValueError("not implemented")
 
@@ -161,6 +171,13 @@ def get_dataset_test(dataset_name, batch_size, f_test, kwargs):
     elif dataset_name == "pancreas3d" or dataset_name == 'brats':
         gen_test = get_dataset_regular_test(
             batch_size, f_test, data_generator=SegmentationGenerator3D, **kwargs
+        )
+    elif dataset_name == "pancreas2d":
+        gen_test = get_dataset_regular_test(
+            batch_size,
+            f_test,
+            data_generator=Numpy2DLoader,
+            **kwargs,
         )
     else:
         raise ValueError("not implemented")
@@ -196,7 +213,7 @@ class CvDataKaggle:
         train_data_generator_args={},
         **kwargs):
 
-        assert dataset_name == "kaggle_retina", "CV only implemented for kaggle"
+        assert dataset_name == "kaggle_retina", "CV only implemented for kaggle so far"
 
         f_train, f_val = algorithm_def.get_finetuning_preprocessing()
         self.cv = get_kaggle_cross_validation(data_path=data_dir, csv_file=csv_file,

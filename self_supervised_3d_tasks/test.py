@@ -3,6 +3,7 @@ import functools
 import gc
 import os
 import random
+from os.path import expanduser
 from pathlib import Path
 
 import numpy as np
@@ -24,7 +25,7 @@ from self_supervised_3d_tasks.train import (
 from self_supervised_3d_tasks.utils import (
     apply_prediction_model,
     get_writing_path,
-)
+    print_flat_summary)
 from self_supervised_3d_tasks.utils import init
 
 
@@ -126,6 +127,7 @@ def run_single_test(algorithm_def, gen_train, gen_val, load_weights, freeze_weig
 
     outputs = pred_model(enc_model.outputs)
     model = Model(inputs=enc_model.inputs[0], outputs=outputs)
+    print_flat_summary(model)
 
     if epochs > 0:
         callbacks = [TerminateOnNaN()]
@@ -250,6 +252,7 @@ def run_complex_test(
         do_cross_val=False,
         **kwargs,
 ):
+    model_checkpoint = expanduser(model_checkpoint)
     if os.path.isdir(model_checkpoint):
         weight_files = list(Path(model_checkpoint).glob("weights-improvement*.hdf5"))
 

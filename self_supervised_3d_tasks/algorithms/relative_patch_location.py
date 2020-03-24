@@ -50,7 +50,7 @@ class RelativePatchLocationBuilder(AlgorithmBuilderBase):
                 self.patch_shape, **self.kwargs
             )
         else:
-            self.enc_model = apply_encoder_model(
+            self.enc_model, _ = apply_encoder_model(
                 self.patch_shape, **self.kwargs
             )
 

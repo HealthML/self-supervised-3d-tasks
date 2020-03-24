@@ -41,7 +41,7 @@ class RotationBuilder(AlgorithmBuilderBase):
             )
             x = Dense(10, activation="softmax")
         else:
-            self.enc_model = apply_encoder_model(
+            self.enc_model, self.layer_data = apply_encoder_model(
                 self.img_shape, **self.kwargs
             )
             x = Dense(4, activation="softmax")

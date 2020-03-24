@@ -12,6 +12,5 @@
   "val_split": 0.05,
   "epochs": 1000,
 
-  "encoder_architecture": "DenseNet121",
   "top_architecture": "big_fully"
 }

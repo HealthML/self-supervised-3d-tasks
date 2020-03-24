@@ -58,7 +58,7 @@ class JigsawBuilder(AlgorithmBuilderBase):
             input_x = Input(
                 (self.n_patches, self.patch_dim, self.patch_dim, self.number_channels)
             )
-            self.enc_model = apply_encoder_model(
+            self.enc_model, _ = apply_encoder_model(
                 (self.patch_dim, self.patch_dim, self.number_channels,), **self.kwargs
             )
 

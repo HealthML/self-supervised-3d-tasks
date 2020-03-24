@@ -12,8 +12,8 @@ from pathlib import Path
 import numpy as np
 import tensorflow as tf
 
-from tensorflow.python.keras.layers.pooling import Pooling3D
-from tensorflow_core.python.keras.layers import Wrapper
+from tensorflow.python.keras.layers.pooling import Pooling3D, Pooling2D
+from tensorflow_core.python.keras.layers import Wrapper, UpSampling2D
 from tensorflow.keras.layers import Reshape
 from tensorflow.keras import Model, Input
 from tensorflow.keras.applications import InceptionV3, InceptionResNetV2, ResNet152, DenseNet121
@@ -22,7 +22,7 @@ from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.python.keras import Sequential
 from tensorflow.python.keras.layers import Lambda, Concatenate, TimeDistributed, UpSampling3D, Dropout
 from self_supervised_3d_tasks.models.fully_connected import fully_connected_big, simple_multiclass
-from self_supervised_3d_tasks.models.unet import downconv_model
+from self_supervised_3d_tasks.models.unet import downconv_model, upconv_model
 from self_supervised_3d_tasks.models.unet3d import downconv_model_3d, upconv_model_3d
 
 
@@ -76,6 +76,25 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, num_cl
         input_l = Input(in_shape)
         output_l = simple_multiclass(input_l, include_top=include_top, **kwargs)
         model = Model(input_l, output_l)
+    elif name == "unet_2d_upconv":
+        assert algorithm_instance is not None, "no algorithm instance for 2d skip connections found"
+        assert algorithm_instance.layer_data is not None, "no layer data for 2d skip connections found"
+
+        first_input = Input(in_shape)
+        includes_pooling = algorithm_instance.layer_data[2]
+
+        if includes_pooling:
+            x = UpSampling2D((2, 2))(first_input)
+        else:
+            x = first_input
+
+        inputs_skip = [Input(x.shape[1:]) for x in reversed(algorithm_instance.layer_data[0])]
+        inputs_up = [x] + inputs_skip
+
+        model_up_out = upconv_model(x.shape[1:], down_layers=algorithm_instance.layer_data[0],
+                                       filters=algorithm_instance.layer_data[1], num_classes=num_classes)(inputs_up)
+
+        return Model(inputs=[first_input, *inputs_skip], outputs=model_up_out)
     elif name == "unet_3d_upconv":
         assert algorithm_instance is not None, "no algorithm instance for 3d skip connections found"
         assert algorithm_instance.layer_data is not None, "no layer data for 3d skip connections found"
@@ -246,33 +265,29 @@ def get_encoder_model(name, in_shape, pooling):
 def get_encoder_model_3d(name, in_shape):
     raise ValueError("model " + name + " not found")
 
+def make_finetuning_encoder(input_shape, enc_model, f_encoder_model, t_pooling, **kwargs):
+    new_enc_model, layer_data = f_encoder_model(
+        input_shape, **kwargs
+    )
+
+    weights = [layer.get_weights() for layer in enc_model.layers[1:]]
+    for layer, weight in zip(new_enc_model.layers[1:], weights):
+        layer.set_weights(weight)
+
+    if layer_data:
+        layer_data.append(isinstance(new_enc_model.layers[-1], t_pooling))
+
+        model_skips = Model(inputs=new_enc_model.inputs, outputs=[new_enc_model.layers[-1].output,
+                                                                  *reversed(layer_data[0])])
+        return model_skips, layer_data
+
+    return new_enc_model, layer_data
 
 def make_finetuning_encoder_2d(input_shape, enc_model, **kwargs):
-    new_enc_model = apply_encoder_model(
-        input_shape, **kwargs
-    )
-
-    weights = [layer.get_weights() for layer in enc_model.layers[1:]]
-    for layer, weight in zip(new_enc_model.layers[1:], weights):
-        layer.set_weights(weight)
-
-    return new_enc_model
+    return make_finetuning_encoder(input_shape, enc_model, apply_encoder_model, Pooling2D, **kwargs)
 
 def make_finetuning_encoder_3d(input_shape, enc_model, **kwargs):
-    new_enc_model, layer_data = apply_encoder_model_3d(
-        input_shape, **kwargs
-    )
-
-    weights = [layer.get_weights() for layer in enc_model.layers[1:]]
-    for layer, weight in zip(new_enc_model.layers[1:], weights):
-        layer.set_weights(weight)
-
-    layer_data.append(isinstance(new_enc_model.layers[-1], Pooling3D))
-
-    model_skips = Model(inputs=new_enc_model.inputs, outputs=[new_enc_model.layers[-1].output,
-                                                              *reversed(layer_data[0])])
-
-    return model_skips, layer_data
+    return make_finetuning_encoder(input_shape, enc_model, apply_encoder_model_3d, Pooling3D, **kwargs)
 
 def apply_encoder_model_3d(
         input_shape,
@@ -302,19 +317,29 @@ def apply_encoder_model(
         num_layers=4,
         pooling="max",
         encoder_architecture=None,
+        enc_filters=16,
         **kwargs
 ):
+    model_params = kwargs.get("model_params", {})
+
+    if pooling == "none":
+        pooling = None
+
     if encoder_architecture is not None:
         model = get_encoder_model(encoder_architecture, input_shape, pooling)
     else:
-        model, _ = downconv_model(input_shape, num_layers=num_layers, pooling=pooling)
+        model, layer_data = downconv_model(
+            input_shape, num_layers=num_layers, pooling=pooling, filters=enc_filters, **model_params
+        )
 
-    return model
+        return model, layer_data
+
+    return model, None
 
 
 def load_permutations_3d(
         permutation_path=str(
-            Path(__file__).parent.parent / "permutations" / "permutations3d_100_27.npy"
+            Path(__file__).parent / "permutations" / "permutations3d_100_27.npy"
         ),
 ):
     with open(permutation_path, "rb") as f:
@@ -324,7 +349,7 @@ def load_permutations_3d(
 
 def load_permutations(
         permutation_path=str(
-            Path(__file__).parent.parent / "permutations" / "permutations_100_max.bin"
+            Path(__file__).parent / "permutations" / "permutations_100_max.bin"
         ),
 ):
     """Loads a set of pre-defined permutations."""
