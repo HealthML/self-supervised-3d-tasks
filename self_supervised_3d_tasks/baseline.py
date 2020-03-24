@@ -35,6 +35,8 @@ def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-
         clipnorm=clipnorm
     )
 
+def main():
+    init(trial)
 
 if __name__ == "__main__":
-    init(trial)
+    main()

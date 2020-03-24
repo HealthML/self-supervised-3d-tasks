@@ -72,6 +72,8 @@ def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250,
         callbacks=callbacks
     )
 
+def main():
+    init(train_model)
 
 if __name__ == "__main__":
-    init(train_model)
+    main()
