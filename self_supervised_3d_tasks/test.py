@@ -13,20 +13,20 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.python.keras import Model
 from tensorflow.python.keras.callbacks import CSVLogger
 
-import self_supervised_3d_tasks.metrics as metrics
-from self_supervised_3d_tasks.callbacks import TerminateOnNaN, NaNLossError, LogCSVWithStart
-from self_supervised_3d_tasks.metrics import weighted_sum_loss, jaccard_distance, \
+import self_supervised_3d_tasks.utils.metrics as metrics
+from self_supervised_3d_tasks.utils.callbacks import TerminateOnNaN, NaNLossError, LogCSVWithStart
+from self_supervised_3d_tasks.utils.metrics import weighted_sum_loss, jaccard_distance, \
     weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss, \
     weighted_dice_coefficient_per_class
 from self_supervised_3d_tasks.test_data_backend import CvDataKaggle, StandardDataLoader
 from self_supervised_3d_tasks.train import (
     keras_algorithm_list,
 )
-from self_supervised_3d_tasks.utils import (
+from self_supervised_3d_tasks.utils.model_utils import (
     apply_prediction_model,
     get_writing_path,
     print_flat_summary)
-from self_supervised_3d_tasks.utils import init
+from self_supervised_3d_tasks.utils.model_utils import init
 
 
 def get_score(score_name):

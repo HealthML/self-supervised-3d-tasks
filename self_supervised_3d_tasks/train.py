@@ -1,5 +1,5 @@
 from self_supervised_3d_tasks.data.numpy_2d_loader import Numpy2DLoader
-from self_supervised_3d_tasks.utils import init, print_flat_summary
+from self_supervised_3d_tasks.utils.model_utils import init, print_flat_summary
 from pathlib import Path
 
 import tensorflow.keras as keras
@@ -8,7 +8,7 @@ from self_supervised_3d_tasks.data.numpy_3d_loader import DataGeneratorUnlabeled
 from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
 from self_supervised_3d_tasks.data.image_2d_loader import DataGeneratorUnlabeled2D
 from self_supervised_3d_tasks.algorithms import cpc, jigsaw, relative_patch_location, rotation, exemplar
-from self_supervised_3d_tasks.utils import get_writing_path
+from self_supervised_3d_tasks.utils.model_utils import get_writing_path
 
 keras_algorithm_list = {
     "cpc": cpc,

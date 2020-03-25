@@ -3,7 +3,7 @@ from pathlib import Path
 from self_supervised_3d_tasks import test as ts
 from self_supervised_3d_tasks.test_data_backend import StandardDataLoader
 from self_supervised_3d_tasks.train import keras_algorithm_list
-from self_supervised_3d_tasks.utils import init
+from self_supervised_3d_tasks.utils.model_utils import init
 
 
 def trial(algorithm, dataset_name, loss, metrics, epochs=5, batch_size=8, lr=1e-3, scores=("qw_kappa_kaggle",),

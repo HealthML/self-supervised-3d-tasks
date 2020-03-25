@@ -1,6 +1,6 @@
 from tensorflow_core.python.keras import Model
 from tensorflow_core.python.keras.layers.pooling import Pooling3D, Pooling2D
-from self_supervised_3d_tasks.utils import make_finetuning_encoder_3d, make_finetuning_encoder_2d
+from self_supervised_3d_tasks.utils.model_utils import make_finetuning_encoder_3d, make_finetuning_encoder_2d
 
 
 class AlgorithmBuilderBase:
