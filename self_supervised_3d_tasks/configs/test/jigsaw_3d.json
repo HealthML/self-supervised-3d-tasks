@@ -26,7 +26,7 @@
   "number_channels": 1,
   "batch_size": 2,
 
-  "exp_splits": [100,10,5,50,25],
+  "exp_splits": [50],
   "lr": 1e-3,
   "epochs_initialized": 400,
   "epochs_frozen": 0,

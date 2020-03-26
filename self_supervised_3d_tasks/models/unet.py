@@ -60,7 +60,7 @@ def conv_block(
 def downconv_model(
         input_shape,
         use_batch_norm=True,
-        dropout=0.3,
+        dropout=0.5,
         dropout_change_per_layer=0.0,
         filters=16,
         num_layers=4,
@@ -97,8 +97,8 @@ def upconv_model(
         num_classes=3,
         use_batch_norm=True,
         upsample_mode="deconv",  # 'deconv' or 'simple'
-        use_dropout_on_upsampling=False,
-        dropout=0.3,
+        use_dropout_on_upsampling=True,
+        dropout=0.5,
         dropout_change_per_layer=0.0,
         filters=128,
         down_layers=(),
