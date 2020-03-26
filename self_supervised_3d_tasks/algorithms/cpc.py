@@ -7,7 +7,7 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import Flatten, TimeDistributed
 
 from self_supervised_3d_tasks.algorithms.algorithm_base import AlgorithmBuilderBase
-from self_supervised_3d_tasks.utils import apply_encoder_model_3d, apply_encoder_model
+from self_supervised_3d_tasks.utils.model_utils import apply_encoder_model_3d, apply_encoder_model
 from self_supervised_3d_tasks.preprocessing.preprocess_cpc import (
     preprocess_grid_2d,
     preprocess_3d,

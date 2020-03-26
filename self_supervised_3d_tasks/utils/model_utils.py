@@ -1,6 +1,6 @@
 import os
 
-from self_supervised_3d_tasks.free_gpu_check import aquire_free_gpus
+from self_supervised_3d_tasks.utils.free_gpu_check import aquire_free_gpus
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -20,7 +20,7 @@ from tensorflow.keras.applications import InceptionV3, InceptionResNetV2, ResNet
 from tensorflow.keras.applications import ResNet50, ResNet50V2, ResNet101, ResNet101V2
 from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.python.keras import Sequential
-from tensorflow.python.keras.layers import Lambda, Concatenate, TimeDistributed, UpSampling3D, Dropout
+from tensorflow.python.keras.layers import Lambda, Concatenate, TimeDistributed, UpSampling3D
 from self_supervised_3d_tasks.models.fully_connected import fully_connected_big, simple_multiclass
 from self_supervised_3d_tasks.models.unet import downconv_model, upconv_model
 from self_supervised_3d_tasks.models.unet3d import downconv_model_3d, upconv_model_3d
