@@ -339,7 +339,7 @@ def apply_encoder_model(
 
 def load_permutations_3d(
         permutation_path=str(
-            Path(__file__).parent / "permutations" / "permutations3d_100_27.npy"
+            Path(__file__).parent.parent / "permutations" / "permutations3d_100_27.npy"
         ),
 ):
     with open(permutation_path, "rb") as f:
@@ -349,7 +349,7 @@ def load_permutations_3d(
 
 def load_permutations(
         permutation_path=str(
-            Path(__file__).parent / "permutations" / "permutations_100_max.bin"
+            Path(__file__).parent.parent / "permutations" / "permutations_100_max.bin"
         ),
 ):
     """Loads a set of pre-defined permutations."""

@@ -37,7 +37,7 @@ class AlgorithmBuilderBase:
 
         return f_identity, f_identity
 
-    def get_finetuning_model(self, model_checkpoint):
+    def get_finetuning_model(self, model_checkpoint=None):
         model = self.apply_model()
         assert self.enc_model is not None, "no encoder model"
 

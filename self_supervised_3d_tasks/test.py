@@ -61,6 +61,8 @@ def get_score(score_name):
 
 
 def make_custom_metrics(metrics):
+    metrics = list(metrics)
+
     if "weighted_dice_coefficient" in metrics:
         metrics.remove("weighted_dice_coefficient")
         metrics.append(weighted_dice_coefficient)
@@ -83,7 +85,7 @@ def make_custom_metrics(metrics):
         metrics.append(dice_class_1)
         metrics.append(dice_class_2)
 
-        return metrics
+    return metrics
 
 def make_custom_loss(loss):
     if loss == "weighted_sum_loss":
@@ -114,6 +116,9 @@ def run_single_test(algorithm_def, gen_train, gen_val, load_weights, freeze_weig
                     batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, logging_path, kwargs,
                     clipnorm=None, clipvalue=None,
                     model_callback=None):
+    print(metrics)
+    print(loss)
+
     metrics = make_custom_metrics(metrics)
     loss = make_custom_loss(loss)
 

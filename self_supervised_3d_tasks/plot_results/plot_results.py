@@ -116,10 +116,12 @@ def draw_train_split_plot(paths, data_names, metric, skips = [], prefix="2d", me
 
     for index, path in enumerate(paths):
         data_name = data_names[index]
+        path = str(Path(path).expanduser())
 
         config = list(Path(path).glob("*.json"))[0]
         with open(config, mode="r") as file:
             args = json.load(file)
+        print(path)
         splits, values = get_metric_over_split(args, path, metric)
         for skip in skips:
             try:
@@ -181,35 +183,35 @@ if __name__ == "__main__":
 
     cpc_label = "cpc"
     cpc_2d_path = "~/workspace/self-supervised-transfer-learning/cpc_kaggle_retina/weights-250_test_4/"
-    cpc_3d_path = "~/workspace/self-supervised-transfer-learning/cpc_pancreas3d_18/weights-400_test_3/"
+    cpc_3d_path = "~/workspace/self-supervised-transfer-learning/cpc_pancreas3d_18/weights-400_test_3"
     combined_labels.append(cpc_label)
     combined_2d_path.append(cpc_2d_path)
     combined_3d_path.append(cpc_3d_path)
 
     jigsaw_label = "jigsaw"
     jigsaw_2d_path = "~/workspace/self-supervised-transfer-learning/jigsaw_kaggle_retina/weights-improvement-929_test_3/"
-    jigsaw_3d_path = "~/workspace/self-supervised-transfer-learning/jigsaw_pancreas3d_9/weights-improvement-671_test_13/"
+    jigsaw_3d_path = "~/workspace/self-supervised-transfer-learning/jigsaw_pancreas3d_9/weights-improvement-671_test_13"
     combined_labels.append(jigsaw_label)
     combined_2d_path.append(jigsaw_2d_path)
     combined_3d_path.append(jigsaw_3d_path)
 
     rotation_label = "rotation"
     rotation_2d_path = "~/workspace/self-supervised-transfer-learning/rotation_kaggle_retina/weights-improvement-837_test_12/"
-    rotation_3d_path = "~/workspace/self-supervised-transfer-learning/rotation_pancreas3d_9/weights-improvement-885_test_14/"
+    rotation_3d_path = "~/workspace/self-supervised-transfer-learning/rotation_pancreas3d_9/weights-improvement-885_test_14"
     combined_labels.append(rotation_label)
     combined_2d_path.append(rotation_2d_path)
     combined_3d_path.append(rotation_3d_path)
 
     rpl_label = "rpl"
     rpl_2d_path = "~/workspace/self-supervised-transfer-learning/rpl_kaggle_retina/weights-improvement-879_test_16/"
-    rpl_3d_path = "~/workspace/self-supervised-transfer-learning/rpl_pancreas3d_9/weights-improvement-936_test_27/"
+    rpl_3d_path = "~/workspace/self-supervised-transfer-learning/rpl_pancreas3d_9/weights-improvement-936_test_28"
     combined_labels.append(rpl_label)
     combined_2d_path.append(rpl_2d_path)
     combined_3d_path.append(rpl_3d_path)
 
     exemplar_label = "exemplar"
     exemplar_2d_path = "~/workspace/self-supervised-transfer-learning/exemplar_kaggle_retina/weights-improvement-641_test/"
-    exemplar_3d_path = "~/workspace/self-supervised-transfer-learning/exemplar_pancreas3d_42/weights-300_test_3/"
+    exemplar_3d_path = "~/workspace/self-supervised-transfer-learning/exemplar_pancreas3d_42/weights-300_test_3"
     combined_labels.append(exemplar_label)
     combined_2d_path.append(exemplar_2d_path)
     combined_3d_path.append(exemplar_3d_path)
@@ -221,12 +223,44 @@ if __name__ == "__main__":
     combined_2d_path.append(baseline_2d_path)
     combined_3d_path.append(baseline_3d_path)
 
+    cpc_new_label = "cpc 2D Slices"
+    cpc_new_3d_path = "~/workspace/self-supervised-transfer-learning/cpc_pancreas2d_1/weights-250_test"
+    combined_labels.append(cpc_new_label)
+    combined_3d_path.append(cpc_new_3d_path)
+
+    jig_new_label = "jigsaw 2D Slices"
+    jig_new_3d_path = "~/workspace/self-supervised-transfer-learning/jigsaw_pancreas2d_3/weights-improvement-246_test"
+    combined_labels.append(jig_new_label)
+    combined_3d_path.append(jig_new_3d_path)
+
+    rot_new_label = "rotation 2D Slices"
+    rot_new_3d_path = "~/workspace/self-supervised-transfer-learning/rotation_pancreas2d_9/weights-improvement-250_test_3"
+    combined_labels.append(rot_new_label)
+    combined_3d_path.append(rot_new_3d_path)
+
+    rpl_new_label = "rpl 2D Slices"
+    rpl_new_3d_path = "~/workspace/self-supervised-transfer-learning/rpl_pancreas2d_5/weights-improvement-241_test_1"
+    combined_labels.append(rpl_new_label)
+    combined_3d_path.append(rpl_new_3d_path)
+
+    exp_new_label = "exemplar 2D Slices"
+    exp_new_3d_path = "~/workspace/self-supervised-transfer-learning/exemplar_pancreas2d/weights-improvement-235_test"
+    combined_labels.append(exp_new_label)
+    combined_3d_path.append(exp_new_3d_path)
+
+    baseline_new_label = "baseline 2D Slices"
+    baseline_new_3d_path = "~/workspace/random_test_6"
+    combined_labels.append(baseline_new_label)
+    combined_3d_path.append(baseline_new_3d_path)
+
     split_2d_metric = "Weights_initialized_qw_kappa_kaggle_avg"
     split_2d_metric_name = "Avg Qw Kappa"
-    draw_train_split_plot(combined_2d_path, combined_labels, split_2d_metric, skips=[1], metric_name=split_2d_metric_name)
+    # draw_train_split_plot(combined_2d_path, combined_labels, split_2d_metric, skips=[1], metric_name=split_2d_metric_name)
     split_3d_metric = "Weights_initialized_dice_avg"
     split_3d_metric_name = "Avg Dice Scores"
-    draw_train_split_plot(combined_3d_path, combined_labels, split_3d_metric, skips=[25, 50], prefix="3d", metric_name=split_3d_metric_name)
+    draw_train_split_plot(combined_3d_path, combined_labels, split_3d_metric, skips=[], prefix="3d", metric_name=split_3d_metric_name)
+
+    exit(0)
 
     epoch_2d_metric = "val_accuracy"
     draw_epoch_plot(combined_2d_path, combined_labels, epoch_2d_metric, nth_epoch=1)
