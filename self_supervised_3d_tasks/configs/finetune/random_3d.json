@@ -1,0 +1,37 @@
+{
+  "algorithm": "rpl",
+  "data_dir_train": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/train",
+  "data_dir_test": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox_labeled/test",
+  "model_checkpoint": "~/workspace/random",
+  "dataset_name": "pancreas3d",
+  "train_data_generator_args": { "label_stem": "", "shuffle": true},
+  "val_data_generator_args": {"label_stem": ""},
+  "test_data_generator_args": {"label_stem": ""},
+
+  "data_is_3D": true,
+  "val_split": 0.05,
+
+  "enc_filters": 16,
+  "patches_per_side": 3,
+  "data_dim": 128,
+
+  "loss": "weighted_dice_loss",
+  "scores": ["dice", "jaccard", "dice_pancreas_0", "dice_pancreas_1", "dice_pancreas_2"],
+  "metrics": ["accuracy", "weighted_dice_coefficient", "weighted_dice_coefficient_per_class_pancreas"],
+
+  "top_architecture": "big_fully",
+  "prediction_architecture": "unet_3d_upconv",
+  "pooling": "max",
+  "number_channels": 1,
+  "batch_size": 2,
+
+  "exp_splits": [100,10,5,50,25],
+  "lr": 1e-3,
+  "epochs_initialized": 0,
+  "epochs_frozen": 0,
+  "epochs_random": 150,
+  "repetitions": 3,
+
+  "clipnorm": 1,
+  "clipvalue": 1
+}

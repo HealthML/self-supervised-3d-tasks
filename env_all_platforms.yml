@@ -1,0 +1,29 @@
+name: conda-env
+dependencies:
+  - tensorflow-gpu==2.1
+  - absl-py
+  - h5py
+  - hdf5
+  - pandas
+  - python=3.6.6
+  - scikit-image
+  - scikit-learn
+  - scipy
+  - tensorboard
+  - requests
+  - cudatoolkit=10.1
+  - cudnn
+  - pip
+  - networkx==2.2
+  - seaborn
+  - tqdm
+  - pydot
+  - pip:
+    - tensorflow_hub
+    - nibabel
+    - hyperopt
+    - albumentations
+    - tensorflow_addons
+    - joblib
+    - opencv-python
+

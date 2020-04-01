@@ -1,0 +1,20 @@
+{
+  "algorithm": "jigsaw",
+  "data_dir": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox/",
+  "dataset_name": "pancreas3d",
+
+  "data_is_3D": true,
+
+  "enc_filters": 16,
+  "patches_per_side": 3,
+  "patch_jitter": 3,
+  "data_dim": 128,
+
+  "top_architecture": "big_fully",
+  "number_channels": 1,
+
+  "batch_size": 8,
+
+  "lr": 1e-4,
+  "epochs": 1000
+}
