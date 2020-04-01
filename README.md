@@ -41,7 +41,7 @@ pip install -e .
 
 ### Running the experiments
 To train any of the self-supervised tasks with a specific algorithm, run `python train.py configs/train/{algorithm}_{dimension}.json`
-To run the downstream task and initialize the weights from a pretrained checkpoint, run `python test.py configs/test/{algorithm}_{dimension}.json`
+To run the downstream task and initialize the weights from a pretrained checkpoint, run `python finetune.py configs/finetune/{algorithm}_{dimension}.json`
 
 ### Setting the configs
 
@@ -91,7 +91,7 @@ Training:
 }
 ```
 
-Testing:
+Finetuning:
 ```json
 {
   "algorithm": "String. ('cpc'|'rotation'|'rpl'|'jigsaw'|'exemplar')",
