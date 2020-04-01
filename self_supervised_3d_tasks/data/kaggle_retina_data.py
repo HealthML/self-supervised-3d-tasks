@@ -49,7 +49,6 @@ class KaggleGenerator(DataGeneratorBase):
             image = self.load_image(c)
             label = self.dataset.iloc[c][1]
 
-            # TODO: MOVE this to a separate preprocessing step
             if self.augment:
                 image = random_zoom(image, zoom_range=(0.85, 1.15), channel_axis=2, row_axis=0, col_axis=1, fill_mode='constant', cval=0.0)
                 image = ab.HorizontalFlip()(image=image)["image"]

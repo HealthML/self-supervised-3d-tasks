@@ -1,0 +1,21 @@
+{
+  "algorithm": "cpc",
+  "data_dir": "/mnt/mpws2019cl1/pancreas_data/img_slices_128_single",
+  "dataset_name": "pancreas2d",
+
+  "data_is_3D": false,
+  "data_dim": 128,
+  "number_channels": 1,
+  "patches_per_side": 5,
+
+  "batch_size": 256,
+  "lr": 1e-5,
+  "val_split": 0.05,
+  "epochs": 250,
+  "code_size": 1024,
+
+  "top_architecture": "big_fully",
+
+  "crop_size": 128,
+  "save_checkpoint_every_n_epochs": 25
+}

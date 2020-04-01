@@ -1,0 +1,30 @@
+{
+  "algorithm": "cpc",
+  "dataset_name": "brats",
+  "data_dir_train": "/mnt/30T/brats/images_resized_128_labeled/train",
+  "data_dir_test": "/mnt/30T/brats/images_resized_128_labeled/test",
+  "model_checkpoint": "~/workspace/self-supervised-3d-tasks/cpc_brats/weights-improvement-459.hdf5",
+  "train_data_generator_args": {"shuffle": true},
+
+  "prediction_architecture": "unet_3d_upconv_patches",
+  "n_channels": 4,
+  "batch_size": 1,
+  "patch_dim": 64,
+  "lr": 1e-4,
+
+  "loss": "weighted_dice_loss",
+  "scores": ["dice", "jaccard", "brats_wt", "brats_tc", "brats_et"],
+  "metrics": ["accuracy", "weighted_dice_coefficient", "brats_metrics"],
+
+  "train3D": true,
+  "val_split": 0.05,
+
+  "data_dim": 128,
+  "split_per_side": 4,
+  "embed_dim": 128,
+
+  "exp_splits": [100, 10, 1, 50, 25],
+  "repetitions": 1,
+  "epochs": 150,
+  "epochs_warmup": 20
+}

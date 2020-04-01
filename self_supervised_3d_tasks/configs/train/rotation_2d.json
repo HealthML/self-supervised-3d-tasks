@@ -1,0 +1,19 @@
+{
+  "algorithm": "rotation",
+  "data_dir": "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224",
+  "train_data_generator_args": {"augment_zoom_only": true, "shuffle": true},
+  "val_data_generator_args": {"augment": false},
+  "dataset_name": "kaggle_retina",
+
+  "data_is_3D": false,
+  "data_dim": 224,
+  "number_channels": 3,
+
+  "batch_size": 32,
+  "lr": 1e-5,
+  "val_split": 0.05,
+  "epochs": 1000,
+
+  "encoder_architecture": "DenseNet121",
+  "top_architecture": "big_fully"
+}
