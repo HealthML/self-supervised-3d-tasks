@@ -1,6 +1,6 @@
 name: conda-env
 dependencies:
-  - tensorflow-gpu==2.1
+  - tensorflow-gpu=2.1
   - absl-py
   - h5py
   - hdf5
