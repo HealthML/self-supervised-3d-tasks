@@ -1,20 +1,11 @@
-# Revisiting self-supervised visual representation learning
+# 3D Self-Supervised Methods for Medical Imaging
 
-Keras implementation of multiple self-supervised methods on 2D and 3D medical datasets.
+Keras implementation of multiple self-supervised methods for 3D and 2D applications. 
 
 ## Overview
 
 This codebase contains a implementation of five self-supervised representation learning
 techniques, utility code for running training and evaluation loops.
-
-Specifically, we provide a implementation of the following self-supervised representation learning techniques:
-
-1.  [Unsupervised Representation Learning by Predicting Image Rotations](https://arxiv.org/abs/1803.07728)
-2.  [Unsupervised Visual Representation Learning by Context Prediction](https://arxiv.org/abs/1505.05192)
-3.  [Unsupervised Learning of Visual Representations by Solving Jigsaw Puzzles](https://arxiv.org/abs/1603.09246)
-4.  [Discriminative Unsupervised Feature Learning with Exemplar Convolutional
-    Neural Networks](https://arxiv.org/abs/1406.6909)
-5.  [Representation Learning withContrastive Predictive Coding](https://arxiv.org/pdf/1807.03748.pdf)
 
 ## Usage instructions
 
