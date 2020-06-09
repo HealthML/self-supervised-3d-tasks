@@ -1,6 +1,18 @@
 # 3D Self-Supervised Methods for Medical Imaging
 
-Keras implementation of multiple self-supervised methods for 3D and 2D applications. 
+Keras implementation of multiple self-supervised methods for 3D and 2D applications. This repository implements all the methods in this paper: [3D Self-Supervised Methods for Medical Imaging](https://arxiv.org/abs/2006.03829)
+
+If you find this repository useful, please consider citing our paper in your work:
+```
+@misc{taleb20203d,
+    title={3D Self-Supervised Methods for Medical Imaging},
+    author={Aiham Taleb and Winfried Loetzsch and Noel Danz and Julius Severin and Thomas Gaertner and Benjamin Bergner and Christoph Lippert},
+    year={2020},
+    eprint={2006.03829},
+    archivePrefix={arXiv},
+    primaryClass={cs.CV}
+}
+```
 
 ## Overview
 
