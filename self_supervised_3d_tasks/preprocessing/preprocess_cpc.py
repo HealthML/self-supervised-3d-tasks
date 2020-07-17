@@ -142,6 +142,7 @@ def preprocess_grid_2d(image):
 
     return [np.stack(patches_enc), np.stack(patches_pred)], np.array(labels)
 
+
 def preprocess_volume_3d(volume, crop_size, patches_per_side, patch_overlap, is_training=True):
     result = []
     w, _, _, _ = volume.shape

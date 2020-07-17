@@ -15,6 +15,7 @@ from self_supervised_3d_tasks.preprocessing.preprocess_cpc import (
     preprocess_2d
 )
 
+
 def network_autoregressive(x):
     x = keras.layers.GRU(units=256, return_sequences=False)(x)
     return x
