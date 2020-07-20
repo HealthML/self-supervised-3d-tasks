@@ -1,6 +1,6 @@
 {
   "algorithm": "exemplar",
-  "data_dir": "/mnt/mpws2019cl1/Task07_Pancreas/images_resized_128_bbox/",
+  "data_dir": "Task07_Pancreas/images_resized_128_bbox/",
   "dataset_name": "pancreas3d",
   "sample_neg_examples_from": "dataset",
 

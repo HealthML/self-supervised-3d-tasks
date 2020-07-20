@@ -5,13 +5,13 @@ dependencies:
   - h5py
   - hdf5
   - pandas
-  - python=3.6.6
+  - python
   - scikit-image
   - scikit-learn
   - scipy
   - tensorboard
   - requests
-  - cudatoolkit=10.1
+  - cudatoolkit
   - cudnn
   - pip
   - networkx==2.2

@@ -1,7 +1,7 @@
 {
   "algorithm": "cpc",
   "batch_size": 64,
-  "data_dir": "/mnt/30T/brats/images_resized_128",
+  "data_dir": "brats/images_resized_128",
   "dataset_name": "brats",
   "train3D": true,
   "data_dim": 128,

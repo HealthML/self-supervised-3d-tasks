@@ -1,6 +1,6 @@
 {
   "algorithm": "jigsaw",
-  "data_dir": "/mnt/mpws2019cl1/kaggle_retina_2019/images/resized_224",
+  "data_dir": "kaggle_retina_2019/images/resized_224",
   "train_data_generator_args": {"augment": true, "shuffle": true},
   "val_data_generator_args": {"augment": false},
   "dataset_name": "kaggle_retina",

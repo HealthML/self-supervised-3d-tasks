@@ -1,8 +1,8 @@
 {
   "algorithm": "cpc",
-  "data_dir_train": "/mnt/mpws2019cl1/pancreas_data/images_slices_128_labeled/img_single",
-  "data_dir_test": "/mnt/mpws2019cl1/pancreas_data/images_slices_128_labeled/test_single",
-  "model_checkpoint":"~/workspace/self-supervised-transfer-learning/cpc_pancreas2d_1/weights-250.hdf5",
+  "data_dir_train": "pancreas_data/images_slices_128_labeled/img_single",
+  "data_dir_test": "pancreas_data/images_slices_128_labeled/test_single",
+  "model_checkpoint":"cpc_pancreas2d_1/weights-250.hdf5",
   "dataset_name": "pancreas2d",
 
   "data_is_3D": false,

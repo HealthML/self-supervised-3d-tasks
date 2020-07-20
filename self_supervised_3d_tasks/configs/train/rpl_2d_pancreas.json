@@ -1,6 +1,6 @@
 {
   "algorithm": "rpl",
-  "data_dir": "/mnt/mpws2019cl1/pancreas_data/img_slices_128_single",
+  "data_dir": "pancreas_data/img_slices_128_single",
   "dataset_name": "pancreas2d",
 
   "data_is_3D": false,
