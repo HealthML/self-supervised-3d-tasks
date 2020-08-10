@@ -18,7 +18,7 @@ def resize_images():
     basepath = Path("/mnt/projects/ukbiobank/derived/imaging/retinal_fundus/mixed_images")
     output_dir = Path("/mnt/projects/ukbiobank/derived/imaging/retinal_fundus/images_resized_224")
     output_dir.mkdir(exist_ok=True, parents=True)
-    f = partial(resize_one, output_dir=basepath)
+    f = partial(resize_one, output_dir=output_dir)
     num_cores = cpu_count()
     with Pool(num_cores) as p:
         p.map(f, basepath.glob("*.png"))
