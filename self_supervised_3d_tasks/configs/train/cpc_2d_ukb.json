@@ -1,7 +1,7 @@
 {
   "algorithm": "cpc",
   "data_dir": "/mnt/projects/ukbiobank/derived/imaging/retinal_fundus/images_resized_224",
-  "train_data_generator_args": {"augment": false, "augment_zoom_only": true, "shuffle": true},
+  "train_data_generator_args": {"augment": false, "shuffle": true},
   "val_data_generator_args": {"augment": false},
   "dataset_name": "ukb2d",
 
