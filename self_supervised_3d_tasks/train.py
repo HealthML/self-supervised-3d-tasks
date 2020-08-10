@@ -23,7 +23,8 @@ data_gen_list = {
     "pancreas3d": DataGeneratorUnlabeled3D,
     "pancreas2d": Numpy2DLoader,
     "brats": DataGeneratorUnlabeled3D,
-    "ukb": DataGeneratorUnlabeled3D
+    "ukb2d": DataGeneratorUnlabeled2D,
+    "ukb3d": DataGeneratorUnlabeled3D
 }
 
 

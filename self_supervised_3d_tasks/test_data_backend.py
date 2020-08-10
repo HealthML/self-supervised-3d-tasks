@@ -144,7 +144,7 @@ def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split, kwa
         return get_dataset_kaggle_train_original(
             batch_size, f_train, f_val, train_split, **kwargs
         )
-    elif dataset_name == "pancreas3d" or dataset_name == 'brats' or dataset_name == 'ukb':
+    elif dataset_name == "pancreas3d" or dataset_name == 'brats' or dataset_name == 'ukb3d':
         return get_dataset_regular_train(
             batch_size, f_train, f_val, train_split, data_generator=SegmentationGenerator3D, **kwargs,
         )
@@ -159,7 +159,7 @@ def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split, kwa
 def get_dataset_test(dataset_name, batch_size, f_test, kwargs):
     if dataset_name == "kaggle_retina":
         gen_test = get_dataset_kaggle_test(batch_size, f_test, **kwargs)
-    elif dataset_name == "pancreas3d" or dataset_name == 'brats' or dataset_name == 'ukb':
+    elif dataset_name == "pancreas3d" or dataset_name == 'brats' or dataset_name == 'ukb3d':
         gen_test = get_dataset_regular_test(
             batch_size, f_test, data_generator=SegmentationGenerator3D, **kwargs
         )
