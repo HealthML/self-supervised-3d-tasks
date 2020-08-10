@@ -3,6 +3,7 @@
   "data_dir_train": "pancreas_data/images_slices_128_labeled/img_single",
   "data_dir_test": "pancreas_data/images_slices_128_labeled/test_single",
   "dataset_name": "pancreas2d",
+  "model_checkpoint": "~/workspace/random",
 
   "data_is_3D": false,
   "val_split": 0.05,
