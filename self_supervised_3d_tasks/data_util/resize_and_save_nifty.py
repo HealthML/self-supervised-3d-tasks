@@ -282,5 +282,27 @@ def read_ukb_scan_multimodal(t1_files, t2_flair_files, i, result_path):
     print(f"{perc:.2f} % done")
 
 
+def resize_ukb_mask(mask_files, i, result_path):
+    new_resolution = (128, 128, 128)
+    mask, sbbox = read_scan_find_bbox(np.load(mask_files[i]))
+    mask = skTrans.resize(mask, new_resolution, order=0, preserve_range=True)
+    mask_file_name = os.path.basename(mask_files[i])
+    np.save("{}/{}".format(result_path, mask_file_name), mask)
+    perc = (float(i) * 100.0) / len(mask_files)
+    print(f"{perc:.2f} % done")
+
+
+def resize_ukb_3D_masks():
+    base_path = "/mnt/projects/ukbiobank/derived/imaging/brain_mri/images_resized_128_labeled/train_labels"
+    result_path = "/mnt/projects/ukbiobank/derived/imaging/brain_mri/images_resized_128_labeled/train_labels"
+    mask_files = np.array(sorted(glob.glob(base_path + "/**/*.npy", recursive=True)))
+
+    num_cores = multiprocessing.cpu_count()
+    Parallel(n_jobs=num_cores)(
+        delayed(resize_ukb_mask)(mask_files, i, result_path) for i in
+        range(len(mask_files)))
+    print("done preprocessing masks.")
+
+
 if __name__ == "__main__":
-    split_slices_to_single_files()
+    resize_ukb_3D_masks()
