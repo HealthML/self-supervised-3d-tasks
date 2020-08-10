@@ -70,23 +70,20 @@ def convert_mri_masks(type='fast'):
     :param type: can be "fast" or "first"
     """
 
-    source_path = "/mnt/30T/data/ukbiobank/original/imaging/brain_mri/"
-    destination_path = "/mnt/30T/data/ukbiobank/derived/imaging/brain_mri/"
-    filename_list = sorted(glob.glob(source_path + "T1/**/" + "*.npy", recursive=True))
+    source_path = "/mnt/projects/ukbiobank/original/imaging/brain_mri/T1_structural_brain_mri/unzipped/"
+    destination_path = "/mnt/projects/ukbiobank/derived/imaging/brain_mri/"
+    filename_list = sorted(glob.glob(destination_path + "T1/**/" + "*.npy", recursive=True))
 
     count = 0
     for filename in filename_list:
         id = os.path.basename(filename).split(".")[0]
         count += 1
         if type == 'fast':
-            mask = nib.load(
-                '/mnt/projects/ukbiobank/original/imaging/brain_mri/T1_structural_brain_mri/unzipped/' + str(id)
-                + '_20252_2_0/T1/T1_fast/T1_brain_seg.nii.gz').get_data()
+            mask = nib.load(source_path + str(id) + '_20252_2_0/T1/T1_fast/T1_brain_seg.nii.gz').get_data()
             np.save(os.path.join(destination_path, "fast_masks", str(id) + ".npy"), mask)
         else:
             mask = nib.load(
-                '/mnt/projects/ukbiobank/original/imaging/brain_mri/T1_structural_brain_mri/unzipped/' + str(id)
-                + '_20252_2_0/T1/T1_first/T1_first_all_fast_firstseg.nii.gz').get_data()
+                source_path + str(id) + '_20252_2_0/T1/T1_first/T1_first_all_fast_firstseg.nii.gz').get_data()
             np.save(os.path.join(destination_path, "first_masks", str(id) + ".npy"), mask)
 
         if count % 100 == 0:
