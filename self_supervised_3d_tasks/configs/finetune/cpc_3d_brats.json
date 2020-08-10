@@ -6,7 +6,7 @@
   "model_checkpoint": "cpc_brats/weights-improvement-459.hdf5",
   "train_data_generator_args": {"shuffle": true},
 
-  "prediction_architecture": "unet_3d_upconv_patches",
+  "prediction_architecture": "unet_3d_upconv",
   "n_channels": 4,
   "batch_size": 1,
   "patch_dim": 64,

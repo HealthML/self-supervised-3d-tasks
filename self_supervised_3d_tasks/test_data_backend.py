@@ -4,6 +4,7 @@ from self_supervised_3d_tasks.data.numpy_2d_loader import Numpy2DLoader
 from self_supervised_3d_tasks.data.segmentation_task_loader import SegmentationGenerator3D
 import numpy as np
 
+
 def get_dataset_regular_train(
         batch_size,
         f_train,
@@ -143,23 +144,13 @@ def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split, kwa
         return get_dataset_kaggle_train_original(
             batch_size, f_train, f_val, train_split, **kwargs
         )
-    elif dataset_name == "pancreas3d" or dataset_name == 'brats':
+    elif dataset_name == "pancreas3d" or dataset_name == 'brats' or dataset_name == 'ukb':
         return get_dataset_regular_train(
-            batch_size,
-            f_train,
-            f_val,
-            train_split,
-            data_generator=SegmentationGenerator3D,
-            **kwargs,
+            batch_size, f_train, f_val, train_split, data_generator=SegmentationGenerator3D, **kwargs,
         )
     elif dataset_name == "pancreas2d":
         return get_dataset_regular_train(
-            batch_size,
-            f_train,
-            f_val,
-            train_split,
-            data_generator=Numpy2DLoader,
-            **kwargs,
+            batch_size, f_train, f_val, train_split, data_generator=Numpy2DLoader, **kwargs,
         )
     else:
         raise ValueError("not implemented")
@@ -168,21 +159,19 @@ def get_dataset_train(dataset_name, batch_size, f_train, f_val, train_split, kwa
 def get_dataset_test(dataset_name, batch_size, f_test, kwargs):
     if dataset_name == "kaggle_retina":
         gen_test = get_dataset_kaggle_test(batch_size, f_test, **kwargs)
-    elif dataset_name == "pancreas3d" or dataset_name == 'brats':
+    elif dataset_name == "pancreas3d" or dataset_name == 'brats' or dataset_name == 'ukb':
         gen_test = get_dataset_regular_test(
             batch_size, f_test, data_generator=SegmentationGenerator3D, **kwargs
         )
     elif dataset_name == "pancreas2d":
         gen_test = get_dataset_regular_test(
-            batch_size,
-            f_test,
-            data_generator=Numpy2DLoader,
-            **kwargs,
+            batch_size, f_test, data_generator=Numpy2DLoader, **kwargs,
         )
     else:
         raise ValueError("not implemented")
 
     return get_data_from_gen(gen_test)
+
 
 class StandardDataLoader:
     def __init__(self, dataset_name, batch_size, algorithm_def,
@@ -202,17 +191,17 @@ class StandardDataLoader:
         x_test, y_test = get_dataset_test(self.dataset_name, self.batch_size, f_val, self.kwargs)
         return gen_train, gen_val, x_test, y_test
 
+
 class CvDataKaggle:
     def __init__(self, dataset_name, batch_size, algorithm_def,
-        n_repetitions,
-        csv_file,
-        data_dir,
-        val_split=0.1,
-        test_data_generator_args={},
-        val_data_generator_args={},
-        train_data_generator_args={},
-        **kwargs):
-
+                 n_repetitions,
+                 csv_file,
+                 data_dir,
+                 val_split=0.1,
+                 test_data_generator_args={},
+                 val_data_generator_args={},
+                 train_data_generator_args={},
+                 **kwargs):
         assert dataset_name == "kaggle_retina", "CV only implemented for kaggle so far"
 
         f_train, f_val = algorithm_def.get_finetuning_preprocessing()
