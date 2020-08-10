@@ -22,20 +22,18 @@ def read_scan(sbbox, nif_file, normalize=True):
         image = nif_file.get_fdata()[sbbox[0]:sbbox[1], sbbox[2]:sbbox[3], sbbox[4]:sbbox[5]]
     return image
 
-if __name__ == "__main__":
+
+def convert_mri_unlabeled():
     source_path = "/mnt/30T/data/ukbiobank/original/imaging/brain_mri/"
     destination_path = "/mnt/30T/data/ukbiobank/derived/imaging/brain_mri/"
-
     t1_zip_files = sorted(glob.glob(source_path + "T1_structural_brain_mri/archive/**/" + "*.zip", recursive=True))
     t2_flair_zip_files = sorted(
         glob.glob(source_path + "T2_FLAIR_structural_brain_mri/archive/**/" + "*.zip", recursive=True))
-
     t2_flair_patient_ids = dict()
     for filename in t2_flair_zip_files:
         id = os.path.basename(filename).split("_")[0]
         t2_flair_patient_ids[id] = filename
     del t2_flair_zip_files
-
     count = 0
     for t1_zip_file in t1_zip_files:
         subject_id = os.path.basename(t1_zip_file).split("_")[0]
@@ -65,3 +63,36 @@ if __name__ == "__main__":
 
         if count % 100 == 0:
             print("Processed " + str(count) + " scans so far.")
+
+
+def convert_mri_masks(type='fast'):
+    """
+    :param type: can be "fast" or "first"
+    """
+
+    source_path = "/mnt/30T/data/ukbiobank/original/imaging/brain_mri/"
+    destination_path = "/mnt/30T/data/ukbiobank/derived/imaging/brain_mri/"
+    filename_list = sorted(glob.glob(source_path + "T1/**/" + "*.npy", recursive=True))
+
+    count = 0
+    for filename in filename_list:
+        id = os.path.basename(filename).split(".")[0]
+        count += 1
+        if type == 'fast':
+            mask = nib.load(
+                '/mnt/projects/ukbiobank/original/imaging/brain_mri/T1_structural_brain_mri/unzipped/' + str(id)
+                + '_20252_2_0/T1/T1_fast/T1_brain_seg.nii.gz').get_data()
+            np.save(os.path.join(destination_path, "fast_masks", str(id) + ".npy"), mask)
+        else:
+            mask = nib.load(
+                '/mnt/projects/ukbiobank/original/imaging/brain_mri/T1_structural_brain_mri/unzipped/' + str(id)
+                + '_20252_2_0/T1/T1_first/T1_first_all_fast_firstseg.nii.gz').get_data()
+            np.save(os.path.join(destination_path, "first_masks", str(id) + ".npy"), mask)
+
+        if count % 100 == 0:
+            print("Processed " + str(count) + " masks so far.")
+
+
+if __name__ == "__main__":
+    # convert_mri_unlabeled()
+    convert_mri_masks()
