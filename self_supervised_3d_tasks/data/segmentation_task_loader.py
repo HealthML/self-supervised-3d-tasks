@@ -15,7 +15,7 @@ class SegmentationGenerator3D(DataGeneratorBase):
             pre_proc_func=None,
             shuffle=False,
             augment=False,
-            label_stem = "_label"
+            label_stem="_label"
     ):
         self.augment_scans_train = augment
 
@@ -45,6 +45,7 @@ class SegmentationGenerator3D(DataGeneratorBase):
             scan_mean = np.mean(scan)
             scan = (contrast_factor * (scan - scan_mean)) + scan_mean
             return scan
+
         processed_image, processed_mask = x.copy(), y.copy()
         for i in range(3):
             if np.random.rand() < 0.5:
@@ -93,6 +94,7 @@ class SegmentationGenerator3D(DataGeneratorBase):
         data_y = np.rint(data_y).astype(np.int)
         n_classes = np.max(data_y) + 1
         data_y = np.eye(n_classes)[data_y]
-        data_y = np.squeeze(data_y, axis=-2)  # remove second last axis, which is still 1
+        if data_y.shape[-2] == 1:
+            data_y = np.squeeze(data_y, axis=-2)  # remove second last axis, which is still 1
 
         return data_x, data_y
