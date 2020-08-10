@@ -293,8 +293,8 @@ def resize_ukb_mask(mask_files, i, result_path):
 
 
 def resize_ukb_3D_masks():
-    base_path = "/mnt/projects/ukbiobank/derived/imaging/brain_mri/images_resized_128_labeled/train_labels"
-    result_path = "/mnt/projects/ukbiobank/derived/imaging/brain_mri/images_resized_128_labeled/train_labels"
+    base_path = "/mnt/projects/ukbiobank/derived/imaging/brain_mri/images_resized_128_labeled/test_labels"
+    result_path = "/mnt/projects/ukbiobank/derived/imaging/brain_mri/images_resized_128_labeled/test_labels"
     mask_files = np.array(sorted(glob.glob(base_path + "/**/*.npy", recursive=True)))
 
     num_cores = multiprocessing.cpu_count()
@@ -304,5 +304,31 @@ def resize_ukb_3D_masks():
     print("done preprocessing masks.")
 
 
+def stack_ukb_scan_multimodal(t1_files, t2_flair_files, i, result_path):
+    new_resolution = (128, 128, 128)
+    t1_scan = np.load(t1_files[i])
+    t1_scan = skTrans.resize(t1_scan, new_resolution, order=1, preserve_range=True)
+    t2_scan = np.load(t2_flair_files[i])
+    t2_scan = skTrans.resize(t2_scan, new_resolution, order=1, preserve_range=True)
+    stacked_array = np.stack([t1_scan, t2_scan], axis=-1)
+    scan_file_name = os.path.basename(t1_files[i])
+    np.save("{}/{}".format(result_path, scan_file_name), stacked_array)
+    perc = (float(i) * 100.0) / len(t2_flair_files)
+    print(f"{perc:.2f} % done")
+
+
+def stack_ukb_3D_modalities():
+    base_path = "/mnt/projects/ukbiobank/derived/imaging/brain_mri"
+    result_path = "/mnt/projects/ukbiobank/derived/imaging/brain_mri/images_resized_128_labeled"
+    t1_files = np.array(sorted(glob.glob(base_path + "/T1/**/*.npy", recursive=True)))
+    t2_flair_files = np.array(sorted(glob.glob(base_path + "/T2_FLAIR/**/*.npy", recursive=True)))
+
+    num_cores = multiprocessing.cpu_count()
+    Parallel(n_jobs=num_cores)(
+        delayed(stack_ukb_scan_multimodal)(t1_files, t2_flair_files, i, result_path) for i in
+        range(len(t2_flair_files)))
+    print("done preprocessing images")
+
+
 if __name__ == "__main__":
-    resize_ukb_3D_masks()
+    stack_ukb_3D_modalities()
