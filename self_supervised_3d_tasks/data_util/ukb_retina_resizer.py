@@ -1,45 +1,27 @@
-import glob
 from functools import partial
+from multiprocessing import Pool, cpu_count
+from pathlib import Path
 from shutil import copyfile
 
 from PIL import Image
-from pathlib import Path
-import sys
-
-from multiprocessing import Pool
 
 
-def resize_one(path, size=(224, 224), output_dir="resized", callback=None):
+def resize_one(path, size=(224, 224), output_dir="resized"):
     output_dir = Path(output_dir)
     image = Image.open(path)
     image = image.resize(size, resample=Image.LANCZOS)
     image.save(output_dir / path.name)
-    if callback is not None:
-        callback()
     print(output_dir / path.name)
 
 
 def resize_images():
-    if len(sys.argv) <= 1:
-        raise ValueError("at least give an image size")
-    arg1 = sys.argv[1]
-    basepath = Path("/mnt/projects/ukbiobank/derived/imaging/retinal_fundus")
-    output_dir = basepath / "images_resized_224"
+    basepath = Path("/mnt/projects/ukbiobank/derived/imaging/retinal_fundus/mixed_images")
+    output_dir = Path("/mnt/projects/ukbiobank/derived/imaging/retinal_fundus/images_resized_224")
     output_dir.mkdir(exist_ok=True, parents=True)
-
-    f = partial(resize_one, size=(int(arg1), int(arg1)), output_dir=output_dir)
-    with Pool(10) as p:
+    f = partial(resize_one, output_dir=basepath)
+    num_cores = cpu_count()
+    with Pool(num_cores) as p:
         p.map(f, basepath.glob("*.png"))
-
-
-def merge_one(path, size=(224, 224), output_dir="resized", callback=None):
-    output_dir = Path(output_dir)
-    image = Image.open(path)
-    image = image.resize(size, resample=Image.LANCZOS)
-    image.save(output_dir / path.name)
-    if callback is not None:
-        callback()
-    print(output_dir / path.name)
 
 
 def merge_in_dir():
@@ -68,4 +50,4 @@ def merge_in_dir():
 
 
 if __name__ == "__main__":
-    merge_in_dir()
+    resize_images()
