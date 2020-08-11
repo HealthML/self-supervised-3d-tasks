@@ -11,7 +11,7 @@
   "patches_per_side": 3,
   "patch_jitter": 8,
 
-  "batch_size": 32,
+  "batch_size": 64,
   "lr": 1e-5,
   "val_split": 0.05,
   "epochs": 1000,
