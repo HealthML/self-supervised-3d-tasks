@@ -74,18 +74,21 @@ def make_custom_metrics(metrics):
     if "weighted_dice_coefficient_per_class_pancreas" in metrics:
         metrics.remove("weighted_dice_coefficient_per_class_pancreas")
 
-        def dice_class_0(y_true,y_pred):
-            return weighted_dice_coefficient_per_class(y_true,y_pred,class_to_predict = 0)
-        def dice_class_1(y_true,y_pred):
-            return weighted_dice_coefficient_per_class(y_true,y_pred,class_to_predict = 1)
-        def dice_class_2(y_true,y_pred):
-            return weighted_dice_coefficient_per_class(y_true,y_pred,class_to_predict = 2)
+        def dice_class_0(y_true, y_pred):
+            return weighted_dice_coefficient_per_class(y_true, y_pred, class_to_predict=0)
+
+        def dice_class_1(y_true, y_pred):
+            return weighted_dice_coefficient_per_class(y_true, y_pred, class_to_predict=1)
+
+        def dice_class_2(y_true, y_pred):
+            return weighted_dice_coefficient_per_class(y_true, y_pred, class_to_predict=2)
 
         metrics.append(dice_class_0)
         metrics.append(dice_class_1)
         metrics.append(dice_class_2)
 
     return metrics
+
 
 def make_custom_loss(loss):
     if loss == "weighted_sum_loss":
@@ -99,6 +102,7 @@ def make_custom_loss(loss):
 
     return loss
 
+
 def get_optimizer(clipnorm, clipvalue, lr):
     if clipnorm is None and clipvalue is None:
         return Adam(lr=lr)
@@ -107,6 +111,7 @@ def get_optimizer(clipnorm, clipvalue, lr):
     else:
         return Adam(lr=lr, clipnorm=clipnorm, clipvalue=clipvalue)
 
+
 def make_scores(y, y_pred, scores):
     scores_f = [(x, get_score(x)(y, y_pred)) for x in scores]
     return scores_f
@@ -114,8 +119,7 @@ def make_scores(y, y_pred, scores):
 
 def run_single_test(algorithm_def, gen_train, gen_val, load_weights, freeze_weights, x_test, y_test, lr,
                     batch_size, epochs, epochs_warmup, model_checkpoint, scores, loss, metrics, logging_path, kwargs,
-                    clipnorm=None, clipvalue=None,
-                    model_callback=None):
+                    clipnorm=None, clipvalue=None, model_callback=None, working_dir=None):
     print(metrics)
     print(loss)
 
@@ -180,6 +184,16 @@ def run_single_test(algorithm_def, gen_train, gen_val, load_weights, freeze_weig
             print(("-" * 10) + "RANDOM weights, encoder model is fully trainable")
             if logging_csv:
                 callbacks.append(logger_normal)
+
+        if working_dir is not None:
+            save_checkpoint_every_n_epochs = 5
+            mc_c = tf.keras.callbacks.ModelCheckpoint(str(working_dir / "weights-improvement-{epoch:03d}.hdf5"),
+                                                      monitor="val_loss",
+                                                      mode="min", save_best_only=True)  # reduce storage space
+            mc_c_epochs = tf.keras.callbacks.ModelCheckpoint(str(working_dir / "weights-{epoch:03d}.hdf5"),
+                                                             period=save_checkpoint_every_n_epochs)  # reduce storage space
+            callbacks.append(mc_c)
+            callbacks.append(mc_c_epochs)
 
         # recompile model
         model.compile(optimizer=get_optimizer(clipnorm, clipvalue, lr), loss=loss, metrics=metrics)
@@ -338,16 +352,19 @@ def run_complex_test(
                 logging_b_path = logging_base_path / f"split{train_split}initialized_rep{i}.log"
                 b = try_until_no_nan(
                     lambda: run_single_test(algorithm_def, gen_train, gen_val, True, False, x_test, y_test, lr,
-                                            batch_size, epochs_initialized, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                            batch_size, epochs_initialized, epochs_warmup, model_checkpoint, scores,
+                                            loss, metrics,
                                             logging_b_path, kwargs, clipnorm=clipnorm, clipvalue=clipvalue))
                 b_s.append(b)
             if epochs_random > 0:
                 logging_c_path = logging_base_path / f"split{train_split}random_rep{i}.log"
                 c = try_until_no_nan(
                     lambda: run_single_test(algorithm_def, gen_train, gen_val, False, False, x_test, y_test, lr,
-                                            batch_size, epochs_random, epochs_warmup, model_checkpoint, scores, loss, metrics,
+                                            batch_size, epochs_random, epochs_warmup, model_checkpoint, scores, loss,
+                                            metrics,
                                             logging_c_path,
-                                            kwargs, clipnorm=clipnorm, clipvalue=clipvalue))  # random
+                                            kwargs, clipnorm=clipnorm, clipvalue=clipvalue,
+                                            working_dir=working_dir))  # random
                 c_s.append(c)
 
         def get_avg_score(list_abc, index):
@@ -396,8 +413,10 @@ def run_complex_test(
         results.append(data)
         write_result(working_dir, data)
 
+
 def main():
     init(run_complex_test, "test")
+
 
 if __name__ == "__main__":
     main()
