@@ -9,7 +9,7 @@
   "data_dim": 224,
   "number_channels": 3,
 
-  "batch_size": 32,
+  "batch_size": 64,
   "lr": 1e-5,
   "val_split": 0.05,
   "epochs": 1000,
