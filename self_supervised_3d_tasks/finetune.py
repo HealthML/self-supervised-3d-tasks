@@ -17,7 +17,7 @@ import self_supervised_3d_tasks.utils.metrics as metrics
 from self_supervised_3d_tasks.utils.callbacks import TerminateOnNaN, NaNLossError, LogCSVWithStart
 from self_supervised_3d_tasks.utils.metrics import weighted_sum_loss, jaccard_distance, \
     weighted_categorical_crossentropy, weighted_dice_coefficient, weighted_dice_coefficient_loss, \
-    weighted_dice_coefficient_per_class
+    weighted_dice_coefficient_per_class, brats_wt_metric, brats_et_metric, brats_tc_metric
 from self_supervised_3d_tasks.test_data_backend import CvDataKaggle, StandardDataLoader
 from self_supervised_3d_tasks.train import (
     keras_algorithm_list,
@@ -68,9 +68,9 @@ def make_custom_metrics(metrics):
         metrics.append(weighted_dice_coefficient)
     if "brats_metrics" in metrics:
         metrics.remove("brats_metrics")
-        metrics.append(metrics.brats_wt_metric)
-        metrics.append(metrics.brats_tc_metric)
-        metrics.append(metrics.brats_et_metric)
+        metrics.append(brats_wt_metric)
+        metrics.append(brats_tc_metric)
+        metrics.append(brats_et_metric)
     if "weighted_dice_coefficient_per_class_pancreas" in metrics:
         metrics.remove("weighted_dice_coefficient_per_class_pancreas")
 
