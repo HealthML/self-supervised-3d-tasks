@@ -3,7 +3,7 @@
   "data_dir_train": "/home/Aiham.Taleb/netstore/brats/images_resized_128_labeled/brats/images_resized_128_labeled/train",
   "data_dir_test": "/home/Aiham.Taleb/netstore/brats/images_resized_128_labeled/brats/images_resized_128_labeled/test",
   "dataset_name": "brats",
-  "model_checkpoint": "/home/Aiham.Taleb/workspace/random_test/weights-improvement-011.hdf5",
+  "model_checkpoint": "/home/Aiham.Taleb/netstore/workspace/ukb_3d_fast/weights-improvement-011.hdf5",
   "train_data_generator_args": { "label_stem": "", "shuffle": true},
   "val_data_generator_args": {"label_stem": ""},
   "test_data_generator_args": {"label_stem": ""},
