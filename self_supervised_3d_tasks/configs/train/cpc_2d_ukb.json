@@ -19,6 +19,5 @@
   "encoder_architecture": "DenseNet121",
   "top_architecture": "big_fully",
 
-  "crop_size": 224,
-  "save_checkpoint_every_n_epochs": 25
+  "crop_size": 224
 }
