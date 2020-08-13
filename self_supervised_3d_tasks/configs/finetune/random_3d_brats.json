@@ -1,7 +1,7 @@
 {
   "algorithm": "rotation",
-  "data_dir_train": "/home/Aiham.Taleb/netstore/brats/images_resized_128_labeled/brats/images_resized_128_labeled/train",
-  "data_dir_test": "/home/Aiham.Taleb/netstore/brats/images_resized_128_labeled/brats/images_resized_128_labeled/test",
+  "data_dir_train": "/home/Aiham.Taleb/netstore/brats/images_resized_128_labeled/train",
+  "data_dir_test": "/home/Aiham.Taleb/netstore/brats/images_resized_128_labeled/test",
   "dataset_name": "brats",
   "model_checkpoint": "/home/Aiham.Taleb/netstore/workspace/ukb_3d_fast/weights-improvement-011.hdf5",
   "train_data_generator_args": { "label_stem": "", "shuffle": true},
@@ -24,9 +24,6 @@
   "loss": "weighted_dice_loss",
   "scores": ["dice", "jaccard", "brats_wt", "brats_tc", "brats_et"],
   "metrics": ["accuracy", "weighted_dice_coefficient", "brats_metrics"],
-
-  "epochs": 150,
-  "epochs_warmup": 20,
 
   "exp_splits": [100],
   "lr": 1e-4,

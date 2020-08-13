@@ -42,7 +42,10 @@ class AlgorithmBuilderBase:
         assert self.enc_model is not None, "no encoder model"
 
         if model_checkpoint is not None:
-            model.load_weights(model_checkpoint)
+            try:
+                model.load_weights(model_checkpoint)
+            except ValueError:
+                model.load_weights(model_checkpoint, by_name=True, skip_mismatch=True)
 
         self.cleanup_models.append(model)
         self.cleanup_models.append(self.enc_model)
