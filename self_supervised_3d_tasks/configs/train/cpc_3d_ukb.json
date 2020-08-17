@@ -1,6 +1,6 @@
 {
   "algorithm": "cpc",
-  "data_dir": "/mnt/projects/ukbiobank/derived/imaging/brain_mri/images_resized_128_labeled/",
+  "data_dir": "/mnt/projects/ukbiobank/derived/imaging/brain_mri/images_resized_128_labeled/train/",
   "dataset_name": "ukb3d",
 
   "data_is_3D": true,
