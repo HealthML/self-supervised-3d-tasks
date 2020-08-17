@@ -12,7 +12,7 @@
 
   "top_architecture": "big_fully",
   "number_channels": 2,
-  "batch_size": 4,
+  "batch_size": 2,
 
   "lr": 1e-4,
   "epochs": 1000
