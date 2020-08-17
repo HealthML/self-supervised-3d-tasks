@@ -1,0 +1,20 @@
+{
+  "algorithm": "cpc",
+  "data_dir": "/mnt/projects/ukbiobank/derived/imaging/brain_mri/images_resized_128_labeled/",
+  "dataset_name": "ukb3d",
+
+  "data_is_3D": true,
+
+  "code_size": 1024,
+  "enc_filters": 16,
+  "patches_per_side": 4,
+  "data_dim": 128,
+
+  "top_architecture": "big_fully",
+  "number_channels": 1,
+  "batch_size": 32,
+  "embed_dim": 64,
+
+  "lr": 1e-3,
+  "epochs": 1000
+}
