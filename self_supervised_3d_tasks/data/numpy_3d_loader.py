@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 from self_supervised_3d_tasks.data.generator_base import DataGeneratorBase
 
@@ -15,11 +17,12 @@ class DataGeneratorUnlabeled3D(DataGeneratorBase):
 
         for file_name in list_files_temp:
             path_to_image = "{}/{}".format(self.path_to_data, file_name)
-            img = np.load(path_to_image)
-            img = (img - img.min()) / (img.max() - img.min())
+            if os.path.isfile(path_to_image):
+                img = np.load(path_to_image)
+                img = (img - img.min()) / (img.max() - img.min())
 
-            data_x.append(img)
-            data_y.append(0)  # just to keep the dims right
+                data_x.append(img)
+                data_y.append(0)  # just to keep the dims right
 
         data_x = np.stack(data_x)
         data_y = np.stack(data_y)
