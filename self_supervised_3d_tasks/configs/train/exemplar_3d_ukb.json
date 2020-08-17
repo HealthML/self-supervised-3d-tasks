@@ -1,20 +1,19 @@
 {
-  "algorithm": "cpc",
+  "algorithm": "exemplar",
   "data_dir": "/mnt/projects/ukbiobank/derived/imaging/brain_mri/images_resized_128_labeled/train/",
   "dataset_name": "ukb3d",
+  "sample_neg_examples_from": "dataset",
 
   "data_is_3D": true,
 
   "code_size": 1024,
   "enc_filters": 16,
-  "patches_per_side": 4,
   "data_dim": 128,
 
   "top_architecture": "big_fully",
   "number_channels": 2,
-  "batch_size": 32,
-  "embed_dim": 64,
+  "batch_size": 4,
 
-  "lr": 1e-3,
+  "lr": 1e-4,
   "epochs": 1000
 }
