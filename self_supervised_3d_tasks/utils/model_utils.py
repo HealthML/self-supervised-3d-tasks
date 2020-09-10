@@ -92,7 +92,7 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, num_cl
         inputs_up = [x] + inputs_skip
 
         model_up_out = upconv_model(x.shape[1:], down_layers=algorithm_instance.layer_data[0],
-                                       filters=algorithm_instance.layer_data[1], num_classes=num_classes)(inputs_up)
+                                    filters=algorithm_instance.layer_data[1], num_classes=num_classes)(inputs_up)
 
         return Model(inputs=[first_input, *inputs_skip], outputs=model_up_out)
     elif name == "unet_3d_upconv":
@@ -178,25 +178,6 @@ def get_prediction_model(name, in_shape, include_top, algorithm_instance, num_cl
     return model
 
 
-def apply_prediction_model_to_encoder(
-        encoder,
-        n_prediction_layers=2,
-        dim_prediction_layers=1024,
-        prediction_architecture=None,
-        include_top=True,
-        algorithm_instance=None,
-        model_on_top=None,
-        **kwargs
-):
-    units = np.prod(encoder.outputs[0].shape[1:])
-    sub_model = apply_prediction_model((units, ), n_prediction_layers, dim_prediction_layers,
-                                       prediction_architecture, include_top, algorithm_instance, **kwargs)
-
-    if model_on_top:
-        return Sequential([encoder, Flatten(), sub_model, model_on_top])
-    else:
-        return Sequential([encoder, Flatten(), sub_model])
-
 def apply_prediction_model(
         input_shape,
         n_prediction_layers=2,
@@ -208,7 +189,8 @@ def apply_prediction_model(
         **kwargs
 ):
     if prediction_architecture is not None:
-        model = get_prediction_model(prediction_architecture, input_shape, include_top, algorithm_instance, num_classes, kwargs)
+        model = get_prediction_model(prediction_architecture, input_shape, include_top, algorithm_instance, num_classes,
+                                     kwargs)
     else:
         layer_in = Input(input_shape)
         x = layer_in
@@ -265,6 +247,7 @@ def get_encoder_model(name, in_shape, pooling):
 def get_encoder_model_3d(name, in_shape):
     raise ValueError("model " + name + " not found")
 
+
 def make_finetuning_encoder(input_shape, enc_model, f_encoder_model, t_pooling, **kwargs):
     new_enc_model, layer_data = f_encoder_model(
         input_shape, **kwargs
@@ -283,11 +266,14 @@ def make_finetuning_encoder(input_shape, enc_model, f_encoder_model, t_pooling, 
 
     return new_enc_model, layer_data
 
+
 def make_finetuning_encoder_2d(input_shape, enc_model, **kwargs):
     return make_finetuning_encoder(input_shape, enc_model, apply_encoder_model, Pooling2D, **kwargs)
 
+
 def make_finetuning_encoder_3d(input_shape, enc_model, **kwargs):
     return make_finetuning_encoder(input_shape, enc_model, apply_encoder_model_3d, Pooling3D, **kwargs)
+
 
 def apply_encoder_model_3d(
         input_shape,
@@ -346,6 +332,7 @@ def load_permutations_3d(
         perms = np.load(f)
 
     return perms, len(perms)
+
 
 def load_permutations(
         permutation_path=str(

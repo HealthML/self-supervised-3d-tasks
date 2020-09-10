@@ -37,46 +37,32 @@ class JigsawBuilder(AlgorithmBuilderBase):
 
     def apply_model(self):
         if self.data_is_3D:
-            perms, _ = load_permutations_3d()
-
-            input_x = Input(
-                (
-                    self.n_patches3D,
-                    self.patch_dim,
-                    self.patch_dim,
-                    self.patch_dim,
-                    self.number_channels,
-                )
-            )
             self.enc_model, _ = apply_encoder_model_3d(
-                (self.patch_dim, self.patch_dim, self.patch_dim, self.number_channels,),
-                **self.kwargs
-            )
+                (self.patch_dim, self.patch_dim, self.patch_dim, self.number_channels,), **self.kwargs)
+        else:
+            self.enc_model, _ = apply_encoder_model((self.patch_dim, self.patch_dim, self.number_channels,),
+                                                    **self.kwargs)
+
+        return self.apply_prediction_model_to_encoder(self.enc_model)
+
+    def apply_prediction_model_to_encoder(self, encoder_model):
+        if self.data_is_3D:
+            perms, _ = load_permutations_3d()
+            x_input = Input((self.n_patches3D, self.patch_dim, self.patch_dim, self.patch_dim, self.number_channels))
         else:
             perms, _ = load_permutations()
+            x_input = Input((self.n_patches, self.patch_dim, self.patch_dim, self.number_channels))
 
-            input_x = Input(
-                (self.n_patches, self.patch_dim, self.patch_dim, self.number_channels)
-            )
-            self.enc_model, _ = apply_encoder_model(
-                (self.patch_dim, self.patch_dim, self.number_channels,), **self.kwargs
-            )
-
-        x = TimeDistributed(self.enc_model)(input_x)
+        x = TimeDistributed(self.enc_model)(x_input)
         x = Flatten()(x)
 
-        a = apply_prediction_model(
-            x.shape[1:],
-            prediction_architecture=self.top_architecture,
-            include_top=False,
-        )
-
+        embedding_layer = apply_prediction_model(x.shape[1:], prediction_architecture=self.top_architecture,
+                                                 include_top=False)
+        embedding = embedding_layer(x)
         last_layer = Dense(len(perms), activation="softmax")
-        out = a(x)
-        out = last_layer(out)
+        out = last_layer(embedding)
 
-        model = Model(inputs=input_x, outputs=out, name="jigsaw_complete")
-        return model
+        return Model(inputs=x_input, outputs=out, name="jigsaw_complete")
 
     def get_training_model(self):
         model = self.apply_model()

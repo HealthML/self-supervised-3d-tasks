@@ -34,22 +34,16 @@ class ExemplarBuilder(AlgorithmBuilderBase):
 
     def apply_model(self):
         if self.data_is_3D:
-            self.enc_model, self.layer_data = apply_encoder_model_3d(
-                (*self.dim, self.number_channels), **self.kwargs
-            )
+            self.enc_model, self.layer_data = apply_encoder_model_3d((*self.dim, self.number_channels), **self.kwargs)
         else:
-            self.enc_model, self.layer_data = apply_encoder_model(
-                (*self.dim, self.number_channels), **self.kwargs
-            )
+            self.enc_model, self.layer_data = apply_encoder_model((*self.dim, self.number_channels), **self.kwargs)
+        return self.apply_prediction_model_to_encoder(self.enc_model)
 
+    def apply_prediction_model_to_encoder(self, encoder_model):
         input_layer = Input((3, *self.dim, self.number_channels), name="Input")
         anchor_input = Lambda(lambda x: x[:, 0, :], name="anchor_input")(input_layer)
-        positive_input = Lambda(lambda x: x[:, 1, :], name="positive_input")(
-            input_layer
-        )
-        negative_input = Lambda(lambda x: x[:, 2, :], name="negative_input")(
-            input_layer
-        )
+        positive_input = Lambda(lambda x: x[:, 1, :], name="positive_input")(input_layer)
+        negative_input = Lambda(lambda x: x[:, 2, :], name="negative_input")(input_layer)
 
         encoded_a = Dense(self.code_size, activation="sigmoid")(Flatten()(self.enc_model(anchor_input)))
         encoded_p = Dense(self.code_size, activation="sigmoid")(Flatten()(self.enc_model(positive_input)))
@@ -60,8 +54,7 @@ class ExemplarBuilder(AlgorithmBuilderBase):
 
         output = Concatenate(axis=-2)([encoded_a, encoded_p, encoded_n])
 
-        model = Model(inputs=input_layer, outputs=output)
-        return model
+        return Model(inputs=input_layer, outputs=output)
 
     def get_training_model(self):
         model = self.apply_model()
@@ -71,6 +64,7 @@ class ExemplarBuilder(AlgorithmBuilderBase):
     def get_training_preprocessing(self):
         f = get_exemplar_training_preprocessing(self.data_is_3D, self.sample_neg_examples_from)
         return f, f
+
 
 def create_instance(*params, **kwargs):
     return ExemplarBuilder(*params, **kwargs)

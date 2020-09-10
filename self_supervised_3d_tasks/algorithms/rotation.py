@@ -1,11 +1,12 @@
-from tensorflow.keras.layers import Dense
+import numpy as np
+from tensorflow.keras.layers import Dense, Flatten
 from tensorflow.keras.optimizers import Adam
-
+from tensorflow.python.keras import Sequential
 from self_supervised_3d_tasks.algorithms.algorithm_base import AlgorithmBuilderBase
 from self_supervised_3d_tasks.utils.model_utils import (
     apply_encoder_model,
     apply_encoder_model_3d,
-    apply_prediction_model_to_encoder)
+    apply_prediction_model)
 from self_supervised_3d_tasks.preprocessing.preprocess_rotation import (
     rotate_batch,
     rotate_batch_3d,
@@ -36,22 +37,20 @@ class RotationBuilder(AlgorithmBuilderBase):
 
     def apply_model(self):
         if self.data_is_3D:
-            self.enc_model, self.layer_data = apply_encoder_model_3d(
-                self.img_shape_3d, **self.kwargs
-            )
+            self.enc_model, self.layer_data = apply_encoder_model_3d(self.img_shape_3d, **self.kwargs)
+        else:
+            self.enc_model, self.layer_data = apply_encoder_model(self.img_shape, **self.kwargs)
+
+        return self.apply_prediction_model_to_encoder(self.enc_model)
+
+    def apply_prediction_model_to_encoder(self, encoder_model):
+        if self.data_is_3D:
             x = Dense(10, activation="softmax")
         else:
-            self.enc_model, self.layer_data = apply_encoder_model(
-                self.img_shape, **self.kwargs
-            )
             x = Dense(4, activation="softmax")
-
-        return apply_prediction_model_to_encoder(
-            self.enc_model,
-            prediction_architecture=self.top_architecture,
-            include_top=False,
-            model_on_top=x
-        )
+        units = np.prod(encoder_model.outputs[0].shape[1:])
+        sub_model = apply_prediction_model((units,), prediction_architecture=self.top_architecture, include_top=False)
+        return Sequential([encoder_model, Flatten(), sub_model, x])
 
     def get_training_model(self):
         model = self.apply_model()
@@ -74,7 +73,6 @@ class RotationBuilder(AlgorithmBuilderBase):
             return f_3d, f_3d
         else:
             return f, f
-
 
     def purge(self):
         for i in reversed(range(len(self.cleanup_models))):

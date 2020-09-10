@@ -7,13 +7,13 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import Flatten, TimeDistributed
 
 from self_supervised_3d_tasks.algorithms.algorithm_base import AlgorithmBuilderBase
-from self_supervised_3d_tasks.utils.model_utils import apply_encoder_model_3d, apply_encoder_model
 from self_supervised_3d_tasks.preprocessing.preprocess_cpc import (
     preprocess_grid_2d,
     preprocess_3d,
     preprocess_grid_3d,
     preprocess_2d
 )
+from self_supervised_3d_tasks.utils.model_utils import apply_encoder_model_3d, apply_encoder_model
 
 
 def network_autoregressive(x):
@@ -88,20 +88,25 @@ class CPCBuilder(AlgorithmBuilderBase):
     def apply_model(self):
         if self.data_is_3D:
             self.enc_model, _ = apply_encoder_model_3d(self.img_shape_3d, **self.kwargs)
-            x_input = Input((self.terms, self.image_size, self.image_size, self.image_size, self.number_channels))
-            y_input = keras.layers.Input(
-                (self.predict_terms, self.image_size, self.image_size, self.image_size, self.number_channels))
         else:
             self.enc_model, _ = apply_encoder_model(self.img_shape, **self.kwargs)
-            x_input = Input((self.terms, self.image_size, self.image_size, self.number_channels))
-            y_input = keras.layers.Input((self.predict_terms, self.image_size, self.image_size, self.number_channels))
 
-        model_with_embed_dim = Sequential([self.enc_model, Flatten(), Dense(self.code_size)])
+        return self.apply_prediction_model_to_encoder(self.enc_model)
+
+    def apply_prediction_model_to_encoder(self, encoder_model):
+        if self.data_is_3D:
+            x_input = Input((self.terms, self.image_size, self.image_size, self.image_size, self.number_channels))
+            y_input = Input(
+                (self.predict_terms, self.image_size, self.image_size, self.image_size, self.number_channels))
+        else:
+            x_input = Input((self.terms, self.image_size, self.image_size, self.number_channels))
+            y_input = Input((self.predict_terms, self.image_size, self.image_size, self.number_channels))
+        model_with_embed_dim = Sequential([encoder_model, Flatten(), Dense(self.code_size)])
         x_encoded = TimeDistributed(model_with_embed_dim)(x_input)
         context = network_autoregressive(x_encoded)
         preds = network_prediction(context, self.code_size, self.predict_terms)
 
-        y_encoded = keras.layers.TimeDistributed(model_with_embed_dim)(y_input)
+        y_encoded = TimeDistributed(model_with_embed_dim)(y_input)
         dot_product_probs = CPCLayer()([preds, y_encoded])
         cpc_model = keras.models.Model(inputs=[x_input, y_input], outputs=dot_product_probs)
 

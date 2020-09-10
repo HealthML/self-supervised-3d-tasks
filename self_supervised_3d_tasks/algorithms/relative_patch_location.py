@@ -1,5 +1,6 @@
-from tensorflow.keras import Model, Input
-from tensorflow.keras.layers import TimeDistributed, Dense
+import numpy as np
+from tensorflow.keras import Model, Input, Sequential
+from tensorflow.keras.layers import TimeDistributed, Dense, Flatten
 from tensorflow.keras.optimizers import Adam
 
 from self_supervised_3d_tasks.algorithms.algorithm_base import AlgorithmBuilderBase
@@ -7,11 +8,11 @@ from self_supervised_3d_tasks.preprocessing.preprocess_rpl import (
     preprocess_batch,
     preprocess_batch_3d
 )
-
 from self_supervised_3d_tasks.utils.model_utils import (
     apply_encoder_model,
     apply_encoder_model_3d,
-    apply_prediction_model_to_encoder, make_finetuning_encoder_3d, make_finetuning_encoder_2d)
+    apply_prediction_model)
+
 
 class RelativePatchLocationBuilder(AlgorithmBuilderBase):
     def __init__(
@@ -34,36 +35,32 @@ class RelativePatchLocationBuilder(AlgorithmBuilderBase):
         self.patch_dim = (data_dim // patches_per_side) - patch_jitter
 
         self.patch_shape = (self.patch_dim, self.patch_dim, number_channels)
-        self.patch_count = patches_per_side**2
+        self.patch_count = patches_per_side ** 2
 
         if self.data_is_3D:
             self.patch_shape = (self.patch_dim,) + self.patch_shape
-            self.patch_count = self.patches_per_side**3
+            self.patch_count = self.patches_per_side ** 3
 
-        self.images_shape = (2, ) + self.patch_shape
+        self.images_shape = (2,) + self.patch_shape
         self.class_count = self.patch_count - 1
-
 
     def apply_model(self):
         if self.data_is_3D:
-            self.enc_model, _ = apply_encoder_model_3d(
-                self.patch_shape, **self.kwargs
-            )
+            self.enc_model, _ = apply_encoder_model_3d(self.patch_shape, **self.kwargs)
         else:
-            self.enc_model, _ = apply_encoder_model(
-                self.patch_shape, **self.kwargs
-            )
+            self.enc_model, _ = apply_encoder_model(self.patch_shape, **self.kwargs)
 
+        return self.apply_prediction_model_to_encoder(self.enc_model)
+
+    def apply_prediction_model_to_encoder(self, encoder_model):
         x_input = Input(self.images_shape)
-        enc_out = TimeDistributed(self.enc_model)(x_input)
-
+        enc_out = TimeDistributed(encoder_model)(x_input)
+        encoder = Model(x_input, enc_out)
+        units = np.prod(encoder.outputs[0].shape[1:])
+        sub_model = apply_prediction_model((units,), prediction_architecture=self.top_architecture, include_top=False)
         x = Dense(self.class_count, activation="softmax")
-        return apply_prediction_model_to_encoder(
-            Model(x_input, enc_out),
-            prediction_architecture=self.top_architecture,
-            include_top=False,
-            model_on_top=x
-        )
+
+        return Sequential([encoder_model, Flatten(), sub_model, x])
 
     def get_training_model(self):
         model = self.apply_model()

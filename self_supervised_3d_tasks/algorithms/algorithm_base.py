@@ -25,6 +25,9 @@ class AlgorithmBuilderBase:
     def apply_model(self):
         pass
 
+    def apply_prediction_model_to_encoder(self, encoder_model):
+        pass
+
     def get_training_model(self):
         pass
 
