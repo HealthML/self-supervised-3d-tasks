@@ -60,7 +60,7 @@ class RelativePatchLocationBuilder(AlgorithmBuilderBase):
         sub_model = apply_prediction_model((units,), prediction_architecture=self.top_architecture, include_top=False)
         x = Dense(self.class_count, activation="softmax")
 
-        return Sequential([encoder_model, Flatten(), sub_model, x])
+        return Sequential([encoder, Flatten(), sub_model, x])
 
     def get_training_model(self):
         model = self.apply_model()
