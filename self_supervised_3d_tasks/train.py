@@ -3,7 +3,7 @@ from self_supervised_3d_tasks.utils.model_utils import init, print_flat_summary
 from pathlib import Path
 
 import tensorflow.keras as keras
-from self_supervised_3d_tasks.data.numpy_3d_loader import DataGeneratorUnlabeled3D
+from self_supervised_3d_tasks.data.numpy_3d_loader import DataGeneratorUnlabeled3D, PatchDataGeneratorUnlabeled3D
 
 from self_supervised_3d_tasks.data.make_data_generator import get_data_generators
 from self_supervised_3d_tasks.data.image_2d_loader import DataGeneratorUnlabeled2D
@@ -24,7 +24,7 @@ data_gen_list = {
     "pancreas2d": Numpy2DLoader,
     "brats": DataGeneratorUnlabeled3D,
     "ukb2d": DataGeneratorUnlabeled2D,
-    "ukb3d": DataGeneratorUnlabeled3D
+    "ukb3d": PatchDataGeneratorUnlabeled3D
 }
 
 
@@ -73,8 +73,10 @@ def train_model(algorithm, data_dir, dataset_name, root_config_file, epochs=250,
         callbacks=callbacks
     )
 
+
 def main():
     init(train_model)
+
 
 if __name__ == "__main__":
     main()
