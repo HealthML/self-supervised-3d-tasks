@@ -7,25 +7,9 @@ import numpy as np
 import traceback
 
 
-def norm(im):
-    im = im.astype(np.float32)
-    min_v = np.min(im)
-    max_v = np.max(im)
-    im = (im - min_v) / (max_v - min_v)
-    return im
-
-
-def read_scan(sbbox, nif_file, normalize=True):
-    if normalize:
-        image = norm(nif_file.get_fdata()[sbbox[0]:sbbox[1], sbbox[2]:sbbox[3], sbbox[4]:sbbox[5]])
-    else:
-        image = nif_file.get_fdata()[sbbox[0]:sbbox[1], sbbox[2]:sbbox[3], sbbox[4]:sbbox[5]]
-    return image
-
-
 def convert_mri_unlabeled():
-    source_path = "/mnt/30T/data/ukbiobank/original/imaging/brain_mri/"
-    destination_path = "/mnt/30T/data/ukbiobank/derived/imaging/brain_mri/"
+    source_path = "/mnt/projects/ukbiobank/original/imaging/brain_mri/"
+    destination_path = "/mnt/projects/ukbiobank/derived/imaging/brain_mri/"
     t1_zip_files = sorted(glob.glob(source_path + "T1_structural_brain_mri/archive/**/" + "*.zip", recursive=True))
     t2_flair_zip_files = sorted(
         glob.glob(source_path + "T2_FLAIR_structural_brain_mri/archive/**/" + "*.zip", recursive=True))
@@ -77,6 +61,7 @@ def convert_mri_masks(type='fast'):
     count = 0
     for filename in filename_list:
         id = os.path.basename(filename).split(".")[0]
+
         count += 1
         if type == 'fast':
             mask = nib.load(source_path + str(id) + '_20252_2_0/T1/T1_fast/T1_brain_seg.nii.gz').get_data()
