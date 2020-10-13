@@ -1,13 +1,12 @@
 import os
 import random
 
-from self_supervised_3d_tasks.data.segmentation_task_loader import SegmentationGenerator3D
 
 def get_data_generators_internal(data_path, files, data_generator, train_split=None, val_split=None,
-                        train_data_generator_args={},
-                        test_data_generator_args={},
-                        val_data_generator_args={},
-                        **kwargs):
+                                 train_data_generator_args={},
+                                 test_data_generator_args={},
+                                 val_data_generator_args={},
+                                 **kwargs):
     if val_split:
         assert train_split, "val split cannot be set without train split"
 
@@ -57,8 +56,8 @@ def get_data_generators_internal(data_path, files, data_generator, train_split=N
 
 class CrossValidationDataset():
     def __init__(self, chunks, data_path, data_generator, train_data_generator_args={},
-                        test_data_generator_args={},
-                        val_data_generator_args={}, **kwargs):
+                 test_data_generator_args={},
+                 val_data_generator_args={}, **kwargs):
 
         self.k_fold = len(chunks)
         self.chunks = chunks
@@ -77,31 +76,35 @@ class CrossValidationDataset():
             if not (i == test_chunk):
                 train_val += self.chunks[i]
 
-        train_and_val = get_data_generators_internal(self.data_path, train_val, self.data_generator, train_split=train_split,
-                                            val_split=val_split,  # val split can only be used to throw away some data
-                                            train_data_generator_args=self.train_data_generator_args,
-                                            val_data_generator_args=self.val_data_generator_args,
-                                            test_data_generator_args=self.test_data_generator_args,
-                                            **self.kwargs)
+        train_and_val = get_data_generators_internal(self.data_path, train_val, self.data_generator,
+                                                     train_split=train_split,
+                                                     val_split=val_split,
+                                                     # val split can only be used to throw away some data
+                                                     train_data_generator_args=self.train_data_generator_args,
+                                                     val_data_generator_args=self.val_data_generator_args,
+                                                     test_data_generator_args=self.test_data_generator_args,
+                                                     **self.kwargs)
         test = get_data_generators_internal(self.data_path, test, self.data_generator, train_split=None,
-                                                 val_split=None,
-                                                 train_data_generator_args=self.test_data_generator_args,
-                                                 **self.kwargs)
+                                            val_split=None,
+                                            train_data_generator_args=self.test_data_generator_args,
+                                            **self.kwargs)
 
         if len(train_and_val) > 2:
             train_and_val = train_and_val[:2]  # remove the test generator
 
-        return train_and_val + (test, )
+        return train_and_val + (test,)
 
-def chunkify(lst,n):
+
+def chunkify(lst, n):
     return [lst[i::n] for i in range(n)]
 
+
 def make_cross_validation(data_path, data_generator, k_fold=5, files=None,
-                        train_data_generator_args={},
-                        test_data_generator_args={},
-                        val_data_generator_args={},
-                        shuffle_before_split=False,
-                        **kwargs):
+                          train_data_generator_args={},
+                          test_data_generator_args={},
+                          val_data_generator_args={},
+                          shuffle_before_split=False,
+                          **kwargs):
     if files is None:
         # List images in directory
         files = os.listdir(data_path)
@@ -140,7 +143,7 @@ def get_data_generators(data_path, data_generator, train_split=None, val_split=N
         random.shuffle(files)
 
     return get_data_generators_internal(data_path, files, data_generator, train_split=train_split, val_split=val_split,
-                        train_data_generator_args=train_data_generator_args,
-                        test_data_generator_args=test_data_generator_args,
-                        val_data_generator_args=val_data_generator_args,
-                        **kwargs)
+                                        train_data_generator_args=train_data_generator_args,
+                                        test_data_generator_args=test_data_generator_args,
+                                        val_data_generator_args=val_data_generator_args,
+                                        **kwargs)
