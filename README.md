@@ -2,7 +2,7 @@
 
 Keras implementation of multiple self-supervised methods for 3D and 2D applications. This repository implements all the methods in this paper: [3D Self-Supervised Methods for Medical Imaging](https://arxiv.org/abs/2006.03829)
 
-If you find this repository useful, please consider citing our paper in your work:
+If you find this repository useful, please consider citing our paper in your work: (this work is **accepted** at NeurIPS 2020, stay tuned for the proceedings version)
 ```
 @misc{taleb20203d,
     title={3D Self-Supervised Methods for Medical Imaging},
