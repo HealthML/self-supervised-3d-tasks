@@ -159,3 +159,5 @@ Finetuning:
   "enc_filters": "Integer. Amount of filters used for the encoder model"
 }
 ```
+
+A sample labels csv file for the kaggle retina dataset can be found in: self_supervised_3d_tasks/data/example_labels_retina.csv 
