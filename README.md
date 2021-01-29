@@ -35,7 +35,7 @@ Make sure you have [anaconda](https://docs.conda.io/projects/conda/en/latest/use
 
 Then perform the following commands, while you are in your desired workspace directory:
 ```shell script
-git clone https://gitlab.com/statistical-genomics/self-supervised-3d-tasks.git
+git clone https://github.com/HealthML/self-supervised-3d-tasks.git
 cd self-supervised-3d-tasks
 conda env create -f env_all_platforms.yml
 conda activate conda-env
