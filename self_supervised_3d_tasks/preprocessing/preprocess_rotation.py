@@ -38,7 +38,9 @@ def rotate_batch_3d(x, y=None):
     for index, volume in enumerate(x):
         rot = np.random.random_integers(10) - 1
 
-        if rot == 1:
+        if rot == 0:
+            volume = volume
+        elif rot == 1:
             volume = np.transpose(np.flip(volume, 1), (1, 0, 2, 3))  # 90 deg Z
         elif rot == 2:
             volume = np.flip(volume, (0, 1))  # 180 degrees on z axis
@@ -54,7 +56,7 @@ def rotate_batch_3d(x, y=None):
             volume = np.transpose(np.flip(volume, 0), (2, 1, 0, 3))  # 90 deg Y
         elif rot == 8:
             volume = np.flip(volume, (0, 2))  # 180 degrees on y axis
-        elif rot == 10:
+        elif rot == 9:
             volume = np.flip(np.transpose(volume, (2, 1, 0, 3)), 0)  # 90 deg Y
 
         rotated_batch.append(volume)
