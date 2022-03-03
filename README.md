@@ -1,6 +1,6 @@
 # 3D Self-Supervised Methods for Medical Imaging
 
-Keras implementation of multiple self-supervised methods for 3D and 2D applications. This repository implements all the methods in this paper: [3D Self-Supervised Methods for Medical Imaging](https://arxiv.org/abs/2006.03829)
+Keras implementation of multiple self-supervised methods for 3D and 2D applications. This repository implements all the methods in this paper: [3D Self-Supervised Methods for Medical Imaging](https://proceedings.neurips.cc/paper/2020/hash/d2dc6368837861b42020ee72b0896182-Abstract.html)
 
 If you find this repository useful, please consider citing our paper in your work: 
 ```
